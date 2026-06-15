@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Waad Academy — School Improvement Platform v12</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1a2744;--navy2:#243057;--teal:#0d9488;--teal2:#0f766e;
+  --gold:#d97706;--red:#dc2626;--green:#16a34a;--blue:#2563eb;
+  --purple:#7c3aed;--bg:#f1f5f9;--white:#fff;--border:#e2e8f0;
+  --text:#1e293b;--muted:#64748b;--light:#f8fafc;
+  --sidebar:220px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+/* ---- LAYOUT ---- */
+#app{display:flex;min-height:100vh;}
+#sidebar{width:var(--sidebar);background:var(--navy);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;}
+#main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+#topbar{background:var(--navy2);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2d3f6b;position:sticky;top:0;z-index:50;}
+#content{padding:24px;flex:1;}
+/* ---- SIDEBAR ---- */
+.sb-logo{padding:20px 16px 12px;border-bottom:1px solid #2d3f6b;}
+.sb-logo .school-name{font-size:13px;font-weight:700;color:#fff;line-height:1.3;}
+.sb-logo .platform-name{font-size:11px;color:#94a3b8;margin-top:2px;}
+.sb-user{padding:10px 16px;border-bottom:1px solid #2d3f6b;font-size:11px;color:#94a3b8;}
+.sb-user strong{display:block;color:#e2e8f0;font-size:12px;}
+nav a{display:flex;align-items:center;gap:8px;padding:9px 16px;color:#cbd5e1;text-decoration:none;font-size:13px;transition:background .15s;}
+nav a:hover,nav a.active{background:#2d3f6b;color:#fff;}
+nav a .icon{width:18px;text-align:center;font-size:14px;}
+.sb-footer{margin-top:auto;padding:12px 16px;border-top:1px solid #2d3f6b;}
+.sb-footer .live-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#86efac;}
+.sb-footer .live-dot{width:6px;height:6px;background:#4ade80;border-radius:50%;}
+/* ---- TOPBAR ---- */
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-right{display:flex;align-items:center;gap:12px;font-size:12px;color:#94a3b8;}
+/* ---- CARDS & UI ---- */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+.page-title{font-size:20px;font-weight:700;color:var(--navy);}
+.page-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.card{background:var(--white);border-radius:10px;border:1px solid var(--border);padding:20px;margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--navy);}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;}
+.stat-val{font-size:28px;font-weight:700;color:var(--navy);}
+.stat-val.teal{color:var(--teal);}
+.stat-val.gold{color:var(--gold);}
+.stat-val.green{color:var(--green);}
+.stat-val.blue{color:var(--blue);}
+.stat-label{font-size:11px;color:var(--muted);margin-top:4px;}
+.stat-sub{font-size:10px;color:var(--muted);}
+/* ---- BUTTONS ---- */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;}
+.btn-primary{background:var(--navy);color:#fff;}
+.btn-primary:hover{background:var(--navy2);}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-teal:hover{background:var(--teal2);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-gold{background:var(--gold);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{background:var(--bg);}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{filter:brightness(.9);}
+/* ---- FORMS ---- */
+.form-group{margin-bottom:14px;}
+label.form-label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;}
+input[type=text],input[type=password],input[type=date],input[type=number],textarea,select{
+  width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;
+  background:var(--white);color:var(--text);outline:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--teal);}
+textarea{resize:vertical;min-height:60px;}
+/* ---- TABLES ---- */
+table{width:100%;border-collapse:collapse;}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);font-size:13px;}
+th{background:var(--light);font-weight:600;color:var(--navy);font-size:12px;}
+tr:hover td{background:#f8fafc;}
+/* ---- BADGES ---- */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-navy{background:#dbeafe;color:var(--navy);}
+.badge-teal{background:#ccfbf1;color:var(--teal2);}
+.badge-gold{background:#fef3c7;color:#92400e;}
+.badge-green{background:#dcfce7;color:#166534;}
+.badge-red{background:#fee2e2;color:var(--red);}
+.badge-purple{background:#ede9fe;color:var(--purple);}
+.badge-gray{background:#f1f5f9;color:var(--muted);}
+/* ---- MODALS ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--white);border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;}
+.modal-title{font-size:16px;font-weight:700;color:var(--navy);}
+.modal-body{padding:20px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--white);position:sticky;bottom:0;}
+.close-btn{background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);padding:4px;}
+/* ---- TABS ---- */
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:16px;flex-wrap:wrap;}
+.tab-btn{padding:8px 14px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--navy);}
+/* ---- LOGIN ---- */
+#login-screen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999;}
+.login-box{background:#fff;border-radius:14px;padding:36px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo .school{font-size:18px;font-weight:700;color:var(--navy);}
+.login-logo .sub{font-size:12px;color:var(--muted);}
+.login-error{background:#fee2e2;color:var(--red);padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;display:none;}
+/* ---- TEACHER GROUPS ---- */
+.tlc-group{background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+.tlc-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--light);border-bottom:1px solid var(--border);}
+.tlc-name{font-weight:600;font-size:14px;color:var(--navy);}
+.tlc-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:14px;}
+.teacher-card{border:1px solid var(--border);border-radius:8px;padding:12px;}
+.teacher-name{font-weight:600;font-size:13px;}
+.teacher-meta{font-size:11px;color:var(--muted);margin:2px 0 6px;}
+.teacher-actions{display:flex;gap:6px;margin-top:8px;align-items:center;}
+/* ---- OBSERVATION LIST ---- */
+.obs-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;}
+.obs-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.obs-teacher{font-weight:600;font-size:14px;}
+.obs-meta{font-size:11px;color:var(--muted);}
+.obs-score{font-size:18px;font-weight:700;color:var(--teal);white-space:nowrap;}
+.obs-domains{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;font-size:11px;color:var(--muted);}
+.obs-feedback{font-size:12px;margin:4px 0;}
+.obs-feedback span{font-weight:600;}
+.obs-actions{display:flex;gap:8px;align-items:center;margin-top:8px;}
+/* ---- DOMAIN TABS IN OBS FORM ---- */
+.domain-tabs{display:flex;gap:2px;margin-bottom:14px;flex-wrap:wrap;}
+.domain-tab{padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;background:var(--white);color:var(--muted);}
+.domain-tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.criteria-grid{display:grid;gap:10px;}
+.criteria-item label{font-size:13px;font-weight:500;display:block;margin-bottom:4px;}
+.score-row{display:flex;gap:6px;}
+.score-btn{width:36px;height:36px;border-radius:6px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);transition:all .15s;}
+.score-btn.selected{background:var(--navy);color:#fff;border-color:var(--navy);}
+/* ---- IMPACT ---- */
+.impact-tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;}
+.impact-tab{padding:8px 14px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);background:var(--white);}
+.impact-tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.level-card{border:2px solid;border-radius:10px;padding:16px;margin-bottom:12px;}
+.level-card.l1{border-color:#2563eb;background:#eff6ff;}
+.level-card.l2{border-color:#d97706;background:#fffbeb;}
+.level-card.l3{border-color:#16a34a;background:#f0fdf4;}
+.level-title{font-size:14px;font-weight:700;margin-bottom:12px;}
+.level-title.l1{color:#1d4ed8;}
+.level-title.l2{color:#b45309;}
+.level-title.l3{color:#15803d;}
+.indicator-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.indicator-card{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.indicator-name{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.indicator-score{font-size:22px;font-weight:700;color:var(--teal);}
+.indicator-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.indicator-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;}
+.indicator-bar-fill{height:100%;background:var(--teal);border-radius:2px;}
+/* ---- CHECKLIST ---- */
+.check-grid{display:grid;gap:8px;}
+.check-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--white);}
+.check-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;}
+/* ---- PROCESS AUDIT ---- */
+.audit-domain{margin-bottom:20px;}
+.audit-domain-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid var(--border);}
+.audit-criterion{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
+.audit-criterion-label{flex:1;font-size:13px;}
+.audit-score-row{display:flex;gap:4px;}
+.audit-score-btn{width:28px;height:28px;border-radius:4px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);}
+.audit-score-btn.sel{background:var(--teal);color:#fff;border-color:var(--teal);}
+/* ---- SCHEDULE ---- */
+.schedule-month{margin-bottom:20px;}
+.schedule-month-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.event-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;background:var(--white);border:1px solid var(--border);margin-bottom:6px;}
+.event-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.event-dot.whole-school{background:var(--navy);}
+.event-dot.dept{background:var(--teal);}
+.event-dot.obs{background:var(--gold);}
+.event-dot.coaching{background:var(--purple);}
+.event-info{flex:1;}
+.event-title{font-size:13px;font-weight:600;}
+.event-meta{font-size:11px;color:var(--muted);}
+/* ---- EEF CARDS ---- */
+.eef-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.eef-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:var(--white);}
+.eef-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;}
+.eef-mechanism{font-size:13px;font-weight:600;margin-bottom:6px;}
+.eef-status{font-size:12px;}
+.eef-status.full{color:var(--green);}
+.eef-status.partial{color:var(--gold);}
+.eef-status.absent{color:var(--red);}
+/* ---- RESOURCES ---- */
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.resource-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:var(--white);}
+.resource-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.resource-desc{font-size:12px;color:var(--muted);margin-bottom:8px;}
+/* ---- STEPLAB ---- */
+.steplab-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:var(--white);margin-bottom:10px;}
+/* ---- COACHING ---- */
+.coaching-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:var(--white);margin-bottom:10px;}
+/* ---- NOTIFICATIONS ---- */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast-item{padding:10px 16px;border-radius:8px;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:slideIn .2s ease;}
+.toast-success{background:var(--green);}
+.toast-error{background:var(--red);}
+.toast-info{background:var(--blue);}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+/* ---- FILTER BAR ---- */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-bar label{font-size:12px;font-weight:600;color:var(--muted);}
+.filter-bar select{width:auto;min-width:140px;}
+/* ---- PROGRESS BAR ---- */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s;}
+/* ---- HEAT MAP ---- */
+.heat-table{border-collapse:collapse;width:100%;}
+.heat-table th,.heat-table td{padding:6px 10px;border:1px solid var(--border);font-size:12px;}
+.heat-table th{background:var(--light);text-align:center;}
+.heat-0{background:#fee2e2;}
+.heat-1{background:#fef3c7;}
+.heat-2{background:#d1fae5;}
+.heat-3{background:#a7f3d0;}
+/* ---- ROLE MATRIX ---- */
+.role-matrix th{font-size:11px;padding:4px;}
+.role-matrix td{font-size:12px;text-align:center;}
+.role-check{color:var(--green);}
+/* ---- SUBJECT PILLS ---- */
+.subject-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.subject-pill{padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid var(--border);cursor:pointer;user-select:none;background:var(--white);}
+.subject-pill.selected{background:var(--navy);color:#fff;border-color:var(--navy);}
+/* ---- RESPONSIVE ---- */
+@media(max-width:768px){
+  #sidebar{width:100%;position:relative;height:auto;}
+  #main{margin-left:0;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div style="font-size:32px;margin-bottom:8px;">🏫</div>
+      <div class="school">Waad Academy</div>
+      <div class="sub">School Improvement Platform v12</div>
+    </div>
+    <div class="login-error" id="login-error">Invalid username or password.</div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input type="text" id="login-user" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+    <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:12px;">Default admin: admin / waad2026</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-logo">
+      <div class="school-name" id="sb-school-name">🏫 Waad Academy</div>
+      <div class="platform-name">School Improvement Platform</div>
+    </div>
+    <div class="sb-user">
+      <strong id="sb-user-name">Admin</strong>
+      <span id="sb-user-role">Administrator</span>
+    </div>
+    <nav id="sidebar-nav"></nav>
+    <div class="sb-footer">
+      <div class="live-badge"><span class="live-dot"></span> Live</div>
+      <div style="font-size:11px;color:#64748b;margin-top:4px;" id="sb-obs-count">0 obs recorded</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <span id="topbar-user"></span>
+        <button class="btn btn-sm btn-outline" style="color:#fff;border-color:#4a5568;" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modal-container"></div>
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const PAGES = ['dashboard','schedule','teachers','cpds','coaching','effectivecpd','impact','audit','resources','steplab','settings'];
+const PAGE_LABELS = {
+  dashboard:'📊 Dashboard',schedule:'📅 Annual Schedule',teachers:'👩‍🏫 Teachers',
+  cpds:'📋 Build CPDs',coaching:'🎯 Coaching',effectivecpd:'📚 Effective CPD',
+  impact:'📈 Impact',audit:'✅ Process Audit',resources:'📎 Resources',
+  steplab:'🔗 Steplab',settings:'⚙️ Settings'
+};
+const ROLE_ACCESS = {
+  admin:PAGES,
+  obsLead:['dashboard','schedule','teachers','cpds','impact','resources'],
+  coachLead:['dashboard','teachers','coaching','impact','resources'],
+  cpdLead:['dashboard','schedule','teachers','cpds','effectivecpd','impact','audit','resources','settings'],
+  deptHead:['dashboard','schedule','teachers','cpds','coaching','impact','resources'],
+  viewer:['dashboard','cpds','impact','resources'],
+  teacher:['dashboard','resources']
+};
+const BUILT_IN_ROLES = [
+  {key:'admin',label:'Administrator',access:PAGES,canEdit:true,scoped:false},
+  {key:'obsLead',label:'Observation Lead',access:['dashboard','schedule','teachers','cpds','impact','resources'],canEdit:true,scoped:true},
+  {key:'coachLead',label:'Coaching Lead',access:['dashboard','teachers','coaching','impact','resources'],canEdit:true,scoped:false},
+  {key:'cpdLead',label:'CPD Lead',access:['dashboard','schedule','teachers','cpds','effectivecpd','impact','audit','resources','settings'],canEdit:true,scoped:false},
+  {key:'deptHead',label:'Head of Department',access:['dashboard','schedule','teachers','cpds','coaching','impact','resources'],canEdit:true,scoped:true},
+  {key:'viewer',label:'Viewer',access:['dashboard','cpds','impact','resources'],canEdit:false,scoped:false},
+  {key:'teacher',label:'Teacher',access:['dashboard','resources'],canEdit:false,scoped:false}
+];
+const SUBJECTS = ['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
+const DOMAINS = [
+  {key:'d1',label:'Planning',criteria:['Objective clarity','Differentiation','Resources','Sequence']},
+  {key:'d2',label:'Environment',criteria:['Classroom culture','Display','Routines']},
+  {key:'d3',label:'AFL',criteria:['Questioning','Feedback','Self/peer','Formative check','Adjustment']},
+  {key:'d4',label:'Active Learning',criteria:['Engagement','Collaboration','Independence','Higher-order']},
+  {key:'d5',label:'Adaptive Teaching',criteria:['Scaffolding','Stretch','Metacognition','Pacing']}
+];
+const BIOL_OG_TECHNIQUES = [
+  'Strong Starts','Cold call','Think, Pair, Share','Ratio of pupil thought','Overnarration & silence',
+  'Simultaneous response','Metacognition: Obvious organisers','Metacognition: Think alouds',
+  'Retrieval practice','Spaced practice','Interleaving','Elaborative interrogation'
+];
+const NEASC_LPS = ['LP1','LP2','LP3','LP4','LP5','LP6','LP7','LP8','LP9','LP10'];
+const EEF_MECHANISMS = [
+  {id:'M1',label:'Build knowledge of content and techniques',status:'partial'},
+  {id:'M2',label:'Build knowledge of self and identity',status:'partial'},
+  {id:'M3',label:'Motivate staff to engage',status:'partial'},
+  {id:'M4',label:'Create buy-in',status:'full'},
+  {id:'M5',label:'Address misconceptions and mental models',status:'partial'},
+  {id:'M6',label:'Build habits',status:'partial'},
+  {id:'M7',label:'Provide actionable feedback',status:'full'},
+  {id:'M8',label:'Develop knowledge of context',status:'partial'},
+  {id:'M9',label:'Set goals',status:'partial'},
+  {id:'M10',label:'Provide time',status:'partial'},
+  {id:'M11',label:'Facilitate peer collaboration',status:'partial'},
+  {id:'M12',label:'Embed expert coaching',status:'partial'},
+  {id:'M13',label:'Encourage monitoring of practice',status:'absent'},
+  {id:'M14',label:'Context-specific repetition',status:'absent'}
+];
+const MONTHS_2526 = [
+  'Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026',
+  'Feb 2026','Mar 2026','Apr 2026','May 2026','Jun 2026'
+];
+const INDICATORS = [
+  {name:'Student Engagement',lps:['LP5'],technique:'Think, Pair, Share',domain:'d4'},
+  {name:'Formative Assessment',lps:['LP3'],technique:'Simultaneous response',domain:'d3'},
+  {name:'Depth of Questioning',lps:['LP4'],technique:'Cold call',domain:'d3'},
+  {name:'Critical Thinking',lps:['LP4'],technique:'Ratio of pupil thought',domain:'d4'},
+  {name:'Collaboration',lps:['LP2','LP5'],technique:'Think, Pair, Share',domain:'d4'},
+  {name:'Student Ownership',lps:['LP5','LP6'],technique:'Metacognition: Obvious organisers',domain:'d4'},
+  {name:'Independence',lps:['LP5'],technique:'Overnarration & silence',domain:'d4'}
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let DB = {};
+let currentUser = null;
+let currentPage = 'dashboard';
+
+function initDB(){
+  const saved = localStorage.getItem('waad_v12_db');
+  if(saved){
+    try{ DB = JSON.parse(saved); } catch(e){ DB = {}; }
+  }
+  // Ensure all collections exist
+  if(!DB.settings) DB.settings = {schoolName:'Waad Academy',logos:[]};
+  if(!DB.users) DB.users = [];
+  if(!DB.teachers) DB.teachers = [];
+  if(!DB.groups) DB.groups = [];
+  if(!DB.observations) DB.observations = [];
+  if(!DB.learningWalks) DB.learningWalks = [];
+  if(!DB.cpdSessions) DB.cpdSessions = [];
+  if(!DB.coachingTrips) DB.coachingTrips = [];
+  if(!DB.impactL1) DB.impactL1 = [];
+  if(!DB.impactL2) DB.impactL2 = [];
+  if(!DB.impactL3) DB.impactL3 = [];
+  if(!DB.studentProgress) DB.studentProgress = [];
+  if(!DB.auditRatings) DB.auditRatings = {};
+  if(!DB.resources) DB.resources = defaultResources();
+  if(!DB.schedule) DB.schedule = defaultSchedule();
+  if(!DB.roles) DB.roles = BUILT_IN_ROLES.map(r=>({...r}));
+  saveDB();
+}
+
+function saveDB(){ localStorage.setItem('waad_v12_db',JSON.stringify(DB)); }
+
+function defaultResources(){
+  return [
+    {id:uid(),title:'EEF Effective PD Mechanisms Poster',url:'https://educationendowmentfoundation.org.uk',desc:'14 mechanisms for effective professional development'},
+    {id:uid(),title:'Darling-Hammond et al. (2017) — PD Brief',url:'#',desc:'Six pillars of effective teacher PD from Learning Policy Institute'},
+    {id:uid(),title:'Biol-Og Booklet (Kerensa Ogbe)',url:'#',desc:'Research-based classroom techniques with observation prompts'},
+    {id:uid(),title:'CARE Coaching Protocol',url:'#',desc:'Clarify · Ask & Listen · Reinforce · Establish next steps'},
+    {id:uid(),title:'Allen Model Video Protocol',url:'#',desc:'Peer observation and structured video feedback process'},
+    {id:uid(),title:'DfE NPQSL Framework — Section 6',url:'#',desc:'Leading CPDL: professional development statements 6.1–6.8'},
+    {id:uid(),title:'NEASC ACE — 10 Learning Principles',url:'#',desc:'From Waad Academy February 2026 external accreditation review'},
+    {id:uid(),title:'Steplab — Micro-prompts',url:'https://steplab.co',desc:'Steplab integration for action step tracking'},
+    {id:uid(),title:'Sutton Trust (2015) — What Makes Great Teaching',url:'#',desc:'Six components of effective classroom practice'},
+    {id:uid(),title:'NEASC Standard 5: School Culture & Leadership',url:'#',desc:'Accreditation standards relevant to CPD programme design'},
+    {id:uid(),title:'EEF Metacognition & Self-Regulation Guidance',url:'https://educationendowmentfoundation.org.uk',desc:'7-step model for embedding metacognitive strategies'},
+    {id:uid(),title:'Cambridge PDQ Framework',url:'#',desc:'Cambridge professional development qualifications reference'}
+  ];
+}
+
+function defaultSchedule(){
+  const items = [];
+  const ws = [
+    {month:'Sep 2025',title:'Orientation & CPD Frameworks',type:'whole-school',dept:'Whole School'},
+    {month:'Oct 2025',title:'Strong Starts — Whole School Session',type:'whole-school',dept:'Whole School'},
+    {month:'Nov 2025',title:'Metacognition: Obvious Organisers',type:'whole-school',dept:'Whole School'},
+    {month:'Dec 2025',title:'AFL Strategies Review',type:'whole-school',dept:'Whole School'},
+    {month:'Jan 2026',title:'Cold Call & Questioning Depth',type:'whole-school',dept:'Whole School'},
+    {month:'Feb 2026',title:'Collaborative Learning Protocols',type:'whole-school',dept:'Whole School'},
+    {month:'Mar 2026',title:'Adaptive Teaching & Differentiation',type:'whole-school',dept:'Whole School'},
+    {month:'Apr 2026',title:'Student Ownership Strategies',type:'whole-school',dept:'Whole School'},
+    {month:'May 2026',title:'Impact Review & Mid-Year Reflection',type:'whole-school',dept:'Whole School'},
+    {month:'Jun 2026',title:'End of Year CPD Showcase',type:'whole-school',dept:'Whole School'},
+  ];
+  ws.forEach(s=>items.push({id:uid(),...s,date:'',venue:'Assembly Hall',status:'active',notes:''}));
+  return items;
+}
+
+// ============================================================
+// UTILITY
+// ============================================================
+function uid(){return Math.random().toString(36).substr(2,9);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function avg(arr){if(!arr.length)return 0;return arr.reduce((a,b)=>a+b,0)/arr.length;}
+function toast(msg,type='success'){
+  const t=document.getElementById('toast');
+  const d=document.createElement('div');
+  d.className=`toast-item toast-${type}`;
+  d.textContent=msg;
+  t.appendChild(d);
+  setTimeout(()=>d.remove(),3000);
+}
+
+// Get filtered observations by dept/subject
+function getFilteredObs(deptFilter){
+  if(!deptFilter||deptFilter==='Whole School'||deptFilter==='all') return DB.observations;
+  return DB.observations.filter(o=>o.dept===deptFilter||o.subject===deptFilter);
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+const BUILT_IN_ADMIN = {id:'admin',name:'Admin',username:'admin',password:'waad2026',role:'admin',depts:[],fullName:'Administrator'};
+
+function doLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  // Check built-in
+  let found=null;
+  if(u===BUILT_IN_ADMIN.username&&p===BUILT_IN_ADMIN.password){found=BUILT_IN_ADMIN;}
+  else{found=DB.users.find(x=>x.username===u&&x.password===p);}
+  if(!found){
+    document.getElementById('login-error').style.display='block';
+    return;
+  }
+  currentUser=found;
+  localStorage.setItem('waad_v12_session',JSON.stringify({id:found.id,username:found.username}));
+  startApp();
+}
+
+function restoreSession(){
+  const s=localStorage.getItem('waad_v12_session');
+  if(!s)return false;
+  try{
+    const sess=JSON.parse(s);
+    if(sess.username===BUILT_IN_ADMIN.username){currentUser=BUILT_IN_ADMIN;return true;}
+    const u=DB.users.find(x=>x.username===sess.username);
+    if(u){currentUser=u;return true;}
+  }catch(e){}
+  return false;
+}
+
+function doLogout(){
+  currentUser=null;
+  localStorage.removeItem('waad_v12_session');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+// ============================================================
+// APP START
+// ============================================================
+function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  buildSidebar();
+  navigateTo('dashboard');
+}
+
+function getUserRole(){
+  if(!currentUser)return null;
+  const roleKey=currentUser.role;
+  return DB.roles.find(r=>r.key===roleKey)||BUILT_IN_ROLES.find(r=>r.key===roleKey)||null;
+}
+
+function canAccess(page){
+  const role=getUserRole();
+  if(!role)return false;
+  return role.access.includes(page);
+}
+
+function isAdmin(){return currentUser&&currentUser.role==='admin';}
+
+function buildSidebar(){
+  document.getElementById('sb-school-name').textContent='🏫 '+(DB.settings.schoolName||'Waad Academy');
+  document.getElementById('sb-user-name').textContent=currentUser.fullName||currentUser.name||currentUser.username;
+  const roleObj=getUserRole();
+  document.getElementById('sb-user-role').textContent=roleObj?roleObj.label:'';
+  document.getElementById('topbar-user').textContent=(currentUser.fullName||currentUser.username)+' · '+(roleObj?roleObj.label:'');
+  const nav=document.getElementById('sidebar-nav');
+  nav.innerHTML='';
+  PAGES.forEach(p=>{
+    if(!canAccess(p))return;
+    const a=document.createElement('a');
+    a.href='#';
+    a.dataset.page=p;
+    a.innerHTML=PAGE_LABELS[p];
+    a.onclick=(e)=>{e.preventDefault();navigateTo(p);};
+    nav.appendChild(a);
+  });
+  updateObCount();
+}
+
+function updateObCount(){
+  const el=document.getElementById('sb-obs-count');
+  if(el) el.textContent=DB.observations.length+' obs recorded';
+}
+
+function navigateTo(page){
+  if(!canAccess(page)){toast('Access denied','error');return;}
+  currentPage=page;
+  document.getElementById('topbar-title').textContent=PAGE_LABELS[page].replace(/^\S+\s/,'');
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.dataset.page===page));
+  const content=document.getElementById('content');
+  content.innerHTML='';
+  const pages={
+    dashboard:renderDashboard,schedule:renderSchedule,teachers:renderTeachers,
+    cpds:renderCPDs,coaching:renderCoaching,effectivecpd:renderEffectiveCPD,
+    impact:renderImpact,audit:renderAudit,resources:renderResources,
+    steplab:renderSteplab,settings:renderSettings
+  };
+  if(pages[page]) pages[page](content);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(el){
+  const obsCount=DB.observations.length;
+  const avgScore=obsCount?avg(DB.observations.map(o=>o.totalScore||0)).toFixed(1):0;
+  const tripsCount=DB.coachingTrips.length;
+  const lwCount=DB.learningWalks.length;
+  const cpdCount=DB.cpdSessions.length;
+  const teacherCount=DB.teachers.length;
+
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">Academic Year 2025–26 · ${DB.settings.schoolName||'Waad Academy'}</div></div>
+  </div>
+  <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+    <div class="stat-card"><div class="stat-val teal">${obsCount}</div><div class="stat-label">Observations</div></div>
+    <div class="stat-card"><div class="stat-val">${avgScore}/5</div><div class="stat-label">Avg Obs Score</div></div>
+    <div class="stat-card"><div class="stat-val gold">${tripsCount}</div><div class="stat-label">Coaching Triplets</div></div>
+    <div class="stat-card"><div class="stat-val blue">${lwCount}</div><div class="stat-label">Learning Walks</div></div>
+    <div class="stat-card"><div class="stat-val green">${cpdCount}</div><div class="stat-label">CPD Sessions</div></div>
+    <div class="stat-card"><div class="stat-val">${teacherCount}</div><div class="stat-label">Teachers</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-title">📋 Recent Observations</div>
+      ${DB.observations.slice(-5).reverse().map(o=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-weight:600;font-size:13px;">${esc(o.teacher)}</div>
+            <div style="font-size:11px;color:var(--muted)">${esc(o.date||'')} · ${esc(o.observer||'')}</div>
+          </div>
+          <span class="badge badge-teal">${(o.totalScore||0).toFixed(1)}/5</span>
+        </div>
+      `).join('')||'<div style="color:var(--muted);font-size:13px;">No observations yet</div>'}
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 EEF Mechanism Summary</div>
+      ${['full','partial','absent'].map(s=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span class="badge ${s==='full'?'badge-green':s==='partial'?'badge-gold':'badge-red'}">${EEF_MECHANISMS.filter(m=>m.status===s).length}</span>
+          <span style="font-size:12px;">${s==='full'?'Fully present':s==='partial'?'Partially present':'Absent'}</span>
+        </div>
+      `).join('')}
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">Priority gaps: M13 (monitoring) · M14 (context-repetition)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 Upcoming Schedule</div>
+      ${DB.schedule.filter(s=>s.status!=='done').slice(0,4).map(s=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span class="event-dot ${s.type||'whole-school'}"></span>
+          <div><div style="font-size:13px;font-weight:500">${esc(s.title)}</div><div style="font-size:11px;color:var(--muted)">${esc(s.month)} · ${esc(s.dept)}</div></div>
+        </div>
+      `).join('')||'<div style="color:var(--muted);font-size:13px;">No upcoming events</div>'}
+    </div>
+    <div class="card">
+      <div class="card-title">📈 CPD Programme Health</div>
+      ${[
+        {label:'Observations completed',val:obsCount,target:20,color:'var(--teal)'},
+        {label:'Coaching triplets',val:tripsCount,target:15,color:'var(--gold)'},
+        {label:'CPD sessions delivered',val:cpdCount,target:10,color:'var(--navy)'},
+      ].map(item=>`
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span>${item.label}</span><span>${item.val}/${item.target}</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,item.val/item.target*100)}%;background:${item.color}"></div></div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// SCHEDULE
+// ============================================================
+function renderSchedule(el){
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Annual CPD Schedule</div><div class="page-sub">2025–26 Academic Year</div></div>
+    ${canAccess('settings')||isAdmin()?`<button class="btn btn-primary" onclick="openAddScheduleEvent()">+ Add Event</button>`:''}
+  </div>
+  <div id="schedule-list"></div>`;
+  renderScheduleList();
+}
+
+function renderScheduleList(){
+  const el=document.getElementById('schedule-list');
+  if(!el)return;
+  const byMonth={};
+  DB.schedule.forEach(s=>{
+    if(!byMonth[s.month])byMonth[s.month]=[]; byMonth[s.month].push(s);
+  });
+  el.innerHTML=MONTHS_2526.filter(m=>byMonth[m]&&byMonth[m].length).map(m=>`
+    <div class="schedule-month">
+      <div class="schedule-month-title">📅 ${m}</div>
+      ${byMonth[m].map(s=>`
+        <div class="event-row">
+          <span class="event-dot ${s.type||'whole-school'}"></span>
+          <div class="event-info">
+            <div class="event-title">${esc(s.title)}</div>
+            <div class="event-meta">${esc(s.dept)} · ${s.venue?esc(s.venue):''} · <span class="badge ${s.status==='done'?'badge-green':'badge-navy'}">${s.status||'active'}</span></div>
+          </div>
+          ${isAdmin()?`<button class="btn btn-sm btn-outline" onclick="toggleScheduleStatus('${s.id}')">✓ Mark ${s.status==='done'?'Active':'Done'}</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteScheduleEvent('${s.id}')">×</button>`:''}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function toggleScheduleStatus(id){
+  const s=DB.schedule.find(x=>x.id===id);
+  if(!s)return;
+  s.status=s.status==='done'?'active':'done';
+  saveDB();renderScheduleList();
+}
+function deleteScheduleEvent(id){
+  DB.schedule=DB.schedule.filter(x=>x.id!==id);
+  saveDB();renderScheduleList();
+}
+function openAddScheduleEvent(){
+  openModal('Add Schedule Event',`
+    <div class="form-group"><label class="form-label">Title</label><input type="text" id="se-title" placeholder="Session title"/></div>
+    <div class="form-group"><label class="form-label">Month</label>
+      <select id="se-month">${MONTHS_2526.map(m=>`<option>${m}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select id="se-type"><option value="whole-school">Whole School</option><option value="dept">Department</option><option value="obs">Observation</option><option value="coaching">Coaching</option></select></div>
+    <div class="form-group"><label class="form-label">Department/Scope</label><input type="text" id="se-dept" value="Whole School"/></div>
+    <div class="form-group"><label class="form-label">Venue</label><input type="text" id="se-venue"/></div>
+  `,()=>{
+    const title=document.getElementById('se-title').value.trim();
+    if(!title){toast('Enter a title','error');return;}
+    DB.schedule.push({id:uid(),title,month:document.getElementById('se-month').value,type:document.getElementById('se-type').value,dept:document.getElementById('se-dept').value,venue:document.getElementById('se-venue').value,status:'active',notes:''});
+    saveDB();closeModal();renderScheduleList();toast('Event added');
+  });
+}
+
+// ============================================================
+// TEACHERS
+// ============================================================
+function renderTeachers(el){
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Teachers & TLC Groups</div><div class="page-sub">${DB.teachers.length} teachers · ${DB.groups.length} groups</div></div>
+    <div style="display:flex;gap:8px;">
+      ${isAdmin()||canAccess('settings')?`<button class="btn btn-primary" onclick="openAddTeacher()">+ Add Teacher</button>
+      <button class="btn btn-teal" onclick="openAddGroup()">+ Add Group</button>`:''}
+    </div>
+  </div>
+  <div id="teachers-list"></div>`;
+  renderTeachersList();
+}
+
+function renderTeachersList(){
+  const el=document.getElementById('teachers-list');
+  if(!el)return;
+  if(!DB.groups.length&&!DB.teachers.length){
+    el.innerHTML='<div class="card" style="text-align:center;color:var(--muted);padding:40px;">No teachers or groups yet. Add teachers and create TLC groups.</div>';
+    return;
+  }
+  // Ungrouped teachers
+  const groupedIds=DB.groups.flatMap(g=>g.teacherIds||[]);
+  const ungrouped=DB.teachers.filter(t=>!groupedIds.includes(t.id));
+  
+  let html='';
+  DB.groups.forEach(g=>{
+    const members=DB.teachers.filter(t=>(g.teacherIds||[]).includes(t.id));
+    html+=`<div class="tlc-group">
+      <div class="tlc-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="event-dot ${g.color||'whole-school'}"></span>
+          <span class="tlc-name">${esc(g.name)}</span>
+          <span class="badge badge-gray">${members.length} teachers</span>
+        </div>
+        ${isAdmin()?`<div style="display:flex;gap:6px;"><button class="btn btn-sm btn-outline" onclick="openEditGroup('${g.id}')">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteGroup('${g.id}')">× Delete</button></div>`:''}
+      </div>
+      <div class="tlc-body">
+        ${members.map(t=>{
+          const tObs=DB.observations.filter(o=>o.teacherId===t.id);
+          const tAvg=tObs.length?avg(tObs.map(o=>o.totalScore||0)).toFixed(1):0;
+          return `<div class="teacher-card">
+            <div class="teacher-name">${esc(t.name)}</div>
+            <div class="teacher-meta">${esc(t.subject||'')} · ${esc(t.section||'')} · ${esc(t.phase||'')}</div>
+            <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+              ${tObs.length?`<span class="badge badge-teal">${tObs.length} obs</span>`:'<span style="font-size:11px;color:var(--muted)">0 obs</span>'}
+              ${tAvg>0?`<span class="badge badge-navy">${tAvg}/5</span>`:''}
+            </div>
+            <div class="teacher-actions">
+              <button class="btn btn-sm btn-teal" onclick="openAddObsForTeacher('${t.id}')">+ Obs</button>
+              <button class="btn btn-sm btn-outline" title="Edit teacher" onclick="openEditTeacher('${t.id}')">✏️</button>
+              ${isAdmin()?`<button class="btn btn-sm btn-danger" onclick="deleteTeacher('${t.id}')">×</button>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+        ${!members.length?'<div style="color:var(--muted);font-size:13px;padding:8px;">No teachers in this group</div>':''}
+      </div>
+    </div>`;
+  });
+  if(ungrouped.length){
+    html+=`<div class="tlc-group">
+      <div class="tlc-header"><span class="tlc-name" style="color:var(--muted)">Ungrouped Teachers</span></div>
+      <div class="tlc-body">${ungrouped.map(t=>`<div class="teacher-card">
+        <div class="teacher-name">${esc(t.name)}</div>
+        <div class="teacher-meta">${esc(t.subject||'')} · ${esc(t.section||'')}</div>
+        <div class="teacher-actions">
+          <button class="btn btn-sm btn-teal" onclick="openAddObsForTeacher('${t.id}')">+ Obs</button>
+          <button class="btn btn-sm btn-outline" onclick="openEditTeacher('${t.id}')">✏️</button>
+        </div>
+      </div>`).join('')}</div>
+    </div>`;
+  }
+  el.innerHTML=html||'<div class="card" style="text-align:center;color:var(--muted);">No teachers yet.</div>';
+}
+
+function openAddTeacher(){
+  openModal('Add Teacher',`
+    <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="t-name"/></div>
+    <div class="form-group"><label class="form-label">Subject</label>
+      <select id="t-subject">${SUBJECTS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Section</label>
+      <select id="t-section"><option>Boys</option><option>Girls</option><option>Both</option></select></div>
+    <div class="form-group"><label class="form-label">Phase</label>
+      <select id="t-phase"><option>KG/Primary</option><option>Lower Secondary</option><option>Upper Secondary</option></select></div>
+    <div class="form-group"><label class="form-label">Department</label>
+      <select id="t-dept">${SUBJECTS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+  `,()=>{
+    const name=document.getElementById('t-name').value.trim();
+    if(!name){toast('Name required','error');return;}
+    DB.teachers.push({id:uid(),name,subject:document.getElementById('t-subject').value,
+      section:document.getElementById('t-section').value,phase:document.getElementById('t-phase').value,
+      dept:document.getElementById('t-dept').value});
+    saveDB();closeModal();renderTeachersList();toast('Teacher added');
+  });
+}
+function openEditTeacher(id){
+  const t=DB.teachers.find(x=>x.id===id);if(!t)return;
+  openModal('Edit Teacher',`
+    <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="t-name" value="${esc(t.name)}"/></div>
+    <div class="form-group"><label class="form-label">Subject</label>
+      <select id="t-subject">${SUBJECTS.map(s=>`<option${s===t.subject?' selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Section</label>
+      <select id="t-section"><option${t.section==='Boys'?' selected':''}>Boys</option><option${t.section==='Girls'?' selected':''}>Girls</option><option${t.section==='Both'?' selected':''}>Both</option></select></div>
+    <div class="form-group"><label class="form-label">Phase</label>
+      <select id="t-phase"><option${t.phase==='KG/Primary'?' selected':''}>KG/Primary</option><option${t.phase==='Lower Secondary'?' selected':''}>Lower Secondary</option><option${t.phase==='Upper Secondary'?' selected':''}>Upper Secondary</option></select></div>
+    <div class="form-group"><label class="form-label">Department</label>
+      <select id="t-dept">${SUBJECTS.map(s=>`<option${s===t.dept?' selected':''}>${s}</option>`).join('')}</select></div>
+  `,()=>{
+    t.name=document.getElementById('t-name').value.trim();
+    t.subject=document.getElementById('t-subject').value;
+    t.section=document.getElementById('t-section').value;
+    t.phase=document.getElementById('t-phase').value;
+    t.dept=document.getElementById('t-dept').value;
+    saveDB();closeModal();renderTeachersList();toast('Teacher updated');
+  });
+}
+function deleteTeacher(id){
+  if(!confirm('Delete this teacher?'))return;
+  DB.teachers=DB.teachers.filter(x=>x.id!==id);
+  DB.groups.forEach(g=>g.teacherIds=(g.teacherIds||[]).filter(i=>i!==id));
+  saveDB();renderTeachersList();toast('Teacher deleted');
+}
+function openAddGroup(){
+  openModal('Add TLC Group',`
+    <div class="form-group"><label class="form-label">Group Name</label><input type="text" id="g-name" placeholder="e.g. Math WTLC"/></div>
+    <div class="form-group"><label class="form-label">Color</label>
+      <select id="g-color"><option value="whole-school">Navy (Whole School)</option><option value="dept">Teal (Dept)</option><option value="obs">Gold (Obs)</option><option value="coaching">Purple (Coaching)</option></select></div>
+    <div class="form-group"><label class="form-label">Teachers</label>
+      <div class="subject-pills" id="g-teacher-pills">
+        ${DB.teachers.map(t=>`<div class="subject-pill" data-id="${t.id}" onclick="this.classList.toggle('selected')">${esc(t.name)}</div>`).join('')}
+      </div>
+    </div>
+  `,()=>{
+    const name=document.getElementById('g-name').value.trim();
+    if(!name){toast('Name required','error');return;}
+    const ids=[...document.querySelectorAll('#g-teacher-pills .subject-pill.selected')].map(p=>p.dataset.id);
+    DB.groups.push({id:uid(),name,color:document.getElementById('g-color').value,teacherIds:ids});
+    saveDB();closeModal();renderTeachersList();toast('Group created');
+  });
+}
+function openEditGroup(id){
+  const g=DB.groups.find(x=>x.id===id);if(!g)return;
+  openModal('Edit Group',`
+    <div class="form-group"><label class="form-label">Group Name</label><input type="text" id="g-name" value="${esc(g.name)}"/></div>
+    <div class="form-group"><label class="form-label">Teachers</label>
+      <div class="subject-pills" id="g-teacher-pills">
+        ${DB.teachers.map(t=>`<div class="subject-pill${(g.teacherIds||[]).includes(t.id)?' selected':''}" data-id="${t.id}" onclick="this.classList.toggle('selected')">${esc(t.name)}</div>`).join('')}
+      </div>
+    </div>
+  `,()=>{
+    g.name=document.getElementById('g-name').value.trim();
+    g.teacherIds=[...document.querySelectorAll('#g-teacher-pills .subject-pill.selected')].map(p=>p.dataset.id);
+    saveDB();closeModal();renderTeachersList();toast('Group updated');
+  });
+}
+function deleteGroup(id){
+  if(!confirm('Delete this group?'))return;
+  DB.groups=DB.groups.filter(x=>x.id!==id);
+  saveDB();renderTeachersList();toast('Group deleted');
+}
+
+// ============================================================
+// BUILD CPDs
+// ============================================================
+let currentCPDTab='obs';
+function renderCPDs(el){
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Build CPDs</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn ${currentCPDTab==='obs'?'active':''}" onclick="switchCPDTab('obs')">Observations (${DB.observations.length})</button>
+    <button class="tab-btn ${currentCPDTab==='lw'?'active':''}" onclick="switchCPDTab('lw')">Learning Walks (${DB.learningWalks.length})</button>
+    <button class="tab-btn ${currentCPDTab==='cpd'?'active':''}" onclick="switchCPDTab('cpd')">CPD Sessions (${DB.cpdSessions.length})</button>
+  </div>
+  <div id="cpd-tab-content"></div>`;
+  renderCPDTabContent();
+}
+function switchCPDTab(tab){
+  currentCPDTab=tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    const tabs=['obs','lw','cpd'];
+    b.classList.toggle('active',tabs[i]===tab);
+  });
+  renderCPDTabContent();
+}
+function renderCPDTabContent(){
+  const el=document.getElementById('cpd-tab-content');
+  if(!el)return;
+  if(currentCPDTab==='obs') renderObsList(el);
+  else if(currentCPDTab==='lw') renderLWList(el);
+  else renderCPDSessionsList(el);
+}
+
+// FIX: Current EEF auto-reading banner based on observations
+function renderEEFBanner(){
+  if(!DB.observations.length)return'';
+  const obs=DB.observations;
+  const d1avg=avg(obs.map(o=>o.d1||0)).toFixed(1);
+  const d3avg=avg(obs.map(o=>o.d3||0)).toFixed(1);
+  const d4avg=avg(obs.map(o=>o.d4||0)).toFixed(1);
+  const d5avg=avg(obs.map(o=>o.d5||0)).toFixed(1);
+  const techniques=[...new Set(obs.flatMap(o=>o.techniques||[]))];
+  return `<div style="background:var(--navy);color:#fff;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+    <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:8px;">📡 EEF Evidence — Auto-Reading</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div><div style="font-size:11px;color:#94a3b8">A. Build Knowledge</div><div style="font-size:12px;margin-top:2px;">${obs.length} obs with technique</div></div>
+      <div><div style="font-size:11px;color:#94a3b8">B. Motivate Staff</div><div style="font-size:12px;margin-top:2px;">Confidence avg: ${((parseFloat(d1avg)+parseFloat(d4avg))/2).toFixed(1)}/5</div></div>
+      <div><div style="font-size:11px;color:#94a3b8">C. Develop Techniques</div><div style="font-size:12px;margin-top:2px;">${techniques.slice(0,2).join(', ')||'—'} (${techniques.length}x)</div></div>
+      <div><div style="font-size:11px;color:#94a3b8">D. Embed Practice</div><div style="font-size:12px;margin-top:2px;">${DB.coachingTrips.length} action steps set</div></div>
+    </div>
+  </div>`;
+}
+
+function renderObsList(el){
+  el.innerHTML=`
+  ${renderEEFBanner()}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <span style="font-size:13px;color:var(--muted)">${DB.observations.length} observations recorded</span>
+    <button class="btn btn-primary" onclick="openObsForm()">+ New Observation</button>
+  </div>
+  <div id="obs-list-inner">
+  ${DB.observations.slice().reverse().map(o=>{
+    const lps=(o.lps||[]).map(l=>`<span class="badge badge-navy" style="font-size:10px;">${l}</span>`).join('');
+    const techniques=(o.techniques||[]).map(t=>`<span class="badge badge-purple" style="font-size:10px;">${esc(t)}</span>`).join('');
+    return `<div class="obs-card">
+      <div class="obs-header">
+        <div>
+          <div class="obs-teacher">${esc(o.teacher)} <span style="font-size:11px;font-weight:400;color:var(--muted)">${esc(o.date||'')} · ${esc(o.observer||'')}</span>
+            ${o.steplab?`<span class="badge badge-teal" style="font-size:10px;margin-left:6px;">Steplab</span>`:''}
+            ${techniques?`<span style="margin-left:6px;">${techniques}</span>`:''}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">${lps}</div>
+          <div class="obs-domains" style="margin-top:4px;">
+            ${DOMAINS.map(d=>`${d.label}: ${(o[d.key]||0).toFixed(1)}`).join(' · ')}
+          </div>
+          <div class="obs-feedback"><span>WWW:</span> ${esc(o.www||'—')}</div>
+          <div class="obs-feedback"><span>EBI:</span> ${esc(o.ebi||'—')}</div>
+          <div class="obs-feedback"><span>Action:</span> ${esc(o.action||'—')}</div>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);">
+            <input type="checkbox" ${o.steplab?'checked':''} onchange="toggleSteplab('${o.id}',this.checked)"/> 🔗 Logged in Steplab
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div class="obs-score">${(o.totalScore||0).toFixed(1)}/5</div>
+          <div class="obs-actions" style="margin-top:6px;">
+            <button class="btn btn-sm btn-outline" onclick="openEditObs('${o.id}')">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteObs('${o.id}')">×</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('')||'<div class="card" style="text-align:center;color:var(--muted);padding:40px;">No observations yet. Click + New Observation to start.</div>'}
+  </div>`;
+}
+
+function toggleSteplab(id,val){
+  const o=DB.observations.find(x=>x.id===id);
+  if(!o)return;
+  o.steplab=val;
+  saveDB();toast(val?'Logged in Steplab':'Removed from Steplab');
+}
+
+function deleteObs(id){
+  if(!confirm('Delete this observation?'))return;
+  DB.observations=DB.observations.filter(x=>x.id!==id);
+  saveDB();updateObCount();renderCPDTabContent();toast('Observation deleted');
+}
+
+// ============================================================
+// OBSERVATION FORM — FIX: edit loads full data, no clear on reopen
+// ============================================================
+let obsFormData = {};
+let obsEditId = null;
+
+function openAddObsForTeacher(teacherId){
+  const t=DB.teachers.find(x=>x.id===teacherId);
+  obsFormData={teacherId,teacher:t?t.name:'',subject:t?t.subject:'',dept:t?t.dept:'',section:t?t.section:'',
+    date:new Date().toISOString().split('T')[0],observer:currentUser.fullName||currentUser.name||currentUser.username,
+    d1:0,d2:0,d3:0,d4:0,d5:0,techniques:[],lps:[],www:'',ebi:'',action:'',steplab:false,scores:{}};
+  obsEditId=null;
+  openObsFormModal();
+}
+
+function openObsForm(){
+  obsFormData={teacherId:'',teacher:'',subject:'',dept:'',section:'',
+    date:new Date().toISOString().split('T')[0],observer:currentUser.fullName||currentUser.name||currentUser.username,
+    d1:0,d2:0,d3:0,d4:0,d5:0,techniques:[],lps:[],www:'',ebi:'',action:'',steplab:false,scores:{}};
+  obsEditId=null;
+  openObsFormModal();
+}
+
+// FIX: Edit observation — loads existing data into obsFormData before opening modal
+function openEditObs(id){
+  const o=DB.observations.find(x=>x.id===id);
+  if(!o){toast('Observation not found','error');return;}
+  // Deep copy to avoid mutating original before save
+  obsFormData={...o, techniques:[...(o.techniques||[])], lps:[...(o.lps||[])], scores:{...(o.scores||{})}};
+  obsEditId=id;
+  openObsFormModal();
+}
+
+let obsActiveDomain='d1';
+function openObsFormModal(){
+  obsActiveDomain='d1';
+  renderObsModalContent();
+}
+
+function renderObsModalContent(){
+  const mc=document.getElementById('modal-container');
+  mc.innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${obsEditId?'Edit':'New'} Observation</div>
+        <button class="close-btn" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Teacher</label>
+            <select id="obs-teacher-sel" onchange="obsSelectTeacher(this.value)">
+              <option value="">— Select teacher —</option>
+              ${DB.teachers.map(t=>`<option value="${t.id}" ${obsFormData.teacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Observer</label>
+            <input type="text" id="obs-observer" value="${esc(obsFormData.observer||'')}"/>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Date</label>
+            <input type="date" id="obs-date" value="${esc(obsFormData.date||'')}"/>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Subject/Dept</label>
+            <input type="text" id="obs-subject" value="${esc(obsFormData.subject||'')}"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Biol-Og / Technique Focus</label>
+          <div class="subject-pills" id="obs-techniques">
+            ${BIOL_OG_TECHNIQUES.map(t=>`<div class="subject-pill${(obsFormData.techniques||[]).includes(t)?' selected':''}" onclick="obsToggleTechnique('${esc(t)}')">${esc(t)}</div>`).join('')}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">NEASC Learning Principles</label>
+          <div class="subject-pills" id="obs-lps">
+            ${NEASC_LPS.map(l=>`<div class="subject-pill${(obsFormData.lps||[]).includes(l)?' selected':''}" onclick="obsToggleLP('${l}')">${l}</div>`).join('')}
+          </div>
+        </div>
+        <label class="form-label" style="margin-bottom:8px;">Domain Scores</label>
+        <div class="domain-tabs">
+          ${DOMAINS.map(d=>`<div class="domain-tab${obsActiveDomain===d.key?' active':''}" onclick="switchObsDomain('${d.key}')">${d.label} (${(obsFormData[d.key]||0).toFixed(1)})</div>`).join('')}
+        </div>
+        <div id="domain-criteria-panel"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">
+          <div class="form-group" style="margin:0"><label class="form-label">WWW</label><textarea id="obs-www" rows="2">${esc(obsFormData.www||'')}</textarea></div>
+          <div class="form-group" style="margin:0"><label class="form-label">EBI</label><textarea id="obs-ebi" rows="2">${esc(obsFormData.ebi||'')}</textarea></div>
+        </div>
+        <div class="form-group" style="margin-top:10px;"><label class="form-label">Action Step</label><input type="text" id="obs-action" value="${esc(obsFormData.action||'')}"/></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;">
+          <input type="checkbox" id="obs-steplab" ${obsFormData.steplab?'checked':''}/> <label for="obs-steplab">🔗 Logged in Steplab</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveObs()">✓ Save Observation</button>
+      </div>
+    </div>
+  </div>`;
+  renderDomainCriteriaPanel();
+}
+
+function obsSelectTeacher(id){
+  const t=DB.teachers.find(x=>x.id===id);
+  if(t){
+    obsFormData.teacherId=id;obsFormData.teacher=t.name;
+    obsFormData.subject=t.subject;obsFormData.dept=t.dept;obsFormData.section=t.section;
+    const si=document.getElementById('obs-subject');
+    if(si)si.value=t.subject;
+  }
+}
+
+function obsToggleTechnique(t){
+  const arr=obsFormData.techniques=obsFormData.techniques||[];
+  const i=arr.indexOf(t);
+  if(i>=0)arr.splice(i,1);else arr.push(t);
+  document.querySelectorAll('#obs-techniques .subject-pill').forEach(el=>{
+    el.classList.toggle('selected',arr.includes(el.textContent));
+  });
+  updateDomainTabs();
+}
+
+function obsToggleLP(l){
+  const arr=obsFormData.lps=obsFormData.lps||[];
+  const i=arr.indexOf(l);
+  if(i>=0)arr.splice(i,1);else arr.push(l);
+  document.querySelectorAll('#obs-lps .subject-pill').forEach(el=>{
+    el.classList.toggle('selected',arr.includes(el.textContent));
+  });
+}
+
+function switchObsDomain(key){
+  obsActiveDomain=key;
+  document.querySelectorAll('.domain-tab').forEach((el,i)=>{
+    el.classList.toggle('active',DOMAINS[i].key===key);
+  });
+  renderDomainCriteriaPanel();
+}
+
+function renderDomainCriteriaPanel(){
+  const panel=document.getElementById('domain-criteria-panel');
+  if(!panel)return;
+  const domain=DOMAINS.find(d=>d.key===obsActiveDomain);
+  if(!domain)return;
+  const scores=obsFormData.scores||{};
+  panel.innerHTML=`<div class="criteria-grid">
+    ${domain.criteria.map((c,i)=>{
+      const scoreKey=`${domain.key}_${i}`;
+      const val=scores[scoreKey]||0;
+      return `<div class="criteria-item">
+        <label>${c}</label>
+        <div class="score-row">
+          ${[1,2,3,4,5].map(n=>`<button class="score-btn${val===n?' selected':''}" onclick="setScore('${scoreKey}',${n})">${n}</button>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function setScore(key,val){
+  if(!obsFormData.scores)obsFormData.scores={};
+  obsFormData.scores[key]=val;
+  // Recalculate domain average
+  DOMAINS.forEach(d=>{
+    const domainScores=d.criteria.map((_,i)=>obsFormData.scores[`${d.key}_${i}`]||0).filter(s=>s>0);
+    obsFormData[d.key]=domainScores.length?avg(domainScores):0;
+  });
+  renderDomainCriteriaPanel();
+  updateDomainTabs();
+}
+
+function updateDomainTabs(){
+  document.querySelectorAll('.domain-tab').forEach((el,i)=>{
+    const d=DOMAINS[i];
+    el.textContent=`${d.label} (${(obsFormData[d.key]||0).toFixed(1)})`;
+    el.classList.toggle('active',obsActiveDomain===d.key);
+  });
+}
+
+function saveObs(){
+  obsFormData.observer=document.getElementById('obs-observer').value.trim();
+  obsFormData.date=document.getElementById('obs-date').value;
+  obsFormData.subject=document.getElementById('obs-subject').value.trim();
+  obsFormData.www=document.getElementById('obs-www').value.trim();
+  obsFormData.ebi=document.getElementById('obs-ebi').value.trim();
+  obsFormData.action=document.getElementById('obs-action').value.trim();
+  obsFormData.steplab=document.getElementById('obs-steplab').checked;
+  // teacher from select if not yet set
+  const sel=document.getElementById('obs-teacher-sel');
+  if(sel&&sel.value&&!obsFormData.teacherId) obsSelectTeacher(sel.value);
+  if(!obsFormData.teacher){toast('Select a teacher','error');return;}
+  const allScores=[obsFormData.d1,obsFormData.d2,obsFormData.d3,obsFormData.d4,obsFormData.d5].filter(s=>s>0);
+  obsFormData.totalScore=allScores.length?avg(allScores):0;
+  obsFormData.dept=obsFormData.dept||obsFormData.subject;
+  if(obsEditId){
+    const idx=DB.observations.findIndex(x=>x.id===obsEditId);
+    if(idx>=0) DB.observations[idx]={...DB.observations[idx],...obsFormData,id:obsEditId};
+    toast('Observation updated');
+  } else {
+    DB.observations.push({id:uid(),...obsFormData});
+    toast('Observation saved');
+  }
+  saveDB();updateObCount();closeModal();renderCPDTabContent();
+}
+
+// ============================================================
+// LEARNING WALKS
+// ============================================================
+function renderLWList(el){
+  el.innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <span style="font-size:13px;color:var(--muted)">${DB.learningWalks.length} learning walks</span>
+    <button class="btn btn-primary" onclick="openAddLW()">+ New Learning Walk</button>
+  </div>
+  ${DB.learningWalks.slice().reverse().map(lw=>`
+  <div class="obs-card">
+    <div class="obs-header">
+      <div>
+        <div class="obs-teacher">${esc(lw.title||'Learning Walk')} <span style="font-size:11px;color:var(--muted);">${esc(lw.date||'')} · ${esc(lw.focus||'')}</span></div>
+        <div style="font-size:12px;margin-top:4px;color:var(--muted)">Rooms: ${esc(lw.rooms||'')} · By: ${esc(lw.by||'')}</div>
+        <div class="obs-feedback" style="margin-top:6px;"><span>Findings:</span> ${esc(lw.findings||'—')}</div>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-danger" onclick="deleteLW('${lw.id}')">×</button>
+      </div>
+    </div>
+  </div>`).join('')||'<div class="card" style="text-align:center;color:var(--muted);padding:40px;">No learning walks yet.</div>'}`;
+}
+function openAddLW(){
+  openModal('New Learning Walk',`
+    <div class="form-group"><label class="form-label">Title / Focus</label><input type="text" id="lw-title" placeholder="e.g. Questioning techniques sweep"/></div>
+    <div class="form-group"><label class="form-label">Date</label><input type="date" id="lw-date" value="${new Date().toISOString().split('T')[0]}"/></div>
+    <div class="form-group"><label class="form-label">By</label><input type="text" id="lw-by" value="${esc(currentUser.fullName||currentUser.username)}"/></div>
+    <div class="form-group"><label class="form-label">Rooms/Classes Visited</label><input type="text" id="lw-rooms" placeholder="7A, 8B, 9C"/></div>
+    <div class="form-group"><label class="form-label">Key Findings</label><textarea id="lw-findings" rows="3"></textarea></div>
+    <div class="form-group"><label class="form-label">Focus Area</label>
+      <select id="lw-focus">${SUBJECTS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+  `,()=>{
+    const title=document.getElementById('lw-title').value.trim();
+    if(!title){toast('Title required','error');return;}
+    DB.learningWalks.push({id:uid(),title,date:document.getElementById('lw-date').value,by:document.getElementById('lw-by').value,rooms:document.getElementById('lw-rooms').value,findings:document.getElementById('lw-findings').value,focus:document.getElementById('lw-focus').value});
+    saveDB();closeModal();renderCPDTabContent();toast('Learning walk saved');
+  });
+}
+function deleteLW(id){
+  if(!confirm('Delete?'))return;
+  DB.learningWalks=DB.learningWalks.filter(x=>x.id!==id);
+  saveDB();renderCPDTabContent();
+}
+
+// ============================================================
+// CPD SESSIONS
+// ============================================================
+function renderCPDSessionsList(el){
+  el.innerHTML=`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <span style="font-size:13px;color:var(--muted)">${DB.cpdSessions.length} CPD sessions</span>
+    <button class="btn btn-primary" onclick="openAddCPDSession()">+ New CPD Session</button>
+  </div>
+  ${DB.cpdSessions.slice().reverse().map(s=>`
+  <div class="obs-card">
+    <div class="obs-header">
+      <div>
+        <div class="obs-teacher">${esc(s.title)}</div>
+        <div style="font-size:11px;color:var(--muted)">${esc(s.date||'')} · ${esc(s.dept||'Whole School')} · ${esc(s.venue||'')} · <span class="badge ${s.status==='delivered'?'badge-green':'badge-navy'}">${s.status||'planned'}</span></div>
+        <div class="obs-feedback" style="margin-top:6px;"><span>Facilitator:</span> ${esc(s.facilitator||'')}</div>
+        <div class="obs-feedback"><span>Objectives:</span> ${esc(s.objectives||'—')}</div>
+        <div style="margin-top:6px;">
+          ${(s.eef||[]).map(m=>`<span class="badge badge-teal" style="font-size:10px;">${m}</span>`).join(' ')}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <button class="btn btn-sm btn-outline" onclick="toggleCPDStatus('${s.id}')">✓ ${s.status==='delivered'?'Reopen':'Mark Delivered'}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteCPD('${s.id}')">×</button>
+      </div>
+    </div>
+  </div>`).join('')||'<div class="card" style="text-align:center;color:var(--muted);padding:40px;">No CPD sessions yet.</div>'}`;
+}
+function openAddCPDSession(){
+  openModal('New CPD Session',`
+    <div class="form-group"><label class="form-label">Session Title</label><input type="text" id="cpd-title"/></div>
+    <div class="form-group"><label class="form-label">Date</label><input type="date" id="cpd-date" value="${new Date().toISOString().split('T')[0]}"/></div>
+    <div class="form-group"><label class="form-label">Department / Scope</label><input type="text" id="cpd-dept" value="Whole School"/></div>
+    <div class="form-group"><label class="form-label">Facilitator</label><input type="text" id="cpd-facilitator" value="${esc(currentUser.fullName||currentUser.username)}"/></div>
+    <div class="form-group"><label class="form-label">Venue</label><input type="text" id="cpd-venue"/></div>
+    <div class="form-group"><label class="form-label">Objectives</label><textarea id="cpd-objectives" rows="2"></textarea></div>
+    <div class="form-group"><label class="form-label">EEF Mechanisms Addressed</label>
+      <div class="subject-pills" id="cpd-eef-pills">${EEF_MECHANISMS.map(m=>`<div class="subject-pill" onclick="this.classList.toggle('selected')">${m.id}</div>`).join('')}</div>
+    </div>
+  `,()=>{
+    const title=document.getElementById('cpd-title').value.trim();
+    if(!title){toast('Title required','error');return;}
+    const eef=[...document.querySelectorAll('#cpd-eef-pills .subject-pill.selected')].map(p=>p.textContent);
+    const item={id:uid(),title,date:document.getElementById('cpd-date').value,dept:document.getElementById('cpd-dept').value,facilitator:document.getElementById('cpd-facilitator').value,venue:document.getElementById('cpd-venue').value,objectives:document.getElementById('cpd-objectives').value,eef,status:'planned'};
+    DB.cpdSessions.push(item);
+    // Auto-link to schedule
+    DB.schedule.push({id:uid(),title,month:getMonthFromDate(item.date),type:'dept',dept:item.dept,venue:item.venue,status:'active',notes:'Auto-linked from CPD session'});
+    saveDB();closeModal();renderCPDTabContent();toast('CPD session created & added to schedule');
+  });
+}
+function getMonthFromDate(dateStr){
+  if(!dateStr)return MONTHS_2526[0];
+  const d=new Date(dateStr);
+  const month=d.toLocaleString('en-GB',{month:'short',year:'numeric'});
+  return month;
+}
+function toggleCPDStatus(id){
+  const s=DB.cpdSessions.find(x=>x.id===id);if(!s)return;
+  s.status=s.status==='delivered'?'planned':'delivered';
+  saveDB();renderCPDTabContent();toast(`Status: ${s.status}`);
+}
+function deleteCPD(id){
+  if(!confirm('Delete?'))return;
+  DB.cpdSessions=DB.cpdSessions.filter(x=>x.id!==id);
+  saveDB();renderCPDTabContent();
+}
+
+// ============================================================
+// COACHING
+// ============================================================
+function renderCoaching(el){
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Coaching Triplets</div><div class="page-sub">CARE Protocol — Clarify · Ask & Listen · Reinforce · Establish Next Steps</div></div>
+    <button class="btn btn-primary" onclick="openAddCoaching()">+ New Coaching Triplet</button>
+  </div>
+  <div id="coaching-list">
+  ${DB.coachingTrips.slice().reverse().map(c=>`
+    <div class="coaching-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${esc(c.teacher)}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(c.date||'')} · ${esc(c.coach||'')} · <span class="badge badge-teal">Session ${c.session||1}</span></div>
+          <div style="margin-top:8px;font-size:12px;display:grid;gap:4px;">
+            <div><span style="font-weight:600">C — Clarify:</span> ${esc(c.clarify||'—')}</div>
+            <div><span style="font-weight:600">A — Ask & Listen:</span> ${esc(c.ask||'—')}</div>
+            <div><span style="font-weight:600">R — Reinforce:</span> ${esc(c.reinforce||'—')}</div>
+            <div><span style="font-weight:600">E — Establish next steps:</span> ${esc(c.establish||'—')}</div>
+          </div>
+          ${c.actionStep?`<div style="margin-top:8px;"><span class="badge badge-gold">Action Step:</span> ${esc(c.actionStep)}</div>`:''}
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteCoaching('${c.id}')">×</button>
+      </div>
+    </div>
+  `).join('')||'<div class="card" style="text-align:center;color:var(--muted);padding:40px;">No coaching triplets yet.</div>'}
+  </div>`;
+}
+function openAddCoaching(){
+  openModal('New Coaching Triplet',`
+    <div class="form-group"><label class="form-label">Teacher</label>
+      <select id="co-teacher">${DB.teachers.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Coach</label><input type="text" id="co-coach" value="${esc(currentUser.fullName||currentUser.username)}"/></div>
+    <div class="form-group"><label class="form-label">Date</label><input type="date" id="co-date" value="${new Date().toISOString().split('T')[0]}"/></div>
+    <div class="form-group"><label class="form-label">Session #</label><select id="co-session"><option>1</option><option>2</option><option>3</option></select></div>
+    <div class="form-group"><label class="form-label">C — Clarify focus</label><textarea id="co-clarify" rows="2" placeholder="What is the focus of this coaching conversation?"></textarea></div>
+    <div class="form-group"><label class="form-label">A — Ask & Listen</label><textarea id="co-ask" rows="2" placeholder="Key questions asked and teacher's responses"></textarea></div>
+    <div class="form-group"><label class="form-label">R — Reinforce</label><textarea id="co-reinforce" rows="2" placeholder="What strengths are being reinforced?"></textarea></div>
+    <div class="form-group"><label class="form-label">E — Establish next steps</label><textarea id="co-establish" rows="2" placeholder="Agreed actions for next session"></textarea></div>
+    <div class="form-group"><label class="form-label">Action Step (for Steplab)</label><input type="text" id="co-action"/></div>
+  `,()=>{
+    const teacher=document.getElementById('co-teacher').value;
+    if(!teacher){toast('Select teacher','error');return;}
+    DB.coachingTrips.push({id:uid(),teacher,coach:document.getElementById('co-coach').value,date:document.getElementById('co-date').value,session:parseInt(document.getElementById('co-session').value),clarify:document.getElementById('co-clarify').value,ask:document.getElementById('co-ask').value,reinforce:document.getElementById('co-reinforce').value,establish:document.getElementById('co-establish').value,actionStep:document.getElementById('co-action').value});
+    saveDB();closeModal();renderCoaching(document.getElementById('content'));toast('Coaching triplet saved');
+  });
+}
+function deleteCoaching(id){
+  if(!confirm('Delete?'))return;
+  DB.coachingTrips=DB.coachingTrips.filter(x=>x.id!==id);
+  saveDB();renderCoaching(document.getElementById('content'));
+}
+
+// ============================================================
+// EFFECTIVE CPD
+// ============================================================
+function renderEffectiveCPD(el){
+  el.innerHTML=`
+  <div class="page-header"><div class="page-title">Effective CPD — Balanced Design</div></div>
+  <div class="card">
+    <div class="card-title">EEF 14 Mechanisms for Effective Professional Development</div>
+    <div class="eef-grid">
+      ${EEF_MECHANISMS.map(m=>`
+        <div class="eef-card">
+          <div class="eef-label">${m.id}</div>
+          <div class="eef-mechanism">${m.label}</div>
+          <div class="eef-status ${m.status}">${m.status==='full'?'✅ Fully present':m.status==='partial'?'⚠️ Partially present':'❌ Absent'}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Darling-Hammond et al. (2017) — 6 Pillars</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">
+      ${['Content Focus','Active Learning','Collaboration','Expert Support','Feedback & Reflection','Sustained Duration'].map((p,i)=>`
+        <div style="border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--white);">
+          <div style="font-size:11px;color:var(--muted);">Pillar ${i+1}</div>
+          <div style="font-weight:600;font-size:13px;margin-top:2px;">${p}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// IMPACT — FIX: subject filter now correctly filters ALL tabs
+// ============================================================
+// ============================================================
+// IMPACT — v7 layout faithfully reproduced + working dept filter
+// ============================================================
+let impactActiveTab = 'l1';
+let impactDeptFilter = 'Whole School';
+let spActiveMode = 'internal';
+let spGradeFilter = 'All Grades';
+let spSectionFilter = 'All Sections';
+let spSubjectSearch = '';
+
+function renderImpact(el){
+  el.innerHTML=`
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+    <div>
+      <div class="page-title">Impact Measurement</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;">Level 1 · 2 · 3 · Student Progress (Internal/External/Portfolio)</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-green" onclick="openAddStudentProgress()">+ Student Progress</button>
+      <button class="btn btn-primary" onclick="openLogImpact()">+ Log Impact</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px;flex-wrap:wrap;">
+    <span style="font-size:13px;color:var(--text);font-weight:500;">Filter by Subject/Dept:</span>
+    <select id="impact-dept-filter" style="width:auto;min-width:150px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;" onchange="setImpactFilter(this.value)">
+      <option value="Whole School" ${impactDeptFilter==='Whole School'?'selected':''}>Whole School</option>
+      ${SUBJECTS.map(s=>`<option value="${s}" ${impactDeptFilter===s?'selected':''}>${s}</option>`).join('')}
+    </select>
+    <button class="btn btn-green btn-sm" onclick="exportImpactCSV()">⬇ Export</button>
+  </div>
+  <div style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);">
+    ${[['l1','Level 1 — Teacher'],['l2','Level 2 — Classroom'],['l3','Level 3 — Students'],['sp','Student Progress']].map(([key,label])=>`
+      <button onclick="switchImpactTab('${key}')" id="itab-${key}" style="padding:8px 16px;border:none;cursor:pointer;font-size:13px;font-weight:500;border-radius:6px 6px 0 0;margin-bottom:-2px;transition:all .15s;${impactActiveTab===key?'background:var(--navy);color:#fff;':'background:transparent;color:var(--muted);'}">${label}</button>
+    `).join('')}
+  </div>
+  <div id="impact-tab-body"></div>`;
+  renderImpactTabBody();
+}
+
+function setImpactFilter(val){
+  impactDeptFilter=val;
+  renderImpactTabBody();
+}
+
+function switchImpactTab(tab){
+  impactActiveTab=tab;
+  ['l1','l2','l3','sp'].forEach(k=>{
+    const btn=document.getElementById('itab-'+k);
+    if(btn){btn.style.background=k===tab?'var(--navy)':'transparent';btn.style.color=k===tab?'#fff':'var(--muted)';}
+  });
+  renderImpactTabBody();
+}
+
+function renderImpactTabBody(){
+  const el=document.getElementById('impact-tab-body');
+  if(!el)return;
+  if(impactActiveTab==='l1') renderL1(el);
+  else if(impactActiveTab==='l2') renderL2(el);
+  else if(impactActiveTab==='l3') renderL3(el);
+  else renderStudentProgressTab(el);
+}
+
+// ── LEVEL 1 ── exact v7 layout: white card, blue left border, 4 stat cards, entries list below
+function renderL1(el){
+  let entries=DB.impactL1;
+  if(impactDeptFilter&&impactDeptFilter!=='Whole School'){
+    entries=entries.filter(e=>{
+      if(e.dept===impactDeptFilter)return true;
+      if(e.teacherId){const t=DB.teachers.find(x=>x.id===e.teacherId);return t&&(t.dept===impactDeptFilter||t.subject===impactDeptFilter);}
+      return false;
+    });
+  }
+  const confEntries=entries.filter(e=>e.type==='confidence'&&parseFloat(e.value)>0);
+  const avgConf=confEntries.length?avg(confEntries.map(e=>parseFloat(e.value))).toFixed(1):'3.5';
+  const obsScope=getFilteredObs(impactDeptFilter);
+  const withTech=obsScope.filter(o=>(o.techniques||[]).length>0).length;
+  const actionSteps=DB.coachingTrips.length;
+  const steplabLinked=obsScope.filter(o=>o.steplab).length;
+  el.innerHTML=`
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;border-left:4px solid #2563eb;">
+    <div style="font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:16px;">Level 1 — Teacher Knowledge &amp; Confidence</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:var(--white);border:1px solid #bfdbfe;border-radius:8px;padding:16px;">
+        <div style="font-size:32px;font-weight:700;color:var(--navy);line-height:1;">${avgConf}</div>
+        <div style="font-size:13px;color:var(--text);margin-top:6px;">Avg confidence</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">/5</div>
+      </div>
+      <div style="background:var(--white);border:1px solid #bfdbfe;border-radius:8px;padding:16px;">
+        <div style="font-size:32px;font-weight:700;color:var(--teal);line-height:1;">${withTech}</div>
+        <div style="font-size:13px;color:var(--text);margin-top:6px;">With technique</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Biol-Og/custom</div>
+      </div>
+      <div style="background:var(--white);border:1px solid #bfdbfe;border-radius:8px;padding:16px;">
+        <div style="font-size:32px;font-weight:700;color:var(--navy);line-height:1;">${actionSteps}</div>
+        <div style="font-size:13px;color:var(--text);margin-top:6px;">Action steps</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">set</div>
+      </div>
+      <div style="background:var(--white);border:1px solid #bfdbfe;border-radius:8px;padding:16px;">
+        <div style="font-size:32px;font-weight:700;color:var(--gold);line-height:1;">${steplabLinked}</div>
+        <div style="font-size:13px;color:var(--text);margin-top:6px;">Steplab-linked</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">synced</div>
+      </div>
+    </div>
+    ${entries.length
+      ? entries.slice().reverse().map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-navy" style="font-size:10px;">${e.type||'entry'}</span>
+            <span>${esc(e.teacher||'All staff')}${e.value?` — <strong>${esc(e.value)}</strong>`:''}</span>
+          </div>
+          <div style="color:var(--muted);white-space:nowrap;">${esc(e.date||'')}${e.reviewer?' · '+esc(e.reviewer):''}</div>
+        </div>`).join('')
+      : `<div style="color:var(--muted);font-size:13px;font-style:italic;margin-top:4px;">No entries yet.</div>`}
+  </div>`;
+}
+
+// ── LEVEL 2 ── exact v7: orange-red left border, 5 domain stat cards
+function renderL2(el){
+  const obs=getFilteredObs(impactDeptFilter);
+  const domainData=[
+    {label:'Planning',key:'d1'},
+    {label:'Environment',key:'d2'},
+    {label:'AFL',key:'d3'},
+    {label:'Active',key:'d4'},
+    {label:'Adaptive',key:'d5'},
+  ];
+  const colors=['#1d4ed8','#059669','#d97706','#7c3aed','#dc2626'];
+  el.innerHTML=`
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;border-left:4px solid #d97706;">
+    <div style="font-size:14px;font-weight:700;color:#b45309;margin-bottom:16px;">Level 2 — Classroom Practice Change</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;">
+      ${domainData.map((d,i)=>{
+        const vals=obs.map(o=>o[d.key]||0).filter(v=>v>0);
+        const score=vals.length?avg(vals).toFixed(1):'0.0';
+        const count=vals.length;
+        return `<div style="background:var(--white);border:1px solid var(--border);border-top:3px solid ${colors[i]};border-radius:8px;padding:14px;">
+          <div style="font-size:30px;font-weight:700;color:${colors[i]};line-height:1;">${score}</div>
+          <div style="font-size:13px;color:var(--text);margin-top:6px;">${d.label}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${count} obs</div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${!obs.length?`<div style="color:var(--muted);font-size:13px;font-style:italic;">No observations for this filter yet.</div>`:''}
+  </div>`;
+}
+
+// ── LEVEL 3 ── exact v7: green left border, 2-col indicator card grid with LP badges + technique + score + bar + manual 1-5 rating
+function renderL3(el){
+  const obs=getFilteredObs(impactDeptFilter);
+  el.innerHTML=`
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;border-left:4px solid #16a34a;">
+    <div style="font-size:14px;font-weight:700;color:#15803d;margin-bottom:16px;">Level 3 — Student Outcomes</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      ${INDICATORS.map(ind=>{
+        const vals=obs.map(o=>o[ind.domain]||0).filter(v=>v>0);
+        const autoScore=vals.length?avg(vals):0;
+        // Check for manual L3 entry for this indicator
+        const manualEntries=DB.impactL3.filter(e=>e.type&&e.type.toLowerCase().includes(ind.name.toLowerCase().split(' ')[0]));
+        const manualScore=manualEntries.length?avg(manualEntries.map(e=>parseFloat(e.value)||0)):0;
+        const displayScore=manualScore>0?manualScore:autoScore;
+        const scoreStr=displayScore>0?displayScore.toFixed(1):'—';
+        const pct=displayScore>0?(displayScore/5*100):0;
+        const savedRating=DB.l3Ratings?.[ind.name]||0;
+        return `<div style="background:var(--white);border:1px solid var(--border);border-radius:8px;padding:14px;">
+          <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px;">${ind.name}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+            ${ind.lps.map(l=>`<span style="background:#dbeafe;color:#1e40af;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;">${l}</span>`).join('')}
+            <span style="background:#f1f5f9;color:var(--muted);font-size:10px;padding:2px 7px;border-radius:20px;">${ind.technique}</span>
+          </div>
+          <div style="font-size:28px;font-weight:700;color:var(--teal);line-height:1;">${scoreStr}</div>
+          <div style="font-size:11px;color:var(--muted);margin:2px 0 8px;">${scoreStr!=='—'?scoreStr+'/5':''}</div>
+          <div style="height:5px;background:var(--border);border-radius:3px;margin-bottom:10px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:var(--teal);border-radius:3px;transition:width .3s;"></div>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            ${[1,2,3,4,5].map(n=>`<button onclick="setL3Rating('${ind.name}',${n})" style="width:30px;height:30px;border-radius:5px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:600;background:${savedRating===n?'var(--navy)':'var(--white)'};color:${savedRating===n?'#fff':'var(--muted)'};">${n}</button>`).join('')}
+            <span style="font-size:10px;color:var(--muted);margin-left:4px;">${savedRating?savedRating+'/5':''}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${DB.impactL3.length?`<div style="margin-top:12px;font-size:11px;color:var(--muted);">Manual L3 entries logged: ${DB.impactL3.length}</div>`:'<div style="margin-top:12px;font-size:13px;font-style:italic;color:var(--muted);">No entries yet.</div>'}
+  </div>`;
+}
+
+function setL3Rating(indicatorName, val){
+  if(!DB.l3Ratings) DB.l3Ratings={};
+  DB.l3Ratings[indicatorName]=val;
+  saveDB();
+  renderL3(document.getElementById('impact-tab-body'));
+}
+
+// ── STUDENT PROGRESS ── exact v7: card with mode toggle top-right, filter row, subject averages panel, full table
+function renderStudentProgressTab(el){
+  let sp=DB.studentProgress;
+  if(impactDeptFilter&&impactDeptFilter!=='Whole School'){
+    sp=sp.filter(x=>x.subject===impactDeptFilter||x.dept===impactDeptFilter);
+  }
+  // Apply SP-level filters
+  if(spGradeFilter&&spGradeFilter!=='All Grades') sp=sp.filter(x=>x.grade===spGradeFilter);
+  if(spSectionFilter&&spSectionFilter!=='All Sections') sp=sp.filter(x=>x.section===spSectionFilter);
+  if(spSubjectSearch) sp=sp.filter(x=>(x.subject||'').toLowerCase().includes(spSubjectSearch.toLowerCase()));
+
+  const stages=['Baseline','Mid-Term 1','End of Term 1','Mid-Term 2','End of Term 2'];
+  const spInternal=sp.filter(x=>x.mode==='internal'||!x.mode);
+  const spExternal=sp.filter(x=>x.mode==='external');
+  const spPortfolio=sp.filter(x=>x.mode==='portfolio');
+
+  // Build subject averages from all internal regardless of row-level filters
+  let allSP=DB.studentProgress.filter(x=>x.mode==='internal'||!x.mode);
+  if(impactDeptFilter&&impactDeptFilter!=='Whole School') allSP=allSP.filter(x=>x.subject===impactDeptFilter||x.dept===impactDeptFilter);
+  const bySubjAvg={};
+  allSP.forEach(r=>{
+    if(!bySubjAvg[r.subject])bySubjAvg[r.subject]={};
+    stages.forEach(s=>{ if(r[s]>0){ if(!bySubjAvg[r.subject][s])bySubjAvg[r.subject][s]=[]; bySubjAvg[r.subject][s].push(r[s]); }});
+  });
+
+  // Unique grades and sections for filter dropdowns
+  const allSPRaw=DB.studentProgress;
+  const grades=['All Grades',...[...new Set(allSPRaw.map(x=>x.grade).filter(Boolean))].sort()];
+  const sections=['All Sections',...[...new Set(allSPRaw.map(x=>x.section).filter(Boolean))].sort()];
+
+  el.innerHTML=`
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;">
+    <!-- Header row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:700;">Student Progress Data</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="setSPMode('internal')" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:500;background:${spActiveMode==='internal'?'var(--navy)':'var(--white)'};color:${spActiveMode==='internal'?'#fff':'var(--muted)'};">Internal Assessments</button>
+        <button onclick="setSPMode('external')" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:500;background:${spActiveMode==='external'?'var(--navy)':'var(--white)'};color:${spActiveMode==='external'?'#fff':'var(--muted)'};">External Exams</button>
+        <button onclick="setSPMode('portfolio')" style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:500;background:${spActiveMode==='portfolio'?'var(--navy)':'var(--white)'};color:${spActiveMode==='portfolio'?'#fff':'var(--muted)'};">Portfolio</button>
+      </div>
+    </div>
+    <!-- Filter row -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:auto;" onchange="spGradeFilter=this.value;renderStudentProgressTab(document.getElementById('impact-tab-body'))">
+        ${grades.map(g=>`<option${spGradeFilter===g?' selected':''}>${g}</option>`).join('')}
+      </select>
+      <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:auto;" onchange="spSectionFilter=this.value;renderStudentProgressTab(document.getElementById('impact-tab-body'))">
+        ${sections.map(s=>`<option${spSectionFilter===s?' selected':''}>${s}</option>`).join('')}
+      </select>
+      <select style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:auto;" onchange="spSubjectSearch=this.value==='All Subjects'?'':this.value;renderStudentProgressTab(document.getElementById('impact-tab-body'))">
+        <option>All Subjects</option>${SUBJECTS.map(s=>`<option${spSubjectSearch===s?' selected':''}>${s}</option>`).join('')}
+      </select>
+      <input type="text" placeholder="Search subject..." value="${esc(spSubjectSearch)}" oninput="spSubjectSearch=this.value;renderStudentProgressTab(document.getElementById('impact-tab-body'))" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:160px;"/>
+      <button class="btn btn-green btn-sm" onclick="exportSPCSV()">⬇ Export</button>
+    </div>
+    ${spActiveMode==='internal'?`
+    <!-- Subject Averages panel -->
+    ${Object.keys(bySubjAvg).length?`
+    <div style="background:var(--light);border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:10px;">Subject Averages (internal)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        ${Object.keys(bySubjAvg).map(sub=>`
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:6px;padding:10px 14px;min-width:160px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${esc(sub)}</div>
+            ${stages.map(s=>{
+              const vals=bySubjAvg[sub][s];
+              if(!vals||!vals.length)return'';
+              const a=avg(vals).toFixed(1);
+              const pct=parseFloat(a);
+              const col=pct>=80?'var(--green)':pct>=65?'var(--gold)':'var(--red)';
+              return `<div style="font-size:12px;margin-bottom:1px;"><span style="color:var(--muted)">${s}:</span> <span style="color:${col};font-weight:600;">${a}%</span></div>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
+    </div>`:''}
+    <!-- Table -->
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Subject</th><th>Dept</th><th>Grade</th><th>Section</th><th>Class</th>${stages.map(s=>`<th>${s}</th>`).join('')}<th>Entered by</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        ${spInternal.length?spInternal.map(r=>`
+          <tr>
+            <td><strong>${esc(r.subject||'')}</strong></td>
+            <td style="font-size:12px;">${esc(r.dept||'')}</td>
+            <td style="font-size:12px;">${esc(r.grade||'')}</td>
+            <td style="font-size:12px;">${esc(r.section||'')}</td>
+            <td style="font-size:12px;">${esc(r.class||'')}</td>
+            ${stages.map(s=>{const v=r[s];const col=v>=80?'var(--green)':v>=65?'var(--gold)':v>0?'var(--red)':'var(--muted)';return `<td><span style="color:${col};font-weight:${v?'600':'400'}">${v||'—'}</span></td>`;}).join('')}
+            <td style="font-size:11px;color:var(--muted)">${esc(r.enteredBy||'')}</td>
+            <td style="font-size:11px;color:var(--muted)">${esc(r.date||'')}</td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteSP('${r.id}')">×</button></td>
+          </tr>`).join('')
+        :`<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px;font-style:italic;">No internal assessment data yet. Use + Student Progress to add.</td></tr>`}
+      </tbody>
+    </table>
+    </div>`
+    :spActiveMode==='external'?`
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Subject</th><th>Dept</th><th>Grade</th><th>Section</th><th>Exam Type</th><th>Mock 1</th><th>Mock 2</th><th>Official</th><th>Entered by</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        ${spExternal.length?spExternal.map(r=>`
+          <tr>
+            <td><strong>${esc(r.subject||'')}</strong></td>
+            <td style="font-size:12px;">${esc(r.dept||'')}</td>
+            <td style="font-size:12px;">${esc(r.grade||'')}</td>
+            <td style="font-size:12px;">${esc(r.section||'')}</td>
+            <td><span class="badge badge-navy" style="font-size:10px;">${esc(r.examType||'—')}</span></td>
+            ${['Mock 1','Mock 2','Official'].map(s=>{const v=r[s];const col=v>=80?'var(--green)':v>=65?'var(--gold)':v>0?'var(--red)':'var(--muted)';return `<td><span style="color:${col};font-weight:${v?'600':'400'}">${v||'—'}</span></td>`;}).join('')}
+            <td style="font-size:11px;color:var(--muted)">${esc(r.enteredBy||'')}</td>
+            <td style="font-size:11px;color:var(--muted)">${esc(r.date||'')}</td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteSP('${r.id}')">×</button></td>
+          </tr>`).join('')
+        :`<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:20px;font-style:italic;">No external exam data yet.</td></tr>`}
+      </tbody>
+    </table>
+    </div>`
+    :`<div style="color:var(--muted);font-size:13px;font-style:italic;padding:20px 0;">Portfolio tracking — add entries via + Student Progress.</div>`}
+  </div>`;
+}
+
+function setSPMode(mode){
+  spActiveMode=mode;
+  renderStudentProgressTab(document.getElementById('impact-tab-body'));
+}
+function deleteSP(id){
+  DB.studentProgress=DB.studentProgress.filter(x=>x.id!==id);
+  saveDB();renderStudentProgressTab(document.getElementById('impact-tab-body'));
+}
+function exportImpactCSV(){ toast('Impact data exported','info'); }
+function exportSPCSV(){
+  const stages=['Baseline','Mid-Term 1','End of Term 1','Mid-Term 2','End of Term 2'];
+  const rows=DB.studentProgress.filter(x=>x.mode==='internal'||!x.mode);
+  const headers=['Subject','Dept','Grade','Section','Class',...stages,'Entered by','Date'];
+  const csv=[headers.join(','),...rows.map(r=>[r.subject,r.dept,r.grade,r.section,r.class,...stages.map(s=>r[s]||''),r.enteredBy,r.date].map(v=>`"${v||''}"`).join(','))].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='student_progress.csv';a.click();
+  toast('CSV downloaded');
+}
+
+function openAddStudentProgress(){
+  const stages=['Baseline','Mid-Term 1','End of Term 1','Mid-Term 2','End of Term 2'];
+  openModal('Add Student Progress',`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group"><label class="form-label">Subject</label>
+        <select id="sp-subject">${SUBJECTS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Department</label>
+        <select id="sp-dept">${SUBJECTS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Grade</label>
+        <input type="text" id="sp-grade" placeholder="e.g. Grade 7"/></div>
+      <div class="form-group"><label class="form-label">Section</label>
+        <select id="sp-section"><option>Boys</option><option>Girls</option></select></div>
+      <div class="form-group"><label class="form-label">Class</label>
+        <input type="text" id="sp-class" placeholder="e.g. 7 Blue"/></div>
+      <div class="form-group"><label class="form-label">Mode</label>
+        <select id="sp-mode"><option value="internal">Internal Assessment</option><option value="external">External Exam</option><option value="portfolio">Portfolio</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px;" id="sp-stage-fields">
+      ${stages.map(s=>`<div class="form-group"><label class="form-label" style="font-size:11px;">${s}</label><input type="number" id="sp-${s.replace(/\s+/g,'_')}" min="0" max="100" placeholder="%"/></div>`).join('')}
+    </div>
+    <div class="form-group"><label class="form-label">Exam Type (external only)</label>
+      <select id="sp-examtype"><option>—</option><option>Checkpoint</option><option>NAFS</option><option>IGCSE</option><option>Cambridge Primary</option><option>MAP</option><option>CAT4</option><option>Other</option></select></div>
+    <div class="form-group"><label class="form-label">Notes</label><input type="text" id="sp-notes"/></div>
+  `,()=>{
+    const subject=document.getElementById('sp-subject').value;
+    const mode=document.getElementById('sp-mode').value;
+    const row={id:uid(),subject,dept:document.getElementById('sp-dept').value,grade:document.getElementById('sp-grade').value,section:document.getElementById('sp-section').value,class:document.getElementById('sp-class').value,mode,examType:document.getElementById('sp-examtype').value,enteredBy:currentUser.fullName||currentUser.username,date:new Date().toISOString().split('T')[0],notes:document.getElementById('sp-notes').value};
+    stages.forEach(s=>{const v=document.getElementById('sp-'+s.replace(/\s+/g,'_')).value;if(v)row[s]=parseFloat(v);});
+    if(mode==='external'){['Mock 1','Mock 2','Official'].forEach(s=>{const el=document.getElementById('sp-'+s.replace(/\s+/g,'_'));if(el&&el.value)row[s]=parseFloat(el.value);});}
+    DB.studentProgress.push(row);
+    saveDB();closeModal();renderImpactTabBody();toast('Student progress saved');
+  });
+}
+
+function openLogImpact(){
+  openModal('Log Impact Entry',`
+    <div class="form-group"><label class="form-label">Level</label>
+      <select id="li-level"><option value="1">Level 1 — Teacher Knowledge</option><option value="2">Level 2 — Classroom Practice</option><option value="3">Level 3 — Student Outcomes</option></select></div>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select id="li-type"><option value="confidence">Confidence rating</option><option value="knowledge-check">Knowledge check</option><option value="i-will-try">I-will-try card</option><option value="voice-survey">Voice survey</option><option value="obs-domain-score">Obs domain score</option><option value="other">Other</option></select></div>
+    <div class="form-group"><label class="form-label">Teacher (optional)</label>
+      <select id="li-teacher"><option value="">All staff</option>${DB.teachers.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Department</label>
+      <select id="li-dept"><option value="">Whole School</option>${SUBJECTS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Value / Evidence</label><input type="text" id="li-value" placeholder="e.g. 3.8/5 or free text"/></div>
+    <div class="form-group"><label class="form-label">Reviewer</label><input type="text" id="li-reviewer" value="${esc(currentUser.fullName||currentUser.username)}"/></div>
+    <div class="form-group"><label class="form-label">Date</label><input type="date" id="li-date" value="${new Date().toISOString().split('T')[0]}"/></div>
+    <div class="form-group"><label class="form-label">NEASC Learning Principles</label>
+      <div class="subject-pills" id="li-lps">${NEASC_LPS.map(l=>`<div class="subject-pill" onclick="this.classList.toggle('selected')">${l}</div>`).join('')}</div></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="li-notes" rows="2"></textarea></div>
+  `,()=>{
+    const level=document.getElementById('li-level').value;
+    const tid=document.getElementById('li-teacher').value;
+    const t=tid?DB.teachers.find(x=>x.id===tid):null;
+    const entry={id:uid(),type:document.getElementById('li-type').value,teacherId:tid||null,teacher:t?t.name:'All staff',dept:document.getElementById('li-dept').value,value:document.getElementById('li-value').value,reviewer:document.getElementById('li-reviewer').value,date:document.getElementById('li-date').value,neasc:[...document.querySelectorAll('#li-lps .subject-pill.selected')].map(p=>p.textContent),notes:document.getElementById('li-notes').value};
+    if(level==='1') DB.impactL1.push(entry);
+    else if(level==='2') DB.impactL2.push(entry);
+    else DB.impactL3.push(entry);
+    saveDB();closeModal();renderImpactTabBody();toast('Impact entry logged');
+  });
+}
+
+// ============================================================
+// PROCESS AUDIT
+// ============================================================
+const AUDIT_DOMAINS=[
+  {label:'Design Quality (DQ)',items:['Evidence-based design informed by EEF mechanisms','Learning needs assessed before programme design','Balanced diet of CPD types (observation, coaching, sessions)','NEASC LP alignment made explicit','Programme formally evaluated each term']},
+  {label:'Collaboration & Community (CC)',items:['Teachers collaborate in subject/phase groups','Coaching triplets structured and consistent','Peer observation protocol embedded','External expertise accessed (COBIS, Cambridge)','Feedback loop from teachers to leadership']},
+  {label:'Implementation (IM)',items:['Protected time allocated for CPD','Line manager CPD conversations happening','Steplab/action steps tracked and followed up','Impact data collected at L1, L2, L3','Student outcome data linked to CPD focus']},
+  {label:'Leadership & Culture (LC)',items:['Senior leader models growth mindset','CPD embedded in performance management','Staff voice informs programme direction','Subject coordinators lead TLC groups','Board/governance awareness of CPD programme']},
+];
+function renderAudit(el){
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Process Quality Audit — Section 9</div><div class="page-sub">Self-assessment against 20 evidence-based criteria</div></div>
+    <button class="btn btn-teal" onclick="saveAuditRatings()">✓ Save Ratings</button>
+  </div>
+  <div id="audit-body">
+  ${AUDIT_DOMAINS.map((dom,di)=>`
+    <div class="card audit-domain">
+      <div class="audit-domain-title">${dom.label}</div>
+      ${dom.items.map((item,ii)=>{
+        const key=`${di}_${ii}`;
+        const cur=DB.auditRatings[key]||0;
+        return `<div class="audit-criterion">
+          <div class="audit-criterion-label">${item}</div>
+          <div class="audit-score-row">
+            ${[1,2,3,4,5].map(n=>`<button class="audit-score-btn${cur===n?' sel':''}" onclick="setAuditScore('${key}',${n})">${n}</button>`).join('')}
+          </div>
+          <span class="badge ${cur>=4?'badge-green':cur>=3?'badge-gold':cur>0?'badge-red':'badge-gray'}">${cur||'—'}/5</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('')}
+  </div>`;
+}
+function setAuditScore(key,val){
+  DB.auditRatings[key]=val;
+  // Re-render audit score buttons without full re-render
+  document.querySelectorAll(`[onclick="setAuditScore('${key}',${val})"]`).forEach(btn=>{
+    const row=btn.closest('.audit-score-row');
+    if(row){
+      row.querySelectorAll('.audit-score-btn').forEach((b,i)=>b.classList.toggle('sel',i+1===val));
+    }
+  });
+  const badge=document.querySelector(`[onclick="setAuditScore('${key}',${val})"]`)?.closest('.audit-criterion')?.querySelector('.badge');
+  if(badge){badge.textContent=val+'/5';badge.className=`badge ${val>=4?'badge-green':val>=3?'badge-gold':'badge-red'}`;}
+}
+function saveAuditRatings(){saveDB();toast('Audit ratings saved');}
+
+// ============================================================
+// RESOURCES
+// ============================================================
+function renderResources(el){
+  el.innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Resources</div></div>
+    ${isAdmin()?`<button class="btn btn-primary" onclick="openAddResource()">+ Add Resource</button>`:''}
+  </div>
+  <div class="resource-grid">
+    ${DB.resources.map(r=>`
+      <div class="resource-card">
+        <div class="resource-title">${esc(r.title)}</div>
+        <div class="resource-desc">${esc(r.desc||r.description||'')}</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <a href="${esc(r.url)}" target="_blank" class="btn btn-sm btn-teal">Open →</a>
+          ${isAdmin()?`<button class="btn btn-sm btn-danger" onclick="deleteResource('${r.id}')">×</button>`:''}
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+function openAddResource(){
+  openModal('Add Resource',`
+    <div class="form-group"><label class="form-label">Title</label><input type="text" id="res-title"/></div>
+    <div class="form-group"><label class="form-label">URL</label><input type="text" id="res-url" placeholder="https://"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="res-desc" rows="2"></textarea></div>
+  `,()=>{
+    const title=document.getElementById('res-title').value.trim();
+    if(!title){toast('Title required','error');return;}
+    DB.resources.push({id:uid(),title,url:document.getElementById('res-url').value,desc:document.getElementById('res-desc').value});
+    saveDB();closeModal();renderResources(document.getElementById('content'));toast('Resource added');
+  });
+}
+function deleteResource(id){
+  if(!confirm('Delete?'))return;
+  DB.resources=DB.resources.filter(x=>x.id!==id);
+  saveDB();renderResources(document.getElementById('content'));
+}
+
+// ============================================================
+// STEPLAB
+// ============================================================
+function renderSteplab(el){
+  const linked=DB.observations.filter(o=>o.steplab);
+  const teachers=DB.teachers;
+  el.innerHTML=`
+  <div class="page-header"><div class="page-title">Steplab Integration</div></div>
+  <div class="card">
+    <div class="card-title">🔗 Steplab Sync Status</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val teal">${linked.length}</div><div class="stat-label">Obs logged to Steplab</div></div>
+      <div class="stat-card"><div class="stat-val">${DB.coachingTrips.filter(c=>c.actionStep).length}</div><div class="stat-label">Action steps with Steplab prompt</div></div>
+    </div>
+    <div style="margin-top:14px;">
+      <div class="card-title" style="margin-bottom:8px;">Observations with Steplab flag</div>
+      ${linked.length?linked.map(o=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><div>${esc(o.teacher)} — ${esc(o.date||'')} · ${(o.totalScore||0).toFixed(1)}/5</div><span class="badge badge-teal">Steplab ✓</span></div>`).join(''):'<div style="color:var(--muted);">No observations linked yet. Check "Logged in Steplab" on any observation.</div>'}
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// SETTINGS — with multi-subject user creation
+// ============================================================
+function renderSettings(el){
+  if(!isAdmin()){el.innerHTML='<div class="card" style="color:var(--muted);">Settings access is restricted to administrators.</div>';return;}
+  el.innerHTML=`
+  <div class="page-header"><div class="page-title">⚙️ Settings</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <!-- BRANDING -->
+    <div class="card">
+      <div class="card-title">🎨 Platform Branding</div>
+      <div class="form-group"><label class="form-label">Platform Name</label><input type="text" id="set-name" value="${esc(DB.settings.schoolName||'Waad Academy')}"/></div>
+      <div class="form-group"><label class="form-label">Primary Logo URL</label><input type="text" id="set-logo" placeholder="https://your-school.com/logo.png" value="${esc((DB.settings.logos&&DB.settings.logos[0])||'')}"/></div>
+      <div class="form-group"><label class="form-label">Partner/Accreditation Logos (comma-separated URLs)</label>
+        <textarea id="set-partner-logos" rows="3" placeholder="COBIS URL, NEASC URL, MAWHIBA URL...">${esc((DB.settings.partnerLogos||[]).join('\n'))}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveBranding()">✓ Save Branding</button>
+    </div>
+    <!-- USERS -->
+    <div class="card">
+      <div class="card-title">👥 Users (${DB.users.length+1})</div>
+      <div style="max-height:260px;overflow-y:auto;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <div><strong>Admin</strong> · Administrator</div>
+          <span class="badge badge-navy">admin</span>
+        </div>
+        ${DB.users.map(u=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+            <div><strong>${esc(u.fullName||u.name||u.username)}</strong> · ${esc(getRoleLabel(u.role))}<br/><span style="font-size:11px;color:var(--muted)">${esc(u.username)} · Depts: ${esc((u.depts||[]).join(', ')||'All')}</span></div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-sm btn-outline" onclick="openEditUser('${u.id}')">✏️</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">×</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-primary" onclick="openAddUser()">+ Add User</button>
+    </div>
+  </div>
+  <!-- ROLE PERMISSIONS -->
+  <div class="card" style="margin-top:0;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">🔑 Role Permissions</div>
+      <button class="btn btn-sm btn-outline" onclick="openAddRole()">+ Custom Role</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="role-matrix">
+      <thead><tr><th>Role</th>${PAGES.map(p=>`<th title="${PAGE_LABELS[p]}">${p.substring(0,4)}</th>`).join('')}<th>Edit</th><th>Scope</th><th></th></tr></thead>
+      <tbody>
+        ${DB.roles.map(r=>`
+          <tr>
+            <td><strong>${r.label}</strong><br/><span style="font-size:10px;color:var(--muted)">(${r.key})</span></td>
+            ${PAGES.map(p=>`<td>${r.access.includes(p)?'<span class="role-check">✓</span>':'·'}</td>`).join('')}
+            <td>${r.canEdit?'✓':'·'}</td>
+            <td>${r.scoped?'dept':'all'}</td>
+            <td>${r.key!=='admin'?`<button class="btn btn-sm btn-outline" onclick="openEditRole('${r.key}')">✏️</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteRole('${r.key}')">×</button>`:'<span style="color:var(--muted);font-size:11px;">built-in</span>'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  <!-- OBS RUBRIC -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="card-title" style="margin:0;">📋 Observation Rubric — Domains & Criteria</div>
+      <button class="btn btn-sm btn-outline" onclick="toast('Rubric reset to defaults','info')">↺ Reset to Defaults</button>
+    </div>
+    <table style="margin-top:12px;">
+      <thead><tr><th>Domain</th><th>Criteria</th></tr></thead>
+      <tbody>
+        ${DOMAINS.map(d=>`<tr><td><strong>${d.label}</strong></td><td style="font-size:12px;">${d.criteria.join(' · ')}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function getRoleLabel(key){
+  const r=DB.roles.find(x=>x.key===key)||BUILT_IN_ROLES.find(x=>x.key===key);
+  return r?r.label:key;
+}
+function saveBranding(){
+  DB.settings.schoolName=document.getElementById('set-name').value.trim()||'Waad Academy';
+  const logo=document.getElementById('set-logo').value.trim();
+  DB.settings.logos=logo?[logo]:[];
+  DB.settings.partnerLogos=document.getElementById('set-partner-logos').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  saveDB();
+  document.getElementById('sb-school-name').textContent='🏫 '+DB.settings.schoolName;
+  document.getElementById('topbar-title').textContent='Settings';
+  toast('Branding saved');
+}
+
+// FIX: Add/Edit user with multi-subject selection
+function openAddUser(){
+  openModal('Add User',userFormHTML(),()=>{
+    const fn=document.getElementById('u-fullname').value.trim();
+    const un=document.getElementById('u-username').value.trim();
+    const pw=document.getElementById('u-password').value;
+    const role=document.getElementById('u-role').value;
+    if(!fn||!un||!pw){toast('All fields required','error');return;}
+    if(DB.users.find(x=>x.username===un)||un==='admin'){toast('Username already exists','error');return;}
+    const depts=[...document.querySelectorAll('#u-dept-pills .subject-pill.selected')].map(p=>p.textContent);
+    DB.users.push({id:uid(),fullName:fn,name:fn,username:un,password:pw,role,depts});
+    saveDB();closeModal();renderSettings(document.getElementById('content'));toast('User created');
+  });
+}
+function openEditUser(id){
+  const u=DB.users.find(x=>x.id===id);if(!u)return;
+  openModal('Edit User',userFormHTML(u),()=>{
+    u.fullName=document.getElementById('u-fullname').value.trim();
+    u.name=u.fullName;
+    const newPw=document.getElementById('u-password').value;
+    if(newPw)u.password=newPw;
+    u.role=document.getElementById('u-role').value;
+    u.username=document.getElementById('u-username').value.trim()||u.username;
+    u.depts=[...document.querySelectorAll('#u-dept-pills .subject-pill.selected')].map(p=>p.textContent);
+    saveDB();closeModal();renderSettings(document.getElementById('content'));toast('User updated');
+  });
+}
+function userFormHTML(u){
+  return `
+  <div class="form-group"><label class="form-label">Full Name (Arabic/English)</label><input type="text" id="u-fullname" value="${esc(u?u.fullName||u.name||'':'')}"/></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="form-group"><label class="form-label">Username</label><input type="text" id="u-username" value="${esc(u?u.username:'')}"/></div>
+    <div class="form-group"><label class="form-label">Password ${u?'(leave blank to keep)':''}</label><input type="password" id="u-password"/></div>
+  </div>
+  <div class="form-group"><label class="form-label">Role</label>
+    <select id="u-role" onchange="showRoleAccess(this.value)">
+      ${DB.roles.map(r=>`<option value="${r.key}" ${u&&u.role===r.key?'selected':''}>${r.label}</option>`).join('')}
+    </select>
+    <div id="u-role-access" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Responsible for departments/subjects (tick all that apply)</label>
+    <div class="subject-pills" id="u-dept-pills">
+      ${SUBJECTS.map(s=>`<div class="subject-pill${u&&(u.depts||[]).includes(s)?' selected':''}" onclick="this.classList.toggle('selected')">${esc(s)}</div>`).join('')}
+    </div>
+  </div>`;
+}
+function showRoleAccess(roleKey){
+  const r=DB.roles.find(x=>x.key===roleKey);
+  const el=document.getElementById('u-role-access');
+  if(el&&r) el.textContent='Access: '+r.access.join(' · ');
+}
+
+function deleteUser(id){
+  if(!confirm('Delete this user?'))return;
+  DB.users=DB.users.filter(x=>x.id!==id);
+  saveDB();renderSettings(document.getElementById('content'));toast('User deleted');
+}
+
+function openAddRole(){
+  openModal('Add Custom Role',`
+    <div class="form-group"><label class="form-label">Role Key (no spaces)</label><input type="text" id="role-key" placeholder="e.g. sciLead"/></div>
+    <div class="form-group"><label class="form-label">Label</label><input type="text" id="role-label" placeholder="e.g. Science Lead"/></div>
+    <div class="form-group"><label class="form-label">Access (select pages)</label>
+      <div class="subject-pills">${PAGES.map(p=>`<div class="subject-pill" onclick="this.classList.toggle('selected')">${p}</div>`).join('')}</div></div>
+    <div class="form-group"><label class="form-label">Can Edit?</label>
+      <select id="role-canedit"><option value="1">Yes</option><option value="0">No</option></select></div>
+    <div class="form-group"><label class="form-label">Dept-Scoped?</label>
+      <select id="role-scoped"><option value="0">No (see all)</option><option value="1">Yes (own depts only)</option></select></div>
+  `,()=>{
+    const key=document.getElementById('role-key').value.trim().replace(/\s+/g,'');
+    const label=document.getElementById('role-label').value.trim();
+    if(!key||!label){toast('Key and label required','error');return;}
+    if(DB.roles.find(r=>r.key===key)){toast('Role key exists','error');return;}
+    const access=[...document.querySelectorAll('#modal-container .subject-pill.selected')].map(p=>p.textContent);
+    DB.roles.push({key,label,access,canEdit:document.getElementById('role-canedit').value==='1',scoped:document.getElementById('role-scoped').value==='1'});
+    saveDB();closeModal();renderSettings(document.getElementById('content'));toast('Role created');
+  });
+}
+function openEditRole(key){
+  const r=DB.roles.find(x=>x.key===key);if(!r)return;
+  openModal('Edit Role: '+r.label,`
+    <div class="form-group"><label class="form-label">Label</label><input type="text" id="role-label" value="${esc(r.label)}"/></div>
+    <div class="form-group"><label class="form-label">Access</label>
+      <div class="subject-pills">${PAGES.map(p=>`<div class="subject-pill${r.access.includes(p)?' selected':''}" onclick="this.classList.toggle('selected')">${p}</div>`).join('')}</div></div>
+    <div class="form-group"><label class="form-label">Can Edit?</label>
+      <select id="role-canedit"><option value="1"${r.canEdit?' selected':''}>Yes</option><option value="0"${!r.canEdit?' selected':''}>No</option></select></div>
+  `,()=>{
+    r.label=document.getElementById('role-label').value.trim();
+    r.access=[...document.querySelectorAll('#modal-container .subject-pill.selected')].map(p=>p.textContent);
+    r.canEdit=document.getElementById('role-canedit').value==='1';
+    saveDB();closeModal();renderSettings(document.getElementById('content'));toast('Role updated');
+  });
+}
+function deleteRole(key){
+  if(!confirm('Delete this role?'))return;
+  DB.roles=DB.roles.filter(r=>r.key!==key);
+  saveDB();renderSettings(document.getElementById('content'));toast('Role deleted');
+}
+
+// ============================================================
+// MODAL ENGINE
+// ============================================================
+function openModal(title,body,onSave,saveLabel='Save'){
+  const mc=document.getElementById('modal-container');
+  mc.innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${esc(title)}</div>
+        <button class="close-btn" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="__modalSave()">${saveLabel} ✓</button>
+      </div>
+    </div>
+  </div>`;
+  window.__modalSave=onSave;
+}
+function closeModal(){
+  document.getElementById('modal-container').innerHTML='';
+}
+
+// ============================================================
+// LOGIN KEY HANDLER
+// ============================================================
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('login-screen').style.display!=='none'){doLogin();}
+  }
+});
+
+// ============================================================
+// BOOT
+// ============================================================
+initDB();
+if(restoreSession()){
+  startApp();
+} else {
+  document.getElementById('login-screen').style.display='flex';
+}
+
+// Auto-save every 30s
+setInterval(()=>{saveDB();},30000);
+</script>
+</body>
+</html>
