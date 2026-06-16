@@ -100,16 +100,55 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
+// ═══ SUPABASE CONFIG
+const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
+const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+let SCHOOL_ID=null; // loaded on boot
+
+async function sbGet(table,params=''){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:SB_HEADERS});
+    if(!r.ok)return null;
+    return await r.json();
+  }catch(e){return null;}
+}
+async function sbUpsert(table,data){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(data)});
+    return r.ok;
+  }catch(e){return false;}
+}
+async function sbDelete(table,id){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'DELETE',headers:SB_HEADERS});
+    return r.ok;
+  }catch(e){return false;}
+}
+
+// ═══ LOCAL CACHE (fast UI, Supabase is source of truth)
 const MEM={};
 function sget(k){try{const v=localStorage.getItem('wa_'+k);return v?JSON.parse(v):null}catch(e){return MEM[k]||null}}
 function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){MEM[k]=v}}
+
+// ═══ TABLE MAP: local key → Supabase table + field mapping
+const TABLE_MAP={
+  teachers:{table:'teachers',schoolField:'school_id'},
+  groups:{table:'tlc_groups',schoolField:'school_id'},
+  obs:{table:'observations',schoolField:'school_id'},
+  trips:{table:'triplets',schoolField:'school_id'},
+  lwalks:{table:'learning_walks',schoolField:'school_id'},
+  cpd:{table:'cpd_sessions',schoolField:'school_id'},
+  sched:{table:'schedule_rows',schoolField:'school_id'},
+  impacts:{table:'impact_entries',schoolField:'school_id'},
+  progress:{table:'student_progress',schoolField:'school_id'},
+  snapshots:{table:'process_snapshots',schoolField:'school_id'},
+};
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // SEED USERS — cross-device login; update via Settings > Export for GitHub
-const SEED_USERS=[ {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
-  {id:'bcr3ztz9_mqh0vkhr',name:'Bilal Harb',fullName:'Bilal Harb',username:'Bilal',password:'Bilal7373',role:'admin',depts:[]},
-  {id:'sfxm4xqa_mqh0w6j9',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr1234567',role:'admin',depts:[]},
-  {id:'pcmxd6fx_mqh0wsy2',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
+const SEED_USERS=[
+  {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
 ];
 
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
@@ -212,19 +251,73 @@ let S={
 
 function uid(){return Math.random().toString(36).slice(2,10)+'_'+Date.now().toString(36)}
 
-function loadAll(){
-  S.teachers=sget('teachers')||SEED_TEACHERS;
-  S.groups=sget('groups')||SEED_GROUPS;
-  S.observations=sget('obs')||[];
-  S.triplets=sget('trips')||[];
-  S.lwalks=sget('lwalks')||[];
-  S.cpd=sget('cpd')||[];
-  S.schedule=sget('sched')||SEED_SCHEDULE;
-  S.impacts=sget('impacts')||[];
-  S.progress=sget('progress')||[];
-  S.snapshots=sget('snapshots')||[];
-  S.resources=sget('resources')||DEFAULT_RESOURCES;
-  S.users=sget('users')||[];
+async function loadAll(){
+  // Load school ID first
+  if(!SCHOOL_ID){
+    const schools=await sbGet('schools','select=id&slug=eq.waad-academy&limit=1');
+    if(schools&&schools.length>0){
+      SCHOOL_ID=schools[0].id;
+      sset('school_id',SCHOOL_ID);
+    } else {
+      SCHOOL_ID=sget('school_id')||null;
+    }
+  }
+
+  if(SCHOOL_ID){
+    // Load from Supabase in parallel
+    const sid='school_id=eq.'+SCHOOL_ID+'&order=created_at.asc';
+    const [teachers,groups,obs,trips,lwalks,cpd,sched,impacts,progress,snaps,users]=await Promise.all([
+      sbGet('teachers',sid),
+      sbGet('tlc_groups',sid),
+      sbGet('observations',sid),
+      sbGet('triplets',sid),
+      sbGet('learning_walks',sid),
+      sbGet('cpd_sessions',sid),
+      sbGet('schedule_rows',sid),
+      sbGet('impact_entries',sid),
+      sbGet('student_progress',sid),
+      sbGet('process_snapshots',sid),
+      sbGet('users','school_id=eq.'+SCHOOL_ID+'&select=id,name,email,role_key,depts'),
+    ]);
+    if(teachers){S.teachers=teachers.map(mapTeacher);sset('teachers',S.teachers);}
+    else S.teachers=sget('teachers')||SEED_TEACHERS;
+    if(groups){S.groups=groups.map(mapGroup);sset('groups',S.groups);}
+    else S.groups=sget('groups')||SEED_GROUPS;
+    if(obs){S.observations=obs.map(mapObs);sset('obs',S.observations);}
+    else S.observations=sget('obs')||[];
+    if(trips){S.triplets=trips.map(mapTrip);sset('trips',S.triplets);}
+    else S.triplets=sget('trips')||[];
+    if(lwalks){S.lwalks=lwalks.map(mapLW);sset('lwalks',S.lwalks);}
+    else S.lwalks=sget('lwalks')||[];
+    if(cpd){S.cpd=cpd.map(mapCPD);sset('cpd',S.cpd);}
+    else S.cpd=sget('cpd')||[];
+    if(sched){S.schedule=sched.map(mapSched);sset('sched',S.schedule);}
+    else S.schedule=sget('sched')||SEED_SCHEDULE;
+    if(impacts){S.impacts=impacts.map(mapImpact);sset('impacts',S.impacts);}
+    else S.impacts=sget('impacts')||[];
+    if(progress){S.progress=progress.map(mapProgress);sset('progress',S.progress);}
+    else S.progress=sget('progress')||[];
+    if(snaps){S.snapshots=snaps.map(mapSnap);sset('snapshots',S.snapshots);}
+    else S.snapshots=sget('snapshots')||[];
+    if(users){
+      S.users=users.map(u=>({id:u.id,name:u.name,fullName:u.name,username:u.email?.split('@')[0]||u.name,email:u.email,role:u.role_key||'viewer',depts:u.depts||[]}));
+      sset('users',S.users);
+    } else S.users=sget('users')||[];
+  } else {
+    // Fallback to localStorage if Supabase unreachable
+    S.teachers=sget('teachers')||SEED_TEACHERS;
+    S.groups=sget('groups')||SEED_GROUPS;
+    S.observations=sget('obs')||[];
+    S.triplets=sget('trips')||[];
+    S.lwalks=sget('lwalks')||[];
+    S.cpd=sget('cpd')||[];
+    S.schedule=sget('sched')||SEED_SCHEDULE;
+    S.impacts=sget('impacts')||[];
+    S.progress=sget('progress')||[];
+    S.snapshots=sget('snapshots')||[];
+    S.users=sget('users')||[];
+  }
+  // These stay in localStorage only (UI state, not domain data)
   S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
   S.mechM=sget('mechM')||{};
   S.dhM=sget('dhM')||{};
@@ -232,7 +325,43 @@ function loadAll(){
   S.customDomains=sget('customDomains')||null;
   S.session=sget('session')||null;
 }
-function save(k,v){sset(k,v)}
+
+// ═══ DATA MAPPERS (Supabase columns → S.* shape)
+function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
+function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:r.scope||'teacher',bio:r.technique||'',customTech:r.custom_tech||'',scores:r.scores||{},conf:r.confidence||0,www:r.www||'',ebi:r.ebi||'',action:r.action_step||'',autoLPs:r.auto_lps||[],neasc:r.neasc_lps||[],slLinked:r.steplab_linked||false}}
+function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.observer_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:r.technique||'',customTech:r.custom_tech||'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action_step||'',slLinked:r.steplab_linked||false}}
+function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:r.technique||'',customTech:r.custom_tech||'',strengths:r.strengths||'',afd:r.areas_for_development||'',focusArea:r.focus_area||''}}
+function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:r.technique||'',customTech:r.custom_tech||'',before:r.before_content||'',during:r.during_content||'',after:r.after_content||'',status:r.status||'active'}}
+function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_session_id||null}}
+function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
+function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.scores||{},folderLink:r.folder_link||''}}
+function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0,tripCount:r.trip_count||0,lwCount:r.lw_count||0,dept:r.dept||'Whole School',date:r.created_at||new Date().toISOString()}}
+
+// ═══ SAVE — writes to Supabase + updates localStorage cache
+async function save(k,v){
+  sset(k,v); // instant local update for UI
+  if(!SCHOOL_ID)return;
+  const sid=SCHOOL_ID;
+  try{
+    if(k==='teachers'){await sbUpsert('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept,section:t.section,stage:t.stage,grades:t.grades||[],group_id:t.groupId||null})));}
+    else if(k==='groups'){await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color})));}
+    else if(k==='obs'){await sbUpsert('observations',v.map(o=>({id:o.id,school_id:sid,teacher_id:o.tid||null,date:o.date,observer:o.observer,scope:o.scope,technique:o.bio||'',custom_tech:o.customTech||'',scores:o.scores||{},confidence:o.conf||0,www:o.www||'',ebi:o.ebi||'',action_step:o.action||'',auto_lps:o.autoLPs||[],neasc_lps:o.neasc||[],steplab_linked:o.slLinked||false})));}
+    else if(k==='trips'){await sbUpsert('triplets',v.map(t=>({id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',observer_id:t.oid||null,coach_id:t.cid||null,facilitator_id:t.fid||null,technique:t.bio||'',custom_tech:t.customTech||'',observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action_step:t.action||'',steplab_linked:t.slLinked||false})));}
+    else if(k==='lwalks'){await sbUpsert('learning_walks',v.map(lw=>({id:lw.id,school_id:sid,date:lw.date,observer:lw.observer,section:lw.section||'',dept:lw.dept||'',technique:lw.bio||'',custom_tech:lw.customTech||'',strengths:lw.strengths||'',areas_for_development:lw.afd||'',focus_area:lw.focusArea||''})));}
+    else if(k==='cpd'){await sbUpsert('cpd_sessions',v.map(c=>({id:c.id,school_id:sid,title:c.title,date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',technique:c.bio||'',custom_tech:c.customTech||'',before_content:c.before||'',during_content:c.during||'',after_content:c.after||'',status:c.status||'active'})));}
+    else if(k==='sched'){await sbUpsert('schedule_rows',v.map(r=>({id:r.id,school_id:sid,category:r.category,program:r.program,facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_session_id:r.cpdId||null})));}
+    else if(k==='impacts'){await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level,type:i.type,teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));}
+    else if(k==='progress'){await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode,subject:p.subject,dept:p.dept,grade:p.grade,section:p.section,scores:p.scores||{},folder_link:p.folderLink||''})));}
+    else if(k==='snapshots'){await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));}
+  }catch(e){console.warn('Supabase save failed for',k,e);}
+}
+
+// Delete from Supabase when item removed
+async function sbRemove(table,id){
+  if(!SCHOOL_ID)return;
+  await sbDelete(table,id);
+}
 
 function getAllUsers(){
   const local=S.users||[];
@@ -357,7 +486,9 @@ ${S.modal||''}
       <h2>${VIEW_META[S.view]?.icon} ${VIEW_META[S.view]?.label}</h2>
       <div class="flex items-center gap-2">
         ${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:24px;object-fit:contain;border-radius:3px">').join('')}
-        <span class="badge badge-green">🟢 Live</span>
+        <span class="badge ${SCHOOL_ID?'badge-green':'badge-amber'}">${SCHOOL_ID?'🟢 DB Live':'🟡 Offline'}</span>
+        ${SCHOOL_ID?`<button onclick="refreshFromDB()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted)" title="Refresh from database">↻</button>`:''}
+        <span class="badge badge-green" style="display:none">🟢 Live</span>
         <span style="font-size:12px;color:var(--muted)">${esc(S.session.name)} · ${esc(role.label||S.session.role)}</span>
       </div>
     </div>
@@ -1584,10 +1715,11 @@ function bindEvents(){
 
   const loginBtn=g('l-btn');
   if(loginBtn){
-    const doLogin=()=>{
+    const doLogin=async()=>{
       const u=(gv('l-user')||'').trim().toLowerCase();
       const p=(gv('l-pass')||'').trim();
       const err=g('l-err');
+      // Check seed + local users first (instant)
       const found=getAllUsers().find(x=>x.username.toLowerCase()===u&&x.password===p);
       if(found){const sess={name:found.fullName||found.name||found.username,role:found.role||'viewer',depts:found.depts||[]};S.session=sess;sset('session',sess);render();return;}
       if(err){err.style.display='block';err.textContent='Invalid credentials. Try admin / waad2026';}
@@ -1886,17 +2018,17 @@ function bindEvents(){
   document.querySelectorAll('[data-sl-trip]').forEach(el=>{el.onchange=()=>{S.triplets=S.triplets.map(t=>t.id===el.dataset.slTrip?{...t,slLinked:el.checked}:t);save('trips',S.triplets);showToast(el.checked?'Linked to Steplab ✓':'Unlinked');render();}});
 
   // DELETE handlers
-  document.querySelectorAll('[data-del-obs]').forEach(el=>{el.onclick=()=>{if(!confirm('Delete this observation?'))return;S.observations=S.observations.filter(o=>o.id!==el.dataset.delObs);save('obs',S.observations);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-lw]').forEach(el=>{el.onclick=()=>{S.lwalks=S.lwalks.filter(o=>o.id!==el.dataset.delLw);save('lwalks',S.lwalks);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-cpd]').forEach(el=>{el.onclick=()=>{S.cpd=S.cpd.filter(o=>o.id!==el.dataset.delCpd);save('cpd',S.cpd);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-trip]').forEach(el=>{el.onclick=()=>{S.triplets=S.triplets.filter(o=>o.id!==el.dataset.delTrip);save('trips',S.triplets);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-sched]').forEach(el=>{el.onclick=()=>{S.schedule=S.schedule.filter(o=>o.id!==el.dataset.delSched);save('sched',S.schedule);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-teacher]').forEach(el=>{el.onclick=()=>{S.teachers=S.teachers.filter(o=>o.id!==el.dataset.delTeacher);save('teachers',S.teachers);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-obs]').forEach(el=>{el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);save('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-lw]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-cpd]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delCpd;S.cpd=S.cpd.filter(o=>o.id!==id);save('cpd',S.cpd);sbRemove('cpd_sessions',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-trip]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-sched]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delSched;S.schedule=S.schedule.filter(o=>o.id!==id);save('sched',S.schedule);sbRemove('schedule_rows',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-teacher]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();}});
   document.querySelectorAll('[data-del-user]').forEach(el=>{el.onclick=()=>{S.users=S.users.filter(o=>o.id!==el.dataset.delUser);save('users',S.users);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-impact]').forEach(el=>{el.onclick=()=>{S.impacts=S.impacts.filter(o=>o.id!==el.dataset.delImpact);save('impacts',S.impacts);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-prog]').forEach(el=>{el.onclick=()=>{S.progress=S.progress.filter(o=>o.id!==el.dataset.delProg);save('progress',S.progress);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-impact]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delImpact;S.impacts=S.impacts.filter(o=>o.id!==id);save('impacts',S.impacts);sbRemove('impact_entries',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-prog]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delProg;S.progress=S.progress.filter(o=>o.id!==id);save('progress',S.progress);sbRemove('student_progress',id);showToast('Deleted');render();}});
   document.querySelectorAll('[data-del-res]').forEach(el=>{el.onclick=()=>{S.resources=S.resources.filter(o=>o.id!==el.dataset.delRes);save('resources',S.resources);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-group]').forEach(el=>{el.onclick=()=>{const grp=S.groups.find(g=>g.id===el.dataset.delGroup);if(!grp)return;const has=S.teachers.filter(t=>t.groupId===grp.id).length;if(has&&!confirm(has+' teachers will be unassigned. Delete?'))return;S.groups=S.groups.filter(g=>g.id!==grp.id);S.teachers=S.teachers.map(t=>t.groupId===grp.id?{...t,groupId:''}:t);save('groups',S.groups);save('teachers',S.teachers);showToast('Group deleted');render();}});
+  document.querySelectorAll('[data-del-group]').forEach(el=>{el.onclick=()=>{const grp=S.groups.find(g=>g.id===el.dataset.delGroup);if(!grp)return;const has=S.teachers.filter(t=>t.groupId===grp.id).length;if(has&&!confirm(has+' teachers will be unassigned. Delete?'))return;S.groups=S.groups.filter(g=>g.id!==grp.id);S.teachers=S.teachers.map(t=>t.groupId===grp.id?{...t,groupId:''}:t);save('groups',S.groups);save('teachers',S.teachers);sbRemove('tlc_groups',grp.id);showToast('Group deleted');render();}});
 
   // Export CSV buttons
   const expBtn=g('export-senior-btn');
@@ -1931,8 +2063,29 @@ function getLPs(bio,customTech){
   return TECH_LP[bio]||[];
 }
 
-loadAll();
-render();
+// ═══ ASYNC BOOT
+async function refreshFromDB(){
+  showToast('Refreshing from database...');
+  await loadAll();
+  render();
+  showToast('Data refreshed ✓');
+}
+
+async function boot(){
+  document.getElementById('app').innerHTML=`
+    <div style="min-height:100vh;background:#1F4E79;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+      <div style="font-size:40px">🏫</div>
+      <div style="color:#fff;font-size:18px;font-weight:700">Waad Academy</div>
+      <div style="color:rgba(255,255,255,.7);font-size:13px">Connecting to database...</div>
+      <div style="width:200px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;margin-top:8px">
+        <div style="width:60%;height:100%;background:#0F6E56;border-radius:2px;animation:pulse 1.5s ease-in-out infinite"></div>
+      </div>
+      <style>@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}</style>
+    </div>`;
+  await loadAll();
+  render();
+}
+boot();
 </script>
 </body>
 </html>
