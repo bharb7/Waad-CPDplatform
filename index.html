@@ -106,8 +106,10 @@ function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // SEED USERS — cross-device login; update via Settings > Export for GitHub
-const SEED_USERS=[
-  {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
+const SEED_USERS=[ {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
+  {id:'bcr3ztz9_mqh0vkhr',name:'Bilal Harb',fullName:'Bilal Harb',username:'Bilal',password:'Bilal7373',role:'admin',depts:[]},
+  {id:'sfxm4xqa_mqh0w6j9',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr1234567',role:'admin',depts:[]},
+  {id:'pcmxd6fx_mqh0wsy2',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
 ];
 
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
