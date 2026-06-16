@@ -106,8 +106,9 @@ function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 // SEED USERS — cross-device login; update via Settings > Export for GitHub
-const SEED_USERS=[
+const SEED_USERS=[const SEED_USERS = [
   {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
+  {id:'83gk3yog_mqh09gjj',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr1234567',role:'admin',depts:[]}
 ];
 
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
