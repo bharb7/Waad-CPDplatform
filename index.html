@@ -104,7 +104,13 @@ tr:hover td{background:#fafafa}
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
-let SCHOOL_ID=null; // loaded on boot
+// Waad Academy school UUID — hardcoded for instant boot, no lookup needed
+let SCHOOL_ID='2b526882-97b3-4f98-b850-6e989c26d99b';
+
+async function resolveSchoolId(){
+  // UUID is hardcoded — nothing to resolve
+  sset('school_id',SCHOOL_ID);
+}
 
 async function sbGet(table,params=''){
   try{
@@ -269,16 +275,8 @@ let S={
 function uid(){return Math.random().toString(36).slice(2,10)+'_'+Date.now().toString(36)}
 
 async function loadAll(){
-  // Load school ID first
-  if(!SCHOOL_ID){
-    const schools=await sbGet('schools','select=id&slug=eq.waad-academy&limit=1');
-    if(schools&&schools.length>0){
-      SCHOOL_ID=schools[0].id;
-      sset('school_id',SCHOOL_ID);
-    } else {
-      SCHOOL_ID=sget('school_id')||null;
-    }
-  }
+  // Resolve school ID (uses cache or fetches once)
+  await resolveSchoolId();
 
   if(SCHOOL_ID){
     // Load from Supabase in parallel — all scoped to this school
@@ -384,7 +382,11 @@ async function loadAll(){
 
 // Save shared settings to Supabase schools table
 async function saveSchoolSettings(){
-  if(!SCHOOL_ID)return;
+  sset('roleCfg',S.roleCfg);
+  sset('mechM',S.mechM);
+  sset('dhM',S.dhM);
+  sset('branding',S.branding);
+  sset('customDomains',S.customDomains);
   const payload={
     branding:{
       name:S.branding.name||'Waad Academy',
