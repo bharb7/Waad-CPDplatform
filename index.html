@@ -426,10 +426,10 @@ async function saveSchoolSettings(){
 // ═══ DATA MAPPERS (Supabase columns → S.* shape)
 function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:r.scope||'teacher',bio:r.techniques||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false}}
-function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:'',fid:'',bio:r.techniques||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false}}
-function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:r.techniques||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
-function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:r.techniques||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false}}
+function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:'',fid:'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false}}
+function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
+function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
 function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null}}
 function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
 function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.stage_scores||{},folderLink:r.folder_link||''}}
@@ -453,27 +453,31 @@ async function save(k,v){
       await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
     }
     else if(k==='obs'){
-      // Real cols: techniques, conf, sl_linked, action, neasc_lps, www, ebi, scores, teacher_name
       await sbUpsert('observations',v.map(o=>{
         const t=S.teachers.find(tc=>tc.id===o.tid);
-        return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:o.bio||o.customTech||'',neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false};
+        const tech=o.bio||o.customTech||'';
+        return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false};
       }));
     }
     else if(k==='trips'){
-      // Real cols: teacher_id, teacher_name, coach (not coach_id), techniques, action, sl_linked, care_* cols
       await sbUpsert('triplets',v.map(t=>{
         const ob=S.teachers.find(tc=>tc.id===t.oid);
         const co=S.teachers.find(tc=>tc.id===t.cid);
-        return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:t.bio||t.customTech||'',observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};
+        const tech=t.bio||t.customTech||'';
+        return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};
       }));
     }
     else if(k==='lwalks'){
-      // Real cols: techniques (not bio), strengths, afd, focus_area — no custom_bio
-      await sbUpsert('learning_walks',v.map(lw=>({id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:lw.bio||lw.customTech||'',strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''})));
+      await sbUpsert('learning_walks',v.map(lw=>{
+        const tech=lw.bio||lw.customTech||'';
+        return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};
+      }));
     }
     else if(k==='cpd'){
-      // Real cols: techniques (not bio), before_text, during_text, after_text — no custom_bio
-      await sbUpsert('cpd_sessions',v.map(c=>({id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:c.bio||c.customTech||'',before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'})));
+      await sbUpsert('cpd_sessions',v.map(c=>{
+        const tech=c.bio||c.customTech||'';
+        return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};
+      }));
     }
     else if(k==='sched'){
       await sbUpsert('schedule_rows',v.map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null})));
