@@ -297,7 +297,7 @@ async function loadAll(){
   if(SCHOOL_ID){
     // Load from Supabase in parallel — all scoped to this school
     const sid='school_id=eq.'+SCHOOL_ID;
-    const [teachers,groups,obs,trips,lwalks,cpd,sched,impacts,progress,snaps]=await Promise.all([
+    const [teachers,groups,obs,trips,lwalks,cpd,sched,impacts,progress,snaps,resources]=await Promise.all([
       sbGet('teachers',sid+'&select=*'),
       sbGet('tlc_groups',sid+'&select=*'),
       sbGet('observations',sid+'&select=*'),
@@ -308,6 +308,7 @@ async function loadAll(){
       sbGet('impact_entries',sid+'&select=*'),
       sbGet('student_progress',sid+'&select=*'),
       sbGet('process_snapshots',sid+'&select=*'),
+      sbGet('resources',sid+'&select=*'),
     ]);
     // Teachers — always show ALL school teachers regardless of who created them
     if(teachers&&Array.isArray(teachers)){
@@ -347,6 +348,8 @@ async function loadAll(){
     // Process snapshots
     if(snaps&&Array.isArray(snaps)){S.snapshots=snaps.map(mapSnap);sset('snapshots',S.snapshots);}
     else S.snapshots=sget('snapshots')||[];
+    if(resources&&Array.isArray(resources)&&resources.length>0){S.resources=resources.map(r=>({id:r.id,title:r.title||'',url:r.url||'',desc:r.description||''}));sset('resources',S.resources);}
+    else S.resources=sget('resources')||DEFAULT_RESOURCES;
     // Users from seed only (passwords not stored in DB)
     S.users=sget('users')||[];
   } else {
@@ -490,6 +493,9 @@ async function save(k,v){
     }
     else if(k==='snapshots'){
       await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
+    }
+    else if(k==='resources'){
+      await sbUpsert('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0})));
     }
   }catch(e){console.warn('Supabase save failed for',k,e);}
 }
@@ -2184,7 +2190,7 @@ function bindEvents(){
   document.querySelectorAll('[data-del-user]').forEach(el=>{el.onclick=()=>{S.users=S.users.filter(o=>o.id!==el.dataset.delUser);save('users',S.users);showToast('Deleted');render();}});
   document.querySelectorAll('[data-del-impact]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delImpact;S.impacts=S.impacts.filter(o=>o.id!==id);save('impacts',S.impacts);sbRemove('impact_entries',id);showToast('Deleted');render();}});
   document.querySelectorAll('[data-del-prog]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delProg;S.progress=S.progress.filter(o=>o.id!==id);save('progress',S.progress);sbRemove('student_progress',id);showToast('Deleted');render();}});
-  document.querySelectorAll('[data-del-res]').forEach(el=>{el.onclick=()=>{S.resources=S.resources.filter(o=>o.id!==el.dataset.delRes);save('resources',S.resources);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-res]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delRes;S.resources=S.resources.filter(o=>o.id!==id);save('resources',S.resources);sbRemove('resources',id);showToast('Deleted');render();}});
   document.querySelectorAll('[data-del-group]').forEach(el=>{el.onclick=()=>{const grp=S.groups.find(g=>g.id===el.dataset.delGroup);if(!grp)return;const has=S.teachers.filter(t=>t.groupId===grp.id).length;if(has&&!confirm(has+' teachers will be unassigned. Delete?'))return;S.groups=S.groups.filter(g=>g.id!==grp.id);S.teachers=S.teachers.map(t=>t.groupId===grp.id?{...t,groupId:''}:t);save('groups',S.groups);save('teachers',S.teachers);sbRemove('tlc_groups',grp.id);showToast('Group deleted');render();}});
 
   // Export CSV buttons
