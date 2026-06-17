@@ -1189,7 +1189,7 @@ function renderImpact(){
   ${dept?`<button class="btn btn-ghost btn-sm" data-impact-dept-clear>✕ Clear</button>`:''}
 </div>
 <div class="tabs">
-  ${['L1','L2','L3','progress'].map(t=>`<button class="tab ${tab===t?'active':''}" data-imp-tab="${t}">${t==='progress'?'Student Progress':t+': '+{L1:'Teacher Knowledge',L2:'Classroom Practice',L3:'Student Outcomes'}[t]}</button>`).join('')}
+  ${['L1','L2','L3','progress'].map(t=>`<button class="tab ${tab===t?'active':''}" data-imp-tab="${t}">${t==='progress'?'Student Progress':t+': '+{L1:'Teacher Knowledge',L2:'Classroom Practice',L3:'Impact on Students'}[t]}</button>`).join('')}
 </div>
 ${tab==='L1'?`
 <div class="card mb-3" style="border-left:4px solid #1e40af">
@@ -1260,7 +1260,112 @@ ${tab==='L2'?`
 </div>`:''}
 ${tab==='L3'?`
 <div style="border:2px solid var(--teal);border-radius:10px;padding:16px;margin-bottom:14px">
-  <div style="font-size:14px;font-weight:700;color:var(--teal);margin-bottom:14px">Level 3 — Student Outcomes${dept?' · '+esc(dept):''}</div>
+  <div style="font-size:14px;font-weight:700;color:var(--teal);margin-bottom:4px">Level 3 — Impact on Students${dept?' · '+esc(dept):''}</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Auto-read from observations (d3/d4 scores), coaching triplets (completed cycles), learning walks (strengths) and CPD sessions (after-content).</div>
+  ${(()=>{
+    const colorFor=n=>n>=4?'var(--teal)':n>=3?'var(--amber)':n>0?'var(--red)':'#e5e7eb';
+    // ── Auto-compute each indicator from platform data ──────────────────────
+    // Student Engagement: avg d4 scores from obs
+    const engObs=obs.filter(o=>(o.scores?.d4||[]).some(v=>v>0));
+    const engScore=engObs.length?avg(engObs.map(o=>avg((o.scores?.d4||[]).filter(x=>x>0)))):0;
+    const engTech=[...new Set(engObs.map(o=>techDisplay(o)).filter(Boolean))][0]||'';
+    // Formative Assessment: avg d3 scores from obs
+    const fmObs=obs.filter(o=>(o.scores?.d3||[]).some(v=>v>0));
+    const fmScore=fmObs.length?avg(fmObs.map(o=>avg((o.scores?.d3||[]).filter(x=>x>0)))):0;
+    const fmTech=[...new Set(fmObs.map(o=>techDisplay(o)).filter(Boolean))][0]||'';
+    // Depth of Questioning: obs with Cold call / Ratio / Think-Pair-Share technique
+    const qObs=obs.filter(o=>['Cold call','Ratio of pupil thought','Think, Pair, Share','Simultaneous response'].includes(o.bio||o.customTech||''));
+    const qScore=qObs.length?avg(qObs.map(o=>avg([...(o.scores?.d3||[]),(o.scores?.d4||[])].filter(x=>x>0)))):0;
+    const qTech=[...new Set(qObs.map(o=>techDisplay(o)).filter(Boolean))][0]||'';
+    // Critical Thinking: d4 scores + metacognition technique
+    const ctObs=obs.filter(o=>(o.scores?.d4||[]).some(v=>v>=3)||['Metacognition: Obvious organisers'].includes(o.bio||o.customTech||''));
+    const ctScore=ctObs.length?avg(ctObs.map(o=>avg((o.scores?.d4||[]).filter(x=>x>0)))):0;
+    const ctTech=[...new Set(ctObs.map(o=>techDisplay(o)).filter(Boolean))][0]||'';
+    // Collaboration: TPS / coaching triplets
+    const colObs=obs.filter(o=>['Think, Pair, Share','Simultaneous response'].includes(o.bio||o.customTech||''));
+    const colTrips=trips.filter(t=>t.status==='complete');
+    const colScore=colObs.length?avg(colObs.map(o=>avg((o.scores?.d4||[]).filter(x=>x>0)))):colTrips.length>=1?3:0;
+    const colTech=colObs.length?techDisplay(colObs[0]):'Coaching triplets';
+    // Student Ownership: d4 + d5 combined, metacognition
+    const soObs=obs.filter(o=>(o.scores?.d4||[]).some(v=>v>0)||(o.scores?.d5||[]).some(v=>v>0));
+    const soScore=soObs.length?avg(soObs.map(o=>avg([...(o.scores?.d4||[]),(o.scores?.d5||[])].filter(x=>x>0)))):0;
+    const soTech=[...new Set(soObs.map(o=>techDisplay(o)).filter(Boolean))][0]||'';
+    // Independence: d5 scores
+    const indObs=obs.filter(o=>(o.scores?.d5||[]).some(v=>v>0));
+    const indScore=indObs.length?avg(indObs.map(o=>avg((o.scores?.d5||[]).filter(x=>x>0)))):0;
+    const indTech=[...new Set(indObs.map(o=>techDisplay(o)).filter(Boolean))][0]||'';
+    // CPD After-content entries as evidence count
+    const cpdWithAfter=S.cpd.filter(c=>c.after&&c.after.trim().length>0);
+    // Learning walks strengths as evidence
+    const lwWithStr=S.lwalks.filter(lw=>lw.strengths&&lw.strengths.trim().length>0);
+
+    const L3_ROWS=[
+      {key:'engagement',name:'Student Engagement',lps:['LP5'],tech:engTech,score:engScore,obsCount:engObs.length,source:'d4 obs'},
+      {key:'formative',name:'Formative Assessment',lps:['LP3'],tech:fmTech,score:fmScore,obsCount:fmObs.length,source:'d3 obs'},
+      {key:'questioning',name:'Depth of Questioning',lps:['LP4'],tech:qTech,score:qScore,obsCount:qObs.length,source:'technique obs'},
+      {key:'thinking',name:'Critical Thinking',lps:['LP4'],tech:ctTech,score:ctScore,obsCount:ctObs.length,source:'d4 obs'},
+      {key:'collaboration',name:'Collaboration',lps:['LP2','LP5'],tech:colTech,score:colScore,obsCount:colObs.length+colTrips.length,source:'obs + triplets'},
+      {key:'ownership',name:'Student Ownership',lps:['LP5','LP6'],tech:soTech,score:soScore,obsCount:soObs.length,source:'d4+d5 obs'},
+      {key:'independence',name:'Independence',lps:['LP5'],tech:indTech,score:indScore,obsCount:indObs.length,source:'d5 obs'},
+    ];
+    // Merge with any manual ratings saved in impacts
+    const manualRatings={};
+    impacts.filter(i=>i.level==='3').forEach(i=>{if(i.type&&i.value)manualRatings[i.type]=parseFloat(i.value)||0;});
+
+    return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      ${L3_ROWS.map(row=>{
+        const displayScore=manualRatings[row.key]||row.score;
+        const pct=Math.min(100,displayScore/5*100);
+        const barColor=displayScore>=4?'var(--teal)':displayScore>=3?'var(--amber)':displayScore>0?'var(--red)':'#e5e7eb';
+        const manualEntry=impacts.find(i=>i.level==='3'&&i.type===row.key);
+        return `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">${row.name}</div>
+          <div class="flex gap-1 mb-2 flex-wrap">
+            ${row.lps.map(lp=>'<span class="badge badge-blue" style="font-size:10px">'+lp+'</span>').join('')}
+            ${row.tech?'<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">'+esc(row.tech)+'</span>':''}
+            <span style="font-size:10px;color:var(--muted);padding:2px 6px">${row.obsCount} ${row.source}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">
+              <div style="height:100%;border-radius:3px;background:${barColor};width:${pct}%;transition:width .4s"></div>
+            </div>
+            <span style="font-size:13px;font-weight:700;color:${barColor};min-width:32px">${displayScore>0?displayScore.toFixed(1)+'/5':'—'}</span>
+          </div>
+          <div class="flex gap-1 items-center flex-wrap">
+            ${[1,2,3,4,5].map(n=>`<button data-l3-rate="${row.key}-${n}" style="width:26px;height:26px;border-radius:4px;border:1px solid ${(manualRatings[row.key]||0)>=n?'var(--teal)':'var(--border)'};background:${(manualRatings[row.key]||0)>=n?'var(--teal)':'transparent'};color:${(manualRatings[row.key]||0)>=n?'#fff':'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer">${n}</button>`).join('')}
+            ${displayScore>0&&!manualRatings[row.key]?'<span style="font-size:10px;color:var(--teal);margin-left:4px">auto</span>':''}
+            ${manualEntry&&canEdit()?`<button class="btn btn-sm btn-danger" style="margin-left:auto;padding:1px 6px" data-del-impact="${manualEntry.id}">✕</button>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="background:var(--light);border-radius:8px;padding:10px 14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">📊 EVIDENCE SUMMARY</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+        <span>🔍 <strong>${obs.length}</strong> observations</span>
+        <span>🎯 <strong>${trips.filter(t=>t.status==='complete').length}</strong> coaching cycles complete</span>
+        <span>📚 <strong>${cpdWithAfter.length}</strong> CPD sessions with after-content</span>
+        <span>🚶 <strong>${lwWithStr.length}</strong> learning walks with strengths</span>
+      </div>
+    </div>
+    ${canEdit()?'<button class="btn btn-primary btn-sm" data-modal="impact">+ Add Manual Entry</button>':''}
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);font-style:italic">
+      ${obs.length===0?'No observation data yet — scores will populate automatically as you log observations.':'Scores auto-calculated from platform data. Use the 1–5 buttons to override any indicator manually.'}
+    </div>`;
+  })()}
+</div>
+${impacts.filter(i=>i.level==='3'&&!['engagement','formative','questioning','thinking','collaboration','ownership','independence'].includes(i.type)).length?`
+<div class="card-title mb-2" style="margin-top:8px">📝 Other Manual L3 Entries</div>
+${impacts.filter(i=>i.level==='3'&&!['engagement','formative','questioning','thinking','collaboration','ownership','independence'].includes(i.type)).slice().reverse().map(i=>{const t=S.teachers.find(t=>t.id===i.tid);return`<div class="card" style="border-left:3px solid var(--forest)">
+  <div class="flex justify-between items-center">
+    <div><span class="badge badge-green">${i.type}</span>${t?'<span class="text-xs text-muted ml-2">'+esc(t.name)+'</span>':''}<span class="text-xs text-muted ml-2">${i.date||''}</span></div>
+    ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-impact="${i.id}">✏</button><button class="btn btn-sm btn-danger" data-del-impact="${i.id}">✕</button></div>`:''}
+  </div>
+  ${i.value?'<div class="mt-1 font-semibold">'+esc(i.value)+'</div>':''}
+  ${i.evidence?'<div class="text-xs text-muted mt-1">'+esc(i.evidence)+'</div>':''}
+</div>`;}).join('')}`:''}
+`:''}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     ${canEdit()?'<button class="btn btn-primary btn-sm" data-modal="impact">+ Log Impact</button>':'<div></div>'}
   </div>
@@ -1732,7 +1837,7 @@ function renderModal(type,data={}){
     const typeOpts={1:['confidence','knowledge-check','I-will-try-card','voice-survey','other'],2:['obs-domain-score','triplet-evidence','action-plan-rate','learning-walk','other'],3:['student-engagement','formative-assessment','questioning-depth','collaboration','student-ownership','other']};
     const lvl=data.level||'1';
     return M('📈 Add Impact Entry',
-      FS('imp-level','Level',[{v:'1',l:'L1: Teacher Knowledge'},{v:'2',l:'L2: Classroom Practice'},{v:'3',l:'L3: Student Outcomes'}],lvl)+
+      FS('imp-level','Level',[{v:'1',l:'L1: Teacher Knowledge'},{v:'2',l:'L2: Classroom Practice'},{v:'3',l:'L3: Impact on Students'}],lvl)+
       FS('imp-type','Type',(typeOpts[lvl]||typeOpts[1]),data.type||'')+
       G2(FS('imp-tid','Teacher (optional)',[{v:'',l:'All Staff'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.tid||''),
          FI('imp-val','Value / Score',data.value||'','text','e.g. 3.8/5'))+
