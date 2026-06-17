@@ -148,18 +148,18 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 // SEED USERS — cross-device login; update via Settings > Export for GitHub
 const SEED_USERS=[
- {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
+  {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
   {id:'52ejvt0s_mqh2scax',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr123',role:'admin',depts:[]},
   {id:'8fku19n7_mqh2t2e1',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
   {id:'o5qndcc7_mqh2xr8x',name:'Safiah Alzahrani',fullName:'Safiah Alzahrani',username:'Safia',password:'HOLS1234567',role:'cpdLead',depts:[]},
   {id:'8mxuyfqt_mqh2z2lq',name:'Chenai Nayakwende',fullName:'Chenai Nayakwende',username:'Chenai',password:'HOLCh1234567',role:'cpdLead',depts:[]},
-  {id:'3v9wo26q_mqh3084c',name:'Rugaya Lukie ',fullName:'Rugaya Lukie ',username:'Rugaya',password:'HOLR1234567',role:'cpdLead',depts:[]},
+  {id:'3v9wo26q_mqh3084c',name:'Rugaya Lukie',fullName:'Rugaya Lukie',username:'Rugaya',password:'HOLR1234567',role:'cpdLead',depts:[]},
   {id:'6ns46kw0_mqh31f80',name:'Rabiha Alyamani',fullName:'Rabiha Alyamani',username:'Rabiha',password:'HOARab1234567',role:'cpdLead',depts:[]},
-  {id:'mphsl8c9_mqh34q52',name:'Ghaida Murshid ',fullName:'Ghaida Murshid ',username:'Ghaida',password:'ITHGh',role:'viewer',depts:[]},
-  {id:'m1ey5j3c_mqh36hce',name:'SaadAllah Chaker',fullName:'SaadAllah Chaker',username:'Saad',password:'HODSaad1234',role:'deptHead',depts:["Mathematics"]},
-  {id:'2y8a3p0c_mqh38s5c',name:'Ashwaq Almarwani ',fullName:'Ashwaq Almarwani ',username:'Ashwaq',password:'HODAsh123',role:'cpdLead',depts:[]},
-  {id:'c70fzsvc_mqh3aepk',name:'Faris Nagadi ',fullName:'Faris Nagadi ',username:'Faris',password:'HOSB777',role:'cpdLead',depts:[]},
-  {id:'wfzl740n_mqhmwzk5',name:'Junaid Alam',fullName:'Junaid Alam',username:'Junaid',password:'HOLJu1234567',role:'cpdLead',depts:[]}
+  {id:'mphsl8c9_mqh34q52',name:'Ghaida Murshid',fullName:'Ghaida Murshid',username:'Ghaida',password:'ITHGh',role:'viewer',depts:[]},
+  {id:'m1ey5j3c_mqh36hce',name:'SaadAllah Chaker',fullName:'SaadAllah Chaker',username:'Saad',password:'HODSaad1234',role:'deptHead',depts:['Mathematics']},
+  {id:'2y8a3p0c_mqh38s5c',name:'Ashwaq Almarwani',fullName:'Ashwaq Almarwani',username:'Ashwaq',password:'HODAsh123',role:'cpdLead',depts:[]},
+  {id:'c70fzsvc_mqh3aepk',name:'Faris Nagadi',fullName:'Faris Nagadi',username:'Faris',password:'HOSB777',role:'cpdLead',depts:[]},
+  {id:'wfzl740n_mqhmwzk5',name:'Junaid Alam',fullName:'Junaid Alam',username:'Junaid',password:'HOLJu1234567',role:'cpdLead',depts:[]},
 ];
 
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
@@ -328,13 +328,60 @@ async function loadAll(){
     S.snapshots=sget('snapshots')||[];
     S.users=sget('users')||[];
   }
-  // These stay in localStorage only (UI state, not domain data)
-  S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
-  S.mechM=sget('mechM')||{};
-  S.dhM=sget('dhM')||{};
-  S.branding=sget('branding')||{name:'Waad Academy',logos:[]};
-  S.customDomains=sget('customDomains')||null;
+  // Load shared settings from Supabase schools table (synced across all devices)
+  if(SCHOOL_ID){
+    const schoolData=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding,mech_overrides,dh_overrides&limit=1');
+    if(schoolData&&schoolData.length>0){
+      const sd=schoolData[0];
+      // branding JSON stores: {name, logo, partners, roleCfg, customDomains}
+      const br=sd.branding||{};
+      S.branding={name:br.name||'Waad Academy',logo:br.logo||'',partners:br.partners||[]};
+      sset('branding',S.branding);
+      if(br.roleCfg){S.roleCfg={...DEFAULT_ROLES,...br.roleCfg};sset('roleCfg',S.roleCfg);}
+      else S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
+      if(br.customDomains){S.customDomains=br.customDomains;sset('customDomains',S.customDomains);}
+      else S.customDomains=sget('customDomains')||null;
+      // mechM and dhM in mech_overrides / dh_overrides
+      S.mechM=sd.mech_overrides||sget('mechM')||{};
+      S.dhM=sd.dh_overrides||sget('dhM')||{};
+    } else {
+      S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
+      S.mechM=sget('mechM')||{};
+      S.dhM=sget('dhM')||{};
+      S.branding=sget('branding')||{name:'Waad Academy',logos:[]};
+      S.customDomains=sget('customDomains')||null;
+    }
+  } else {
+    S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
+    S.mechM=sget('mechM')||{};
+    S.dhM=sget('dhM')||{};
+    S.branding=sget('branding')||{name:'Waad Academy',logos:[]};
+    S.customDomains=sget('customDomains')||null;
+  }
   S.session=sget('session')||null;
+}
+
+// Save shared settings to Supabase schools table
+async function saveSchoolSettings(){
+  if(!SCHOOL_ID)return;
+  const payload={
+    branding:{
+      name:S.branding.name||'Waad Academy',
+      logo:S.branding.logo||'',
+      partners:S.branding.partners||[],
+      roleCfg:S.roleCfg,
+      customDomains:S.customDomains||null,
+    },
+    mech_overrides:S.mechM,
+    dh_overrides:S.dhM,
+  };
+  try{
+    await fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{
+      method:'PATCH',
+      headers:{...SB_HEADERS,'Prefer':'return=minimal'},
+      body:JSON.stringify(payload),
+    });
+  }catch(e){console.warn('saveSchoolSettings failed',e);}
 }
 
 // ═══ DATA MAPPERS (Supabase columns → S.* shape)
@@ -352,6 +399,11 @@ function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0
 // ═══ SAVE — writes to Supabase + updates localStorage cache
 async function save(k,v){
   sset(k,v); // instant local update for UI
+  // School-level settings → Supabase schools table (synced to all devices)
+  if(['roleCfg','mechM','dhM','branding','customDomains'].includes(k)){
+    await saveSchoolSettings();
+    return;
+  }
   if(!SCHOOL_ID)return;
   const sid=SCHOOL_ID;
   try{
