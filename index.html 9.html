@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Waad Academy — School Improvement Platform</title>
+<style>
+:root{
+  --navy:#1F4E79;--teal:#0F6E56;--amber:#7B4F0C;--red:#993C1D;
+  --purple:#3C3489;--forest:#375C15;--bg:#f4f6fb;--white:#fff;
+  --border:#e5e7eb;--text:#1a1a2e;--muted:#6b7280;--light:#f9fafb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height:100vh;font-size:14px}
+input,select,textarea,button{font-family:inherit;font-size:13px}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+.sidebar{width:200px;background:var(--navy);min-height:100vh;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar-logo{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo h1{color:#fff;font-size:15px;font-weight:700}
+.sidebar-logo p{color:rgba(255,255,255,.5);font-size:10px;margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,.7);text-decoration:none;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:12.5px;transition:background .15s}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.15);color:#fff;font-weight:600}
+.main{flex:1;overflow:auto}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
+.topbar h2{font-size:16px;font-weight:700;color:var(--text)}
+.content{padding:20px;max-width:1200px}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.kpi-val{font-size:28px;font-weight:800;color:var(--navy)}
+.kpi-label{font-size:11px;color:var(--muted);margin-top:3px}
+.btn{padding:6px 13px;border-radius:6px;border:none;font-weight:600;font-size:12px;cursor:pointer}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-success{background:var(--teal);color:#fff}
+.btn-danger{background:#fee2e2;color:var(--red);border:1px solid #fecaca}
+.btn-ghost{background:var(--light);color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:3px 8px;font-size:11px;border-radius:4px}
+.form-group{margin-bottom:10px}
+.form-label{font-size:11px;color:var(--muted);font-weight:600;display:block;margin-bottom:3px}
+.form-control{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fafafa}
+.form-control:focus{outline:2px solid var(--navy);border-color:var(--navy);background:#fff}
+textarea.form-control{resize:vertical;min-height:60px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);background:var(--light);border-bottom:2px solid var(--border)}
+td{padding:7px 10px;border-bottom:1px solid #f3f4f6}
+tr:hover td{background:#fafafa}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-green{background:#d1fae5;color:#065f46}
+.badge-amber{background:#fef3c7;color:#92400e}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f3f4f6;color:#374151}
+.badge-purple{background:#ede9fe;color:#5b21b6}
+.pbar{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:4px}
+.pbar-fill{height:100%;border-radius:3px;transition:width .4s}
+.pbar-navy{background:var(--navy)}.pbar-teal{background:var(--teal)}.pbar-amber{background:var(--amber)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-header h3{font-size:14px;font-weight:700}
+.modal-body{padding:16px}
+.modal-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:#fff}
+.login-wrap{min-height:100vh;background:var(--navy);display:flex;align-items:center;justify-content:center}
+.login-box{background:#fff;border-radius:14px;padding:32px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:20px}
+.login-logo h1{font-size:20px;font-weight:800;color:var(--navy)}
+.login-logo p{font-size:12px;color:var(--muted);margin-top:2px}
+.mech-pill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;margin:2px;cursor:pointer}
+.mech-on{background:var(--teal);color:#fff;font-weight:600}
+.mech-off{background:#f3f4f6;color:#9ca3af}
+.score-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 1px}
+.tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:6px;border:none;font-size:12px;font-weight:500;background:var(--light);color:var(--muted);cursor:pointer}
+.tab.active{background:var(--navy);color:#fff;font-weight:600}
+.alert{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px}
+.alert-info{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe}
+.alert-warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.alert-success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-2{gap:8px}.gap-3{gap:12px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
+.text-sm{font-size:12px}.text-xs{font-size:11px}.text-muted{color:var(--muted)}
+.font-bold{font-weight:700}.font-semibold{font-weight:600}
+.w-full{width:100%}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.ml-2{margin-left:8px}
+.rtl{direction:auto}
+.filter-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--light);border-radius:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-bar label{font-size:11px;font-weight:600;color:var(--muted)}
+.pill-select{display:flex;flex-wrap:wrap;gap:4px;max-width:100%}
+.pill-opt{padding:3px 10px;border-radius:20px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:#fff;color:var(--muted)}
+.pill-opt.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+@media print{.sidebar,.topbar,.btn,.tabs,.filter-bar,.modal-overlay{display:none!important}.content{padding:0}}
+@media(max-width:768px){.sidebar{width:56px}.sidebar-logo p,.nav-label{display:none}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+// ═══ SUPABASE CONFIG
+const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
+const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+// Waad Academy school UUID — hardcoded for instant boot, no lookup needed
+let SCHOOL_ID='2b526882-97b3-4f98-b850-6e989c26d99b';
+
+async function resolveSchoolId(){
+  // UUID is hardcoded — nothing to resolve
+  sset('school_id',SCHOOL_ID);
+}
+
+async function sbGet(table,params=''){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:{...SB_HEADERS,'Prefer':'count=none'}});
+    if(!r.ok){const e=await r.text();console.warn('sbGet failed',table,r.status,e);return null;}
+    return await r.json();
+  }catch(e){console.warn('sbGet error',table,e);return null;}
+}
+async function sbUpsert(table,data){
+  if(!data||!data.length)return true;
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table,{
+      method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify(Array.isArray(data)?data:[data])
+    });
+    if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);}
+    return r.ok;
+  }catch(e){console.warn('sbUpsert error',table,e);return false;}
+}
+async function sbDelete(table,id){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
+    return r.ok;
+  }catch(e){console.warn('sbDelete error',table,e);return false;}
+}
+
+// ═══ LOCAL CACHE (fast UI, Supabase is source of truth)
+const MEM={};
+function sget(k){try{const v=localStorage.getItem('wa_'+k);return v?JSON.parse(v):null}catch(e){return MEM[k]||null}}
+function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){MEM[k]=v}}
+
+// ═══ TABLE MAP: local key → Supabase table + field mapping
+const TABLE_MAP={
+  teachers:{table:'teachers',schoolField:'school_id'},
+  groups:{table:'tlc_groups',schoolField:'school_id'},
+  obs:{table:'observations',schoolField:'school_id'},
+  trips:{table:'triplets',schoolField:'school_id'},
+  lwalks:{table:'learning_walks',schoolField:'school_id'},
+  cpd:{table:'cpd_sessions',schoolField:'school_id'},
+  sched:{table:'schedule_rows',schoolField:'school_id'},
+  impacts:{table:'impact_entries',schoolField:'school_id'},
+  progress:{table:'student_progress',schoolField:'school_id'},
+  snapshots:{table:'process_snapshots',schoolField:'school_id'},
+};
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// SEED USERS — cross-device login; update via Settings > Export for GitHub
+const SEED_USERS=[
+  {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'admin',password:'waad2026',role:'admin',depts:[]},
+  {id:'52ejvt0s_mqh2scax',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr123',role:'admin',depts:[]},
+  {id:'8fku19n7_mqh2t2e1',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
+  {id:'o5qndcc7_mqh2xr8x',name:'Safiah Alzahrani',fullName:'Safiah Alzahrani',username:'Safia',password:'HOLS1234567',role:'cpdLead',depts:[]},
+  {id:'8mxuyfqt_mqh2z2lq',name:'Chenai Nayakwende',fullName:'Chenai Nayakwende',username:'Chenai',password:'HOLCh1234567',role:'cpdLead',depts:[]},
+  {id:'3v9wo26q_mqh3084c',name:'Rugaya Lukie',fullName:'Rugaya Lukie',username:'Rugaya',password:'HOLR1234567',role:'cpdLead',depts:[]},
+  {id:'6ns46kw0_mqh31f80',name:'Rabiha Alyamani',fullName:'Rabiha Alyamani',username:'Rabiha',password:'HOARab1234567',role:'cpdLead',depts:[]},
+  {id:'mphsl8c9_mqh34q52',name:'Ghaida Murshid',fullName:'Ghaida Murshid',username:'Ghaida',password:'ITHGh',role:'viewer',depts:[]},
+  {id:'m1ey5j3c_mqh36hce',name:'SaadAllah Chaker',fullName:'SaadAllah Chaker',username:'Saad',password:'HODSaad1234',role:'deptHead',depts:['Mathematics']},
+  {id:'2y8a3p0c_mqh38s5c',name:'Ashwaq Almarwani',fullName:'Ashwaq Almarwani',username:'Ashwaq',password:'HODAsh123',role:'cpdLead',depts:[]},
+  {id:'c70fzsvc_mqh3aepk',name:'Faris Nagadi',fullName:'Faris Nagadi',username:'Faris',password:'HOSB777',role:'cpdLead',depts:[]},
+  {id:'wfzl740n_mqhmwzk5',name:'Junaid Alam',fullName:'Junaid Alam',username:'Junaid',password:'HOLJu1234567',role:'cpdLead',depts:[]},
+];
+
+const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
+const SECTIONS=['Boys','Girls'];
+const STAGES=['KG','Primary','Lower Secondary','Upper Secondary'];
+const GRADES=['KG1','KG2','KG3',...Array.from({length:12},(_,i)=>'Grade '+(i+1))];
+const MONTHS=['September','October','November','December','January','February','March','April','May','June'];
+const TECHS=['Strong Starts','Transitions & attention','Ratio of pupil thought','Overnarration & silence','Cold call','Think, Pair, Share','Simultaneous response','Metacognition: Obvious organisers','Behaviour for learning','Devices / AI use','Other'];
+const TECH_LP={'Think, Pair, Share':['LP2','LP5'],'Cold call':['LP4','LP5'],'Simultaneous response':['LP3','LP5'],'Ratio of pupil thought':['LP1','LP4'],'Overnarration & silence':['LP4','LP5'],'Strong Starts':['LP1','LP9'],'Transitions & attention':['LP9'],'Metacognition: Obvious organisers':['LP5','LP6'],'Behaviour for learning':['LP7','LP10'],'Devices / AI use':['LP2','LP6']};
+const SCHED_CATS=['Individual - Leadership Training','Individual - Subject-Related Learning','External - Learning Framework-Related Training','Internal - SDP-Based Training','Orientation PDs'];
+const SCHED_TYPES=['All Types','Cambridge','Internal','External','COBIS','WLC','Workshop','Online','Other'];
+const MECHS=[
+  {id:1,g:'A',l:'Prior knowledge activation'},{id:2,g:'A',l:'Explicit instruction'},{id:3,g:'A',l:'Worked examples'},{id:4,g:'A',l:'Cognitive load'},
+  {id:5,g:'B',l:'Providing rationale'},{id:6,g:'B',l:'Addressing barriers'},{id:7,g:'B',l:'Increasing self-efficacy'},
+  {id:8,g:'C',l:'Modelling'},{id:9,g:'C',l:'Rehearsal & practice'},{id:10,g:'C',l:'Feedback on practice'},{id:11,g:'C',l:'Prompts & cues'},
+  {id:12,g:'D',l:'Goal setting'},{id:13,g:'D',l:'Action plans'},{id:14,g:'D',l:'Sustaining practice'}
+];
+const DH_PILLARS=[
+  {id:1,l:'Content Focused',c:'#1F4E79'},{id:2,l:'Active Learning',c:'#0F6E56'},
+  {id:3,l:'Collaboration ★',c:'#3C3489'},{id:4,l:'Models of Practice',c:'#7B4F0C'},
+  {id:5,l:'Coaching ★',c:'#993C1D'},{id:6,l:'Feedback & Reflection ★',c:'#375C15'}
+];
+const DEFAULT_DOMAINS=[
+  {id:'d1',n:'Planning',criteria:['Engaging starter','Real-life connection','Learning objectives','Plenary & mastery']},
+  {id:'d2',n:'Environment',criteria:['Cultural identity','Engagement & motivation','Classroom management']},
+  {id:'d3',n:'AFL',criteria:['Level descriptors','Questioning (CFU)','Peer & self-evaluation','Verbal & written feedback','Performance target']},
+  {id:'d4',n:'Active Learning',criteria:['Inquiry-based','Peer collaboration','Hands-on activities','Reflection & metacognition']},
+  {id:'d5',n:'Adaptive',criteria:['Inclusion/SEN','Independence','Digital learning','Scaffolding & differentiation']}
+];
+function getDomains(){return S.customDomains&&S.customDomains.length===5?S.customDomains:DEFAULT_DOMAINS;}
+const DEFAULT_ROLES={
+  admin:{label:'Administrator',views:['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'],canEdit:true,scoped:false},
+  obsLead:{label:'Observation Lead',views:['dashboard','schedule','teachers','fieldwork','impact'],canEdit:true,scoped:false},
+  coachLead:{label:'Coaching Lead',views:['dashboard','cpd','impact'],canEdit:true,scoped:false},
+  cpdLead:{label:'CPD Lead',views:['dashboard','schedule','cpd','impact'],canEdit:true,scoped:false},
+  deptHead:{label:'Department Coordinator',views:['dashboard','fieldwork','cpd'],canEdit:true,scoped:true},
+  viewer:{label:'Viewer',views:['dashboard','fieldwork','impact','resources'],canEdit:false,scoped:false}
+};
+const ALL_VIEWS=['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'];
+const VIEW_META={
+  dashboard:{label:'Dashboard',icon:'📊'},
+  schedule:{label:'Annual Schedule',icon:'🗓'},
+  teachers:{label:'Teachers',icon:'👩‍🏫'},
+  fieldwork:{label:'Observations',icon:'📋'},
+  cpd:{label:'CPD & Coaching',icon:'📚'},
+  impact:{label:'Impact',icon:'📈'},
+  process:{label:'Process Audit',icon:'✅'},
+  resources:{label:'Resources',icon:'📂'},
+  steplab:{label:'Steplab',icon:'🔗'},
+  settings:{label:'Settings',icon:'⚙️'}
+};
+const DEFAULT_RESOURCES=[
+  {id:'r1',title:'Darling-Hammond (2017) — Effective Teacher PD',url:'https://learningpolicyinstitute.org/product/effective-teacher-professional-development-report',desc:'Six pillars of effective CPD'},
+  {id:'r2',title:'EEF (2021) — Effective Professional Development',url:'https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF-Effective-Professional-Development-Guidance-Report.pdf',desc:'14 CPD mechanisms'},
+  {id:'r3',title:'EEF — Balanced Design Worksheet',url:'https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF_PD_Planning_resource.pdf',desc:'A·B·C·D balanced design'},
+  {id:'r4',title:'DfE — NPQ Senior Leadership Framework',url:'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1018004/NPQ_Senior_Leadership.pdf',desc:'Section 6: Professional Development'},
+  {id:'r5',title:'Best Practice Network — NPQSL',url:'https://www.bestpracticenet.co.uk/national-professional-qualification-for-senior-leadership',desc:'CARE and GROW frameworks'},
+  {id:'r6',title:'Biol-Og CPD Booklets (Kerensa Ogbe)',url:'https://biol-og.com/cpd-booklets/',desc:'Evidence-informed CPD booklets'},
+  {id:'r7',title:'NEASC — Accreditation & Learning Principles',url:'https://www.neasc.org/schools/accreditation-process',desc:'10 Learning Principles'},
+  {id:'r8',title:'Steplab — Micro-Practice Platform',url:'https://steplab.co',desc:'Action steps and practice tracking'},
+  {id:'r9',title:'Cambridge PDQ Teaching & Learning',url:'https://www.cambridgeinternational.org/professional-development/cambridge-pdq/',desc:'In-school Cambridge programme'},
+];
+const SEED_SCHEDULE=[
+  {id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},
+  {id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},
+  {id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},
+  {id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},
+  {id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},
+  {id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null},
+];
+const SEED_GROUPS=[
+  {id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},
+  {id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},
+  {id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}
+];
+const SEED_TEACHERS=[
+  {id:'22222222-0000-4000-8000-000000000001',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},
+  {id:'22222222-0000-4000-8000-000000000002',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},
+  {id:'22222222-0000-4000-8000-000000000003',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000002'},
+  {id:'22222222-0000-4000-8000-000000000004',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'11111111-0000-4000-8000-000000000002'},
+  {id:'22222222-0000-4000-8000-000000000005',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'11111111-0000-4000-8000-000000000001'},
+  {id:'22222222-0000-4000-8000-000000000006',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000003'},
+  {id:'22222222-0000-4000-8000-000000000007',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'11111111-0000-4000-8000-000000000003'},
+];
+let S={
+  session:null,view:'dashboard',modal:null,
+  teachers:[],groups:[],observations:[],triplets:[],lwalks:[],
+  cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],
+  users:[],roleCfg:{...DEFAULT_ROLES},
+  mechM:{},dhM:{},
+  branding:{name:'Waad Academy',logos:[]},
+  customDomains:null,
+  toast:null,toastTimer:null,
+  dashDepts:[],
+  schedMonthFilter:'',schedTypeFilter:'',
+  impactDept:'',
+  procDept:'',currentRatings:{},
+  fwTab:'obs',
+  impTab:'L1',progMode:'internal',
+  cpdTab:'cpd',
+  careTab:'overview',
+  editingId:null,
+};
+
+function uid(){
+  // Generate UUID v4 — required by Supabase UUID columns
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r=Math.random()*16|0;
+    return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+}
+
+async function loadAll(){
+  // Resolve school ID (uses cache or fetches once)
+  await resolveSchoolId();
+
+  if(SCHOOL_ID){
+    // Load from Supabase in parallel — all scoped to this school
+    const sid='school_id=eq.'+SCHOOL_ID;
+    const [teachers,groups,obs,trips,lwalks,cpd,sched,impacts,progress,snaps]=await Promise.all([
+      sbGet('teachers',sid+'&select=*'),
+      sbGet('tlc_groups',sid+'&select=*'),
+      sbGet('observations',sid+'&select=*'),
+      sbGet('triplets',sid+'&select=*'),
+      sbGet('learning_walks',sid+'&select=*'),
+      sbGet('cpd_sessions',sid+'&select=*'),
+      sbGet('schedule_rows',sid+'&select=*'),
+      sbGet('impact_entries',sid+'&select=*'),
+      sbGet('student_progress',sid+'&select=*'),
+      sbGet('process_snapshots',sid+'&select=*'),
+    ]);
+    // Teachers — always show ALL school teachers regardless of who created them
+    if(teachers&&Array.isArray(teachers)){
+      S.teachers=teachers.map(mapTeacher);
+      sset('teachers',S.teachers);
+    } else {
+      S.teachers=sget('teachers')||SEED_TEACHERS;
+    }
+    // Groups
+    if(groups&&Array.isArray(groups)&&groups.length>0){
+      S.groups=groups.map(mapGroup);
+      sset('groups',S.groups);
+    } else {
+      S.groups=sget('groups')||SEED_GROUPS;
+    }
+    // Observations
+    if(obs&&Array.isArray(obs)){S.observations=obs.map(mapObs);sset('obs',S.observations);}
+    else S.observations=sget('obs')||[];
+    // Triplets
+    if(trips&&Array.isArray(trips)){S.triplets=trips.map(mapTrip);sset('trips',S.triplets);}
+    else S.triplets=sget('trips')||[];
+    // Learning walks
+    if(lwalks&&Array.isArray(lwalks)){S.lwalks=lwalks.map(mapLW);sset('lwalks',S.lwalks);}
+    else S.lwalks=sget('lwalks')||[];
+    // CPD sessions
+    if(cpd&&Array.isArray(cpd)){S.cpd=cpd.map(mapCPD);sset('cpd',S.cpd);}
+    else S.cpd=sget('cpd')||[];
+    // Schedule
+    if(sched&&Array.isArray(sched)){S.schedule=sched.map(mapSched);sset('sched',S.schedule);}
+    else S.schedule=sget('sched')||SEED_SCHEDULE;
+    // Impact entries
+    if(impacts&&Array.isArray(impacts)){S.impacts=impacts.map(mapImpact);sset('impacts',S.impacts);}
+    else S.impacts=sget('impacts')||[];
+    // Student progress
+    if(progress&&Array.isArray(progress)){S.progress=progress.map(mapProgress);sset('progress',S.progress);}
+    else S.progress=sget('progress')||[];
+    // Process snapshots
+    if(snaps&&Array.isArray(snaps)){S.snapshots=snaps.map(mapSnap);sset('snapshots',S.snapshots);}
+    else S.snapshots=sget('snapshots')||[];
+    // Users from seed only (passwords not stored in DB)
+    S.users=sget('users')||[];
+  } else {
+    // Fallback to localStorage if Supabase unreachable
+    S.teachers=sget('teachers')||SEED_TEACHERS;
+    S.groups=sget('groups')||SEED_GROUPS;
+    S.observations=sget('obs')||[];
+    S.triplets=sget('trips')||[];
+    S.lwalks=sget('lwalks')||[];
+    S.cpd=sget('cpd')||[];
+    S.schedule=sget('sched')||SEED_SCHEDULE;
+    S.impacts=sget('impacts')||[];
+    S.progress=sget('progress')||[];
+    S.snapshots=sget('snapshots')||[];
+    S.users=sget('users')||[];
+  }
+  // Load shared settings from Supabase schools table (synced across all devices)
+  if(SCHOOL_ID){
+    const schoolData=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding,mech_overrides,dh_overrides&limit=1');
+    if(schoolData&&schoolData.length>0){
+      const sd=schoolData[0];
+      // branding JSON stores: {name, logo, partners, roleCfg, customDomains}
+      const br=sd.branding||{};
+      S.branding={name:br.name||'Waad Academy',logo:br.logo||'',partners:br.partners||[]};
+      sset('branding',S.branding);
+      if(br.roleCfg){S.roleCfg={...DEFAULT_ROLES,...br.roleCfg};sset('roleCfg',S.roleCfg);}
+      else S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
+      if(br.customDomains){S.customDomains=br.customDomains;sset('customDomains',S.customDomains);}
+      else S.customDomains=sget('customDomains')||null;
+      // mechM and dhM in mech_overrides / dh_overrides
+      S.mechM=sd.mech_overrides||sget('mechM')||{};
+      S.dhM=sd.dh_overrides||sget('dhM')||{};
+    } else {
+      S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
+      S.mechM=sget('mechM')||{};
+      S.dhM=sget('dhM')||{};
+      S.branding=sget('branding')||{name:'Waad Academy',logos:[]};
+      S.customDomains=sget('customDomains')||null;
+    }
+  } else {
+    S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
+    S.mechM=sget('mechM')||{};
+    S.dhM=sget('dhM')||{};
+    S.branding=sget('branding')||{name:'Waad Academy',logos:[]};
+    S.customDomains=sget('customDomains')||null;
+  }
+  S.session=sget('session')||null;
+}
+
+// Save shared settings to Supabase schools table
+async function saveSchoolSettings(){
+  sset('roleCfg',S.roleCfg);
+  sset('mechM',S.mechM);
+  sset('dhM',S.dhM);
+  sset('branding',S.branding);
+  sset('customDomains',S.customDomains);
+  const payload={
+    branding:{
+      name:S.branding.name||'Waad Academy',
+      logo:S.branding.logo||'',
+      partners:S.branding.partners||[],
+      roleCfg:S.roleCfg,
+      customDomains:S.customDomains||null,
+    },
+    mech_overrides:S.mechM,
+    dh_overrides:S.dhM,
+  };
+  try{
+    await fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{
+      method:'PATCH',
+      headers:{...SB_HEADERS,'Prefer':'return=minimal'},
+      body:JSON.stringify(payload),
+    });
+  }catch(e){console.warn('saveSchoolSettings failed',e);}
+}
+
+// ═══ DATA MAPPERS (Supabase columns → S.* shape)
+function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
+function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:r.scope||'teacher',bio:r.technique||'',customTech:r.custom_tech||'',scores:r.scores||{},conf:r.confidence||0,www:r.www||'',ebi:r.ebi||'',action:r.action_step||'',autoLPs:r.auto_lps||[],neasc:r.neasc_lps||[],slLinked:r.steplab_linked||false}}
+function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.observer_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:r.technique||'',customTech:r.custom_tech||'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action_step||'',slLinked:r.steplab_linked||false}}
+function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:r.technique||'',customTech:r.custom_tech||'',strengths:r.strengths||'',afd:r.areas_for_development||'',focusArea:r.focus_area||''}}
+function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:r.technique||'',customTech:r.custom_tech||'',before:r.before_content||'',during:r.during_content||'',after:r.after_content||'',status:r.status||'active'}}
+function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_session_id||null}}
+function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
+function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.scores||{},folderLink:r.folder_link||''}}
+function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0,tripCount:r.trip_count||0,lwCount:r.lw_count||0,dept:r.dept||'Whole School',date:r.created_at||new Date().toISOString()}}
+
+// ═══ SAVE — writes to Supabase + updates localStorage cache
+async function save(k,v){
+  sset(k,v); // instant local update for UI
+  // School-level settings → Supabase schools table (synced to all devices)
+  if(['roleCfg','mechM','dhM','branding','customDomains'].includes(k)){
+    await saveSchoolSettings();
+    return;
+  }
+  if(!SCHOOL_ID)return;
+  const sid=SCHOOL_ID;
+  try{
+    if(k==='teachers'){
+      await sbUpsert('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:t.section||'',stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})));
+    }
+    else if(k==='groups'){
+      await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
+    }
+    else if(k==='obs'){
+      await sbUpsert('observations',v.map(o=>({id:o.id,school_id:sid,teacher_id:o.tid||null,date:o.date||null,observer:o.observer||'',scope:o.scope||'teacher',technique:o.bio||'',custom_tech:o.customTech||'',scores:o.scores||{},confidence:o.conf||0,www:o.www||'',ebi:o.ebi||'',action_step:o.action||'',auto_lps:o.autoLPs||[],neasc_lps:o.neasc||[],steplab_linked:o.slLinked||false})));
+    }
+    else if(k==='trips'){
+      await sbUpsert('triplets',v.map(t=>({id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',observer_id:t.oid||null,coach_id:t.cid||null,facilitator_id:t.fid||null,technique:t.bio||'',custom_tech:t.customTech||'',observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action_step:t.action||'',steplab_linked:t.slLinked||false})));
+    }
+    else if(k==='lwalks'){
+      await sbUpsert('learning_walks',v.map(lw=>({id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',technique:lw.bio||'',custom_tech:lw.customTech||'',strengths:lw.strengths||'',areas_for_development:lw.afd||'',focus_area:lw.focusArea||''})));
+    }
+    else if(k==='cpd'){
+      await sbUpsert('cpd_sessions',v.map(c=>({id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',technique:c.bio||'',custom_tech:c.customTech||'',before_content:c.before||'',during_content:c.during||'',after_content:c.after||'',status:c.status||'active'})));
+    }
+    else if(k==='sched'){
+      await sbUpsert('schedule_rows',v.map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_session_id:r.cpdId||null})));
+    }
+    else if(k==='impacts'){
+      await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
+    }
+    else if(k==='progress'){
+      await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',scores:p.scores||{},folder_link:p.folderLink||''})));
+    }
+    else if(k==='snapshots'){
+      await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
+    }
+  }catch(e){console.warn('Supabase save failed for',k,e);}
+}
+
+// Delete from Supabase when item removed
+async function sbRemove(table,id){
+  if(!SCHOOL_ID)return;
+  await sbDelete(table,id);
+}
+
+function getAllUsers(){
+  const local=S.users||[];
+  const merged=[...SEED_USERS];
+  local.forEach(lu=>{if(!merged.find(su=>su.username===lu.username))merged.push(lu);});
+  return merged;
+}
+
+function avg(arr){const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0}
+function domAvg(scores){const all=Object.values(scores||{}).flat();return avg(all)}
+function scScore(scores){return avg([...(scores?.d3||[]),...(scores?.d4||[])])}
+function tStats(t){
+  const obs=S.observations.filter(o=>o.tid===t.id);
+  const last=obs[obs.length-1];const prev=obs[obs.length-2];
+  const la=last?domAvg(last.scores):0;const pa=prev?domAvg(prev.scores):0;
+  return{obs,last,la,pa,trend:la&&pa?la-pa:0,sc:last?scScore(last.scores):0,conf:last?.conf||0,count:obs.length,trips:S.triplets.filter(tr=>tr.oid===t.id||tr.cid===t.id||tr.fid===t.id).length};
+}
+function mechActive(id){
+  if(S.mechM[id]!==undefined)return S.mechM[id];
+  const obs=scopedObs(),trips=S.triplets;
+  if(id===1)return obs.some(o=>o.bio||o.customTech);
+  if(id===2)return S.cpd.some(c=>c.during);
+  if(id===3)return obs.some(o=>o.bio||o.customTech);
+  if(id===5)return S.cpd.some(c=>c.before);
+  if(id===8)return obs.some(o=>o.bio||o.customTech);
+  if(id===9)return obs.some(o=>(o.scores?.d4||[]).some(v=>v>=3));
+  if(id===10)return obs.some(o=>o.ebi)||trips.some(t=>t.ebiNotes);
+  if(id===11)return obs.some(o=>o.slLinked)||trips.some(t=>t.slLinked);
+  if(id===12)return trips.some(t=>t.action);
+  if(id===13)return trips.some(t=>t.action&&t.dd);
+  if(id===14)return trips.filter(t=>t.status==='complete').length>=2;
+  return false;
+}
+function totalMechs(){return MECHS.filter(m=>mechActive(m.id)).length}
+function totalDH(){return DH_PILLARS.filter(p=>S.dhM[p.id]!==undefined?S.dhM[p.id]:mechActive(p.id*2-1)||mechActive(p.id*2)).length}
+function myRole(){
+  if(!S.session)return DEFAULT_ROLES.viewer;
+  if(S.session.role==='admin')return DEFAULT_ROLES.admin;
+  return S.roleCfg[S.session.role]||DEFAULT_ROLES.viewer;
+}
+function isAdmin(){return S.session?.role==='admin'}
+function canEdit(){return isAdmin()||myRole()?.canEdit}
+function isScoped(){return !isAdmin()&&!!myRole()?.scoped&&(S.session?.depts||[]).length>0}
+function myDepts(){return S.session?.depts||[]}
+function scopedObs(){
+  if(!isScoped())return S.observations;
+  return S.observations.filter(o=>{
+    if(!o.tid)return false;
+    const t=S.teachers.find(t=>t.id===o.tid);
+    return t&&myDepts().includes(t.dept);
+  });
+}
+function scopedTeachers(){
+  if(!isScoped())return S.teachers;
+  return S.teachers.filter(t=>myDepts().includes(t.dept));
+}
+function dashFilteredObs(){
+  let obs=scopedObs();
+  if(S.dashDepts&&S.dashDepts.length>0)
+    obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.dashDepts.includes(t.dept);});
+  return obs;
+}
+function dashFilteredTeachers(){
+  let ts=scopedTeachers();
+  if(S.dashDepts&&S.dashDepts.length>0)ts=ts.filter(t=>S.dashDepts.includes(t.dept));
+  return ts;
+}
+function techDisplay(o){return o.customTech||o.bio||''}
+function getLPs(bio,customTech){
+  if(customTech)return TECH_LP[customTech]||[];
+  return TECH_LP[bio]||[];
+}
+
+function render(){
+  document.getElementById('app').innerHTML=S.session?renderApp():renderLogin();
+  bindEvents();
+}
+function showToast(msg,type='success'){
+  clearTimeout(S.toastTimer);S.toast={msg,type};render();
+  S.toastTimer=setTimeout(()=>{S.toast=null;render();},3000);
+}
+function renderLogin(){return `
+<div class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">
+      ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-bottom:6px">':'<div style="font-size:40px;margin-bottom:6px">🏫</div>'}
+      <h1>${esc(S.branding.name)}</h1>
+      <p>School Improvement Platform 2026–27</p>
+    </div>
+    <div class="form-group"><label class="form-label">Username</label>
+      <input class="form-control" id="l-user" placeholder="admin" autocomplete="username"/></div>
+    <div class="form-group"><label class="form-label">Password</label>
+      <input class="form-control" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
+    <div id="l-err" style="color:#dc2626;font-size:12px;margin-bottom:8px;display:none">Invalid credentials</div>
+    <button class="btn btn-primary w-full" id="l-btn" style="padding:9px">Sign In</button>
+    <p style="text-align:center;font-size:11px;color:var(--muted);margin-top:10px">Default: admin / waad2026</p>
+  </div>
+</div>`}
+
+function renderApp(){
+  const role=myRole();
+  const views=isAdmin()?ALL_VIEWS:(role.views||[]);
+  return `
+${S.toast?`<div class="badge ${S.toast.type==='error'?'badge-red':'badge-green'}" style="position:fixed;top:16px;right:16px;z-index:9999;padding:10px 16px;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15)">${esc(S.toast.msg)}</div>`:''}
+${S.modal||''}
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">':''}
+      <h1 style="font-size:13px">${S.branding.logo?'':'🏫 '}${esc(S.branding.name)}</h1>
+      <p>School Improvement Platform</p>
+      ${(S.branding.partners||[]).filter(Boolean).length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:18px;object-fit:contain;border-radius:2px;background:#fff;padding:1px">').join('')}</div>`:''}
+    </div>
+    ${views.map(v=>`<button class="nav-item ${S.view===v?'active':''}" data-nav="${v}">
+      <span>${VIEW_META[v].icon}</span><span class="nav-label">${VIEW_META[v].label}</span>
+    </button>`).join('')}
+    <div style="flex:1"></div>
+    <button class="nav-item" id="logout-btn"><span>🚪</span><span class="nav-label">Sign Out</span></button>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <h2>${VIEW_META[S.view]?.icon} ${VIEW_META[S.view]?.label}</h2>
+      <div class="flex items-center gap-2">
+        ${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:24px;object-fit:contain;border-radius:3px">').join('')}
+        <span class="badge ${SCHOOL_ID?'badge-green':'badge-amber'}">${SCHOOL_ID?'🟢 DB Live':'🟡 Offline'}</span>
+        ${SCHOOL_ID?`<button onclick="refreshFromDB()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted)" title="Refresh from database">↻</button>`:''}
+        <span class="badge badge-green" style="display:none">🟢 Live</span>
+        <span style="font-size:12px;color:var(--muted)">${esc(S.session.name)} · ${esc(role.label||S.session.role)}</span>
+      </div>
+    </div>
+    <div class="content">${renderView()}</div>
+  </div>
+</div>`}
+
+function renderView(){
+  switch(S.view){
+    case 'dashboard': return renderDashboard();
+    case 'schedule': return renderSchedule();
+    case 'teachers': return renderTeachers();
+    case 'fieldwork': return renderFieldwork();
+    case 'cpd': return renderCPD();
+    case 'impact': return renderImpact();
+    case 'process': return renderProcess();
+    case 'resources': return renderResources();
+    case 'steplab': return renderSteplab();
+    case 'settings': return renderSettings();
+    default: return '<p>Coming soon</p>';
+  }
+}
+function renderDashboard(){
+  const obs=dashFilteredObs(),teachers=dashFilteredTeachers();
+  const allObs=scopedObs();
+  const avgScore=avg(obs.filter(o=>o.scores).map(o=>domAvg(o.scores)).filter(x=>x>0));
+  const avgSC=avg(obs.filter(o=>o.scores).map(o=>scScore(o.scores)).filter(x=>x>0));
+  const avgConf=avg(obs.filter(o=>o.conf>0).map(o=>o.conf));
+  const totalM=totalMechs(),totalP=totalDH();
+  const kpis=[
+    {val:avgScore>0?avgScore.toFixed(1)+'/5':'—',label:'Avg Observation Score',color:'var(--navy)',pct:avgScore/5*100},
+    {val:avgSC>0?avgSC.toFixed(1)+'/5':'—',label:'Student-Centred Score',color:'var(--teal)',pct:avgSC/5*100},
+    {val:avgConf>0?avgConf.toFixed(1)+'/5':'—',label:'Teacher Confidence',color:'var(--amber)',pct:avgConf/5*100},
+    {val:totalM+'/14',label:'EEF Mechanisms Active',color:'var(--purple)',pct:totalM/14*100},
+    {val:totalP+'/6',label:'D-H Pillars Active',color:'var(--red)',pct:totalP/6*100},
+  ];
+  const LP_DOM_MAP={LP1:'d4',LP3:'d3',LP4:'d4',LP5:'d4',LP6:'d3',LP9:'d2'};
+  const lpHeat=Array.from({length:10},(_,i)=>{
+    const lp='LP'+(i+1);const domId=LP_DOM_MAP[lp];
+    const lpObs=obs.filter(o=>(o.autoLPs||[]).includes(lp)||(o.neasc||[]).includes(lp));
+    const score=domId?avg(obs.flatMap(o=>o.scores?.[domId]||[]).filter(x=>x>0)):0;
+    const color=score>=4?'#0F6E56':score>=3?'#7B4F0C':score>0?'#993C1D':'#9ca3af';
+    return{lp,count:lpObs.length,score,color};
+  });
+  const bioHeat=TECHS.filter(t=>t!=='Other').map(t=>({t,count:obs.filter(o=>(o.bio===t)||(o.customTech===t)).length}));
+  const noObs=teachers.filter(t=>tStats(t).count===0);
+  const lowAvg=teachers.filter(t=>{const s=tStats(t);return s.count>0&&s.la<2.5});
+  const grpLabels={A:'Build Knowledge',B:'Motivate Staff',C:'Develop Techniques',D:'Embed Practice'};
+  const lastSnap=S.snapshots[S.snapshots.length-1];
+  const recentObs=allObs.slice(-5).reverse();
+  const upcoming=S.schedule.filter(s=>s.status!=='done').slice(0,4);
+  const cpdHealth=[
+    {label:'Observations',val:allObs.length,target:20,color:'var(--navy)'},
+    {label:'Coaching triplets',val:S.triplets.length,target:15,color:'var(--teal)'},
+    {label:'CPD sessions',val:S.cpd.length,target:10,color:'var(--amber)'},
+    {label:'Learning walks',val:S.lwalks.length,target:12,color:'var(--purple)'},
+  ];
+  const activeDepts=S.dashDepts||[];
+  return `
+<div class="filter-bar">
+  <label>Dept Filter (click to toggle):</label>
+  <div class="pill-select">
+    <div class="pill-opt ${activeDepts.length===0?'sel':''}" data-dash-dept="">Whole School</div>
+    ${DEPTS.map(d=>`<div class="pill-opt ${activeDepts.includes(d)?'sel':''}" data-dash-dept="${d}">${d}</div>`).join('')}
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
+  ${kpis.map(k=>`<div class="kpi">
+    <div class="kpi-val" style="color:${k.color}">${k.val}</div>
+    <div class="kpi-label">${k.label}</div>
+    <div class="pbar mt-1"><div class="pbar-fill" style="width:${Math.min(100,k.pct||0)}%;background:${k.color}"></div></div>
+  </div>`).join('')}
+</div>
+<div class="grid-2 mb-3">
+  <div class="card">
+    <div class="card-title">📋 Recent Observations</div>
+    ${recentObs.length?recentObs.map(o=>{
+      const t=S.teachers.find(t=>t.id===o.tid);
+      return `<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
+        <div><div style="font-weight:600;font-size:12px;direction:auto">${esc(t?t.name:'Whole School')}</div>
+        <div class="text-xs text-muted">${o.date||''} · ${esc(o.observer||'')}</div></div>
+        <span class="badge badge-blue">${domAvg(o.scores)>0?domAvg(o.scores).toFixed(1)+'/5':'—'}</span>
+      </div>`;
+    }).join(''):'<div class="text-xs text-muted" style="font-style:italic">No observations yet</div>'}
+  </div>
+  <div class="card">
+    <div class="card-title">📈 CPD Programme Health</div>
+    ${cpdHealth.map(item=>`<div class="mb-2">
+      <div class="flex justify-between text-xs mb-1">
+        <span>${item.label}</span><span style="font-weight:600;color:${item.color}">${item.val}/${item.target}</span>
+      </div>
+      <div class="pbar"><div class="pbar-fill" style="width:${Math.min(100,Math.round(item.val/item.target*100))}%;background:${item.color}"></div></div>
+    </div>`).join('')}
+  </div>
+</div>
+<div class="grid-2 mb-3">
+  <div class="card">
+    <div class="card-title">📅 Upcoming Schedule</div>
+    ${upcoming.length?upcoming.map(s=>`<div class="flex items-center gap-2 mb-2 p-2" style="background:var(--light);border-radius:6px">
+      <span class="badge badge-${s.type==='Cambridge'?'purple':s.delivery==='WLC'?'blue':s.type==='External'?'amber':'gray'}">${s.type||s.delivery}</span>
+      <div><div style="font-size:12px;font-weight:600;direction:auto">${esc(s.program)}</div>
+      <div class="text-xs text-muted">${esc(s.month)} · ${esc(s.target||'')}</div></div>
+    </div>`).join(''):'<div class="text-xs text-muted" style="font-style:italic">No upcoming events</div>'}
+    <button class="btn btn-ghost btn-sm mt-2" data-nav="schedule">View full schedule →</button>
+  </div>
+  <div class="card">
+    <div class="card-title">🧪 BIO-OG Technique Heat Map</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+      ${bioHeat.map(({t,count})=>`<div style="background:${count>0?'var(--navy)18':'var(--light)'};border:1px solid ${count>0?'var(--navy)44':'var(--border)'};border-radius:6px;padding:6px 8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:10px;font-weight:600;color:${count>0?'var(--navy)':'#9ca3af'}">${t}</span>
+        <span style="font-size:16px;font-weight:800;color:${count>0?'var(--navy)':'#9ca3af'}">${count}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+</div>
+<div class="card mb-3">
+  <div class="card-title">🗺️ NEASC LP Heat Map (auto from techniques)</div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+    ${lpHeat.map(({lp,count,score,color})=>`<div style="background:${score>0?color+'18':'var(--light)'};border:1px solid ${score>0?color+'44':'var(--border)'};border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:14px;font-weight:800;color:${color}">${lp}</div>
+      ${score>0?`<div style="font-size:18px;font-weight:800;color:${color}">${score.toFixed(1)}</div>`:'<div style="font-size:11px;color:#9ca3af;margin-top:4px">—</div>'}
+      <div style="font-size:10px;color:#9ca3af;margin-top:2px">${count} obs</div>
+    </div>`).join('')}
+  </div>
+</div>
+<div class="grid-2 mb-3">
+  <div class="card">
+    <div class="card-title">📊 EEF 14 Mechanisms</div>
+    ${['A','B','C','D'].map(g=>{
+      const ms=MECHS.filter(m=>m.g===g);const cnt=ms.filter(m=>mechActive(m.id)).length;
+      return `<div class="mb-2">
+        <div class="flex justify-between text-xs text-muted mb-1">
+          <span><strong>Group ${g}</strong> — ${grpLabels[g]}</span>
+          <span>${cnt}/${ms.length} (${Math.round(cnt/ms.length*100)}%)</span>
+        </div>
+        <div class="pbar mb-1"><div class="pbar-fill pbar-teal" style="width:${cnt/ms.length*100}%"></div></div>
+        <div>${ms.map(m=>`<span class="mech-pill ${mechActive(m.id)?'mech-on':'mech-off'}" ${canEdit()?'data-toggle-mech="'+m.id+'"':''}>${m.id}. ${m.l}</span>`).join('')}</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="card">
+    <div class="card-title">🏛️ Darling-Hammond Six Pillars</div>
+    <div class="flex mb-2 items-center gap-2">
+      <div style="flex:1" class="pbar"><div class="pbar-fill" style="width:${totalP/6*100}%;background:var(--red)"></div></div>
+      <span class="text-xs text-muted">${totalP}/6 (${Math.round(totalP/6*100)}%)</span>
+    </div>
+    ${DH_PILLARS.map(p=>{
+      const on=S.dhM[p.id]!==undefined?S.dhM[p.id]:true;
+      return `<div class="flex items-center gap-2 mb-2 p-2" style="background:${on?p.c+'18':'#f9fafb'};border-radius:6px;cursor:${canEdit()?'pointer':'default'}" ${canEdit()?'data-toggle-dh="'+p.id+'"':''}>
+        <div style="width:20px;height:20px;border-radius:4px;background:${on?p.c:'#e5e7eb'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${p.id}</div>
+        <span style="font-size:12px;font-weight:600;color:${on?p.c:'#9ca3af'}">${p.l}</span>
+        ${on?'<span style="margin-left:auto;font-size:10px;color:'+p.c+'">✓</span>':''}
+      </div>`;
+    }).join('')}
+  </div>
+</div>
+${(noObs.length||lowAvg.length)?`<div class="card mb-3">
+  <div class="card-title">⚠️ Attention Needed</div>
+  ${noObs.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef9ec;border-radius:6px">
+    <span style="font-size:12px"><strong>${esc(t.name)}</strong> — no observations yet</span>
+    ${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}
+  </div>`).join('')}
+  ${lowAvg.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef2f2;border-radius:6px">
+    <span style="font-size:12px"><strong>${esc(t.name)}</strong> — avg ${tStats(t).la.toFixed(1)}/5 ⚠ needs support</span>
+    ${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}
+  </div>`).join('')}
+</div>`:''}
+<div class="card mb-3">
+  <div class="flex justify-between items-center mb-3">
+    <div class="card-title" style="margin:0">👩‍🏫 Teacher Progress</div>
+    ${canEdit()?'<button class="btn btn-primary btn-sm" data-modal="obs">+ New Observation</button>':''}
+  </div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>Teacher</th><th>Dept</th><th>Section</th><th>Obs</th><th>Avg</th><th>Trend</th><th>SC</th><th>Conf</th>${canEdit()?'<th></th>':''}</tr></thead>
+    <tbody>${teachers.slice(0,20).map(t=>{
+      const st=tStats(t);
+      const trend=st.trend>0?'↑':st.trend<0?'↓':st.count>=2?'→':'—';
+      const tc=st.trend>0?'var(--teal)':st.trend<0?'var(--red)':'var(--muted)';
+      const dots=(v,max=5)=>Array.from({length:max},(_,i)=>`<span class="score-dot" style="background:${i<Math.round(v)?'var(--navy)':'#e5e7eb'}"></span>`).join('');
+      return `<tr>
+        <td style="font-weight:600;direction:auto">${esc(t.name)}</td>
+        <td><span class="badge badge-blue">${esc(t.dept)}</span></td>
+        <td class="text-xs text-muted">${esc(t.section)}</td>
+        <td style="font-weight:600">${st.count}</td>
+        <td>${st.la?'<div style="display:flex;align-items:center;gap:4px"><div class="pbar" style="width:50px"><div class="pbar-fill pbar-navy" style="width:'+Math.round(st.la/5*100)+'%"></div></div><span class="text-xs">'+st.la.toFixed(1)+'</span></div>':'—'}</td>
+        <td style="color:${tc};font-size:16px;font-weight:700">${trend}</td>
+        <td>${dots(st.sc)}</td><td>${dots(st.conf)}</td>
+        ${canEdit()?'<td><button class="btn btn-sm btn-ghost" data-new-obs="'+t.id+'">Obs</button></td>':''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>
+</div>
+${lastSnap?`<div class="card mb-3" style="border-top:3px solid var(--forest)">
+  <div class="flex justify-between items-center mb-2">
+    <div class="card-title" style="margin:0;color:var(--forest)">✅ Latest Process Audit — ${esc(lastSnap.dept||'Whole School')}</div>
+    <span class="text-xs text-muted">${new Date(lastSnap.date||Date.now()).toLocaleDateString()}</span>
+  </div>
+  <div class="flex flex-wrap gap-1 mb-2">
+    ${Object.entries(lastSnap.ratings||{}).slice(0,8).map(([id,r])=>{const c=r>=4?'#375C15':r>=3?'#7B4F0C':r>0?'#993C1D':'#9ca3af';return'<span style="padding:2px 8px;border-radius:4px;background:'+c+'18;border:1px solid '+c+'33;font-size:10px;color:'+c+';font-weight:600">'+id+': '+r+'</span>';}).join('')}
+  </div>
+  <button class="btn btn-ghost btn-sm" data-nav="process">View Full Audit →</button>
+</div>`:''}
+<div class="card" style="border-top:3px solid var(--purple)">
+  <div class="flex justify-between items-center mb-3">
+    <div class="card-title" style="margin:0;color:var(--purple)">📊 Senior Leader Termly Dashboard</div>
+    <div class="flex gap-2 items-center">
+      <select id="senior-dept" class="form-control" style="width:160px;font-size:11px">
+        <option value="">Whole School</option>
+        ${DEPTS.map(d=>'<option>'+d+'</option>').join('')}
+      </select>
+      <button class="btn btn-success btn-sm" id="export-senior-btn">⬇ Export CSV</button>
+    </div>
+  </div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr style="background:var(--purple)">
+      <th style="color:#fff;font-size:11px">Indicator</th>
+      <th style="color:#fff;font-size:11px">Sep 2026 Baseline</th>
+      <th style="color:#fff;font-size:11px">Live (Whole School)</th>
+      <th style="color:#fff;font-size:11px">Mar 2027</th>
+      <th style="color:#fff;font-size:11px">Jun 2027</th>
+    </tr></thead>
+    <tbody>${(()=>{
+      const dObs=scopedObs();
+      const dA=arr=>{const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};
+      const rows=[
+        ['Action plan completion','0%',dObs.filter(o=>o.action).length+S.triplets.filter(t=>t.action).length+' steps set'],
+        ['Avg 5-domain obs (/5)','baseline',dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0))>0?dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0)).toFixed(1):'No data'],
+        ['EEF mechanisms (/14)','3/14',totalMechs()+'/14'],
+        ['Coaching triplets','0',S.triplets.filter(t=>t.status==='active').length+' active · '+S.triplets.filter(t=>t.status==='complete').length+' complete'],
+        ['Teacher confidence (/5)','—',dA(dObs.filter(o=>o.conf>0).map(o=>o.conf))>0?dA(dObs.filter(o=>o.conf>0).map(o=>o.conf)).toFixed(1):'No data'],
+        ['Student-centred (/5)','—',dA(dObs.map(o=>scScore(o.scores)).filter(v=>v>0))>0?dA(dObs.map(o=>scScore(o.scores)).filter(v=>v>0)).toFixed(1):'No data'],
+        ['Student progress entries','0',S.progress.length+' entries'],
+      ];
+      return rows.map((r,i)=>'<tr style="background:'+(i%2?'#fafafa':'#fff')+'"><td style="padding:6px 10px;font-size:12px;font-weight:600">'+r[0]+'</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">'+r[1]+'</td><td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--navy)">'+r[2]+'</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">—</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">—</td></tr>').join('');
+    })()}</tbody>
+  </table></div>
+</div>`}
+function renderSchedule(){
+  const mf=S.schedMonthFilter||'',tf=S.schedTypeFilter||'';
+  let sched=S.schedule;
+  if(mf)sched=sched.filter(r=>r.month===mf);
+  if(tf&&tf!=='All Types')sched=sched.filter(r=>r.type===tf||r.delivery===tf);
+  const sb=s=>s==='done'?'badge-green':s==='active'?'badge-amber':'badge-gray';
+  return `
+<div class="filter-bar mb-3">
+  <label>Month:</label>
+  <select data-sched-month class="form-control" style="width:auto">
+    <option value="">All Months</option>
+    ${MONTHS.map(m=>`<option ${mf===m?'selected':''}>${m}</option>`).join('')}
+  </select>
+  <label style="margin-left:8px">Type:</label>
+  <select data-sched-type class="form-control" style="width:auto">
+    ${SCHED_TYPES.map(t=>`<option ${(tf===t||(tf===''&&t==='All Types'))?'selected':''}>${t}</option>`).join('')}
+  </select>
+  ${mf||tf?`<button class="btn btn-ghost btn-sm" data-sched-clear>✕ Clear</button>`:''}
+  <span class="text-xs text-muted">${sched.length} of ${S.schedule.length} shown</span>
+</div>
+<div class="flex justify-between items-center mb-3">
+  <div class="flex gap-2">
+    ${canEdit()?'<button class="btn btn-primary" data-modal="sched">+ Add Programme</button>':''}
+    <button class="btn btn-ghost" data-export-sched>⬇ Export CSV</button>
+  </div>
+  <span class="text-xs text-muted">${S.schedule.length} programmes total</span>
+</div>
+${SCHED_CATS.map(cat=>{
+  const rows=sched.filter(r=>r.category===cat);
+  if(!rows.length&&!canEdit())return'';
+  return `<div class="card">
+    <div class="flex justify-between items-center mb-2">
+      <div class="card-title" style="margin:0">${cat}</div>
+      <span class="badge badge-blue">${rows.length} shown</span>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Target</th><th>Status</th>${canEdit()?'<th></th>':''}</tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td style="font-weight:600;direction:auto">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}</td>
+        <td class="text-xs">${esc(r.facilitator||'—')}</td>
+        <td><span class="badge badge-blue">${esc(r.type||'—')}</span></td>
+        <td class="text-xs">${esc(r.duration||'—')}</td>
+        <td class="text-xs">${esc(r.startDate||'—')}</td>
+        <td class="text-xs">${esc(r.endDate||'—')}</td>
+        <td class="text-xs">${esc(r.month||'—')}</td>
+        <td class="text-xs">${esc(r.target||'—')}</td>
+        <td>${canEdit()?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:90px" data-status-sched="${r.id}">${['planned','active','done'].map(s=>`<option ${r.status===s?'selected':''} value="${s}">${s}</option>`).join('')}</select>`:`<span class="badge ${sb(r.status)}">${r.status}</span>`}</td>
+        ${canEdit()?`<td><button class="btn btn-sm btn-danger" data-del-sched="${r.id}">✕</button></td>`:''}
+      </tr>`).join('')}
+      ${!rows.length?'<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:16px;font-style:italic">No programmes match filter</td></tr>':''}</tbody>
+    </table></div>
+  </div>`;
+}).join('')}`}
+
+function renderTeachers(){
+  const teachers=scopedTeachers(),groups=S.groups;
+  return `
+<div class="flex justify-between items-center mb-3">
+  ${canEdit()?`<div class="flex gap-2">
+    <button class="btn btn-primary" data-modal="teacher">+ Add Teacher</button>
+    <button class="btn btn-ghost" data-modal="group">+ Add Group</button>
+  </div>`:'<div></div>'}
+</div>
+${groups.map(g=>{
+  const ts=teachers.filter(t=>t.groupId===g.id);
+  return `<div class="card">
+    <div class="flex justify-between items-center mb-3">
+      <div class="card-title" style="margin:0"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${g.color};margin-right:6px"></span>${esc(g.name)}</div>
+      <div class="flex gap-2 items-center">
+        <span class="badge badge-blue">${ts.length} teachers</span>
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-group="${g.id}">✏ Edit</button>
+        <button class="btn btn-sm btn-danger" data-del-group="${g.id}">✕ Delete</button>`:''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+      ${ts.map(t=>{const st=tStats(t);return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+        <div style="font-weight:600;font-size:13px;direction:auto">${esc(t.name)}</div>
+        <div class="text-xs text-muted mt-1">${esc(t.dept)} · ${esc(t.section)} · ${esc(t.stage)}</div>
+        <div class="flex gap-2 mt-2">
+          <span class="badge badge-${st.count>0?'green':'gray'}">${st.count} obs</span>
+          ${st.la?'<span class="badge badge-blue">'+st.la.toFixed(1)+'/5</span>':''}
+        </div>
+        ${canEdit()?`<div class="flex gap-1 mt-2">
+          <button class="btn btn-sm btn-primary" data-new-obs="${t.id}">+ Obs</button>
+          <button class="btn btn-sm btn-ghost" data-edit-teacher="${t.id}">✏</button>
+          <button class="btn btn-sm btn-danger" data-del-teacher="${t.id}">✕</button>
+        </div>`:''}
+      </div>`}).join('')}
+      ${!ts.length?'<p style="color:var(--muted);font-size:12px;font-style:italic">No teachers in this group</p>':''}
+    </div>
+  </div>`;
+}).join('')}`}
+
+function renderFieldwork(){
+  const tab=S.fwTab||'obs';
+  const obs=scopedObs(),lws=S.lwalks;
+  const techCount={};
+  obs.forEach(o=>{const t=techDisplay(o);if(t)techCount[t]=(techCount[t]||0)+1});
+  const topTech=Object.entries(techCount).sort((a,b)=>b[1]-a[1])[0];
+  const avgConf=avg(obs.filter(o=>o.conf>0).map(o=>o.conf));
+  return `
+<div class="card mb-3" style="background:linear-gradient(135deg,var(--navy),var(--purple));color:#fff;border:none">
+  <div style="font-size:12px;font-weight:700;margin-bottom:8px;opacity:.9">📊 EEF Evidence — Auto-Reading</div>
+  <div class="grid-4">
+    <div style="background:rgba(255,255,255,.1);border-radius:6px;padding:8px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:3px">A. Build Knowledge</div>
+      <div style="font-size:11px;opacity:.85">${obs.filter(o=>techDisplay(o)).length} obs with technique</div>
+    </div>
+    <div style="background:rgba(255,255,255,.1);border-radius:6px;padding:8px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:3px">B. Motivate Staff</div>
+      <div style="font-size:11px;opacity:.85">Confidence avg: ${avgConf?avgConf.toFixed(1)+'/5':'—'}</div>
+    </div>
+    <div style="background:rgba(255,255,255,.1);border-radius:6px;padding:8px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:3px">C. Develop Techniques</div>
+      <div style="font-size:11px;opacity:.85">${topTech?topTech[0]+' ('+topTech[1]+'x)':'Log observations'}</div>
+    </div>
+    <div style="background:rgba(255,255,255,.1);border-radius:6px;padding:8px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:3px">D. Embed Practice</div>
+      <div style="font-size:11px;opacity:.85">${S.triplets.filter(t=>t.action).length} action steps set</div>
+    </div>
+  </div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.2);display:flex;gap:8px;flex-wrap:wrap">
+    <a href="https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF_PD_Planning_resource.pdf" target="_blank" style="background:rgba(255,255,255,.15);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;text-decoration:none">📄 EEF Balanced Design Sheet ↗</a>
+    <a href="https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF-Effective-Professional-Development-Guidance-Report.pdf" target="_blank" style="background:rgba(255,255,255,.15);color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;text-decoration:none">📘 EEF Full Report ↗</a>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">Observations (${obs.length})</button>
+  <button class="tab ${tab==='lw'?'active':''}" data-fw-tab="lw">Learning Walks (${lws.length})</button>
+</div>
+${tab==='obs'?`
+<div class="flex justify-between items-center mb-3">
+  ${canEdit()?'<button class="btn btn-primary" data-modal="obs">+ New Observation</button>':'<div></div>'}
+  <span class="text-xs text-muted">${obs.length} observations recorded</span>
+</div>
+${obs.slice().reverse().slice(0,30).map(o=>{
+  const t=S.teachers.find(t=>t.id===o.tid);
+  const da=domAvg(o.scores);
+  const tech=techDisplay(o);
+  const lps=[...(o.autoLPs||[]),(o.neasc||[])].flat().filter((v,i,a)=>a.indexOf(v)===i);
+  return `<div class="card" id="obs-card-${o.id}" style="border-left:3px solid var(--navy)">
+    <div class="flex justify-between items-center mb-2">
+      <div>
+        <span style="font-weight:700;direction:auto">${esc(t?t.name:'Whole School/Dept')}</span>
+        <span class="text-xs text-muted ml-2">${o.date||''} · ${esc(o.observer||'—')}</span>
+        ${t?'<span class="badge badge-gray ml-2" style="font-size:10px">'+esc(t.dept)+'</span>':''}
+      </div>
+      <div class="flex gap-1 items-center">
+        ${tech?'<span class="badge badge-purple">'+esc(tech)+'</span>':''}
+        ${da?'<span class="badge badge-blue">'+da.toFixed(1)+'/5</span>':''}
+        ${o.slLinked?'<span class="badge badge-green" style="font-size:10px">📎 Steplab</span>':''}
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-obs="${o.id}">✏</button>
+        <button class="btn btn-sm btn-ghost" onclick="printObs('${o.id}')" title="Print this observation">🖨</button>
+        <button class="btn btn-sm btn-danger" data-del-obs="${o.id}">✕</button>`:''}
+      </div>
+    </div>
+    <div class="flex gap-1 mb-2 flex-wrap">
+      ${getDomains().map(d=>{const s=avg(o.scores?.[d.id]||[]);return s?'<span class="badge badge-gray" style="font-size:10px">'+d.n+': '+s.toFixed(1)+'</span>':''}).join('')}
+    </div>
+    ${lps.length?'<div class="flex gap-1 mb-1 flex-wrap">'+lps.map(l=>'<span class="badge badge-blue">'+l+'</span>').join('')+'</div>':''}
+    ${o.www?'<div class="text-xs mb-1"><strong>WWW:</strong> '+esc(o.www)+'</div>':''}
+    ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+esc(o.ebi)+'</div>':''}
+    ${o.action?'<div class="text-xs mb-1"><strong>Action Step:</strong> '+esc(o.action)+' <a href="https://steplab.co" target="_blank" style="color:var(--teal);font-size:10px;margin-left:4px">→ Steplab ↗</a></div>':''}
+    ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6">
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${o.slLinked?'var(--teal)':'var(--muted)'}">
+        <input type="checkbox" data-sl-obs="${o.id}" ${o.slLinked?'checked':''}> 📎 Logged in Steplab
+      </label>
+    </div>`:''}
+  </div>`;
+}).join('')}
+${!obs.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No observations yet. Click + New Observation to start.</div>':''}
+`:''}
+${tab==='lw'?`
+${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="lw">+ New Learning Walk</button></div>':''}
+${lws.slice().reverse().slice(0,20).map(lw=>{
+  const tech=techDisplay(lw);
+  return `<div class="card" style="border-left:3px solid var(--teal)">
+    <div class="flex justify-between items-center mb-1">
+      <div>
+        <span class="badge badge-blue">${esc(lw.dept||'—')}</span>
+        <span class="badge badge-gray ml-1">${esc(lw.section||'—')}</span>
+        <span class="text-xs text-muted ml-1">${lw.date||''} · ${esc(lw.observer||'—')}</span>
+      </div>
+      <div class="flex gap-1">
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-lw="${lw.id}">✏</button>
+        <button class="btn btn-sm btn-danger" data-del-lw="${lw.id}">✕</button>`:''}
+      </div>
+    </div>
+    ${tech?'<span class="badge badge-purple mb-1">'+esc(tech)+'</span>':''}
+    ${lw.strengths?'<div class="text-xs mb-1"><strong>Strengths:</strong> '+esc(lw.strengths)+'</div>':''}
+    ${lw.afd?'<div class="text-xs mb-1"><strong>Areas for Development:</strong> '+esc(lw.afd)+'</div>':''}
+    ${lw.focusArea?'<div class="text-xs mb-1"><strong>Focus:</strong> '+esc(lw.focusArea)+'</div>':''}
+  </div>`;
+}).join('')}
+${!lws.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No learning walks yet.</div>':''}
+`:''}
+`}
+
+function printObs(id){
+  const card=document.getElementById('obs-card-'+id);
+  if(!card)return;
+  const w=window.open('','_blank','width=800,height=600');
+  w.document.write(`<!DOCTYPE html><html><head><title>Observation</title>
+  <style>body{font-family:'Segoe UI',sans-serif;padding:24px;font-size:13px;color:#1a1a2e}
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}
+  .badge-blue{background:#dbeafe;color:#1e40af}.badge-gray{background:#f3f4f6;color:#374151}
+  .badge-purple{background:#ede9fe;color:#5b21b6}.badge-green{background:#d1fae5;color:#065f46}
+  strong{font-weight:700}
+  </style></head><body><h2 style="color:#1F4E79;margin-bottom:16px">🏫 Waad Academy — Observation Record</h2>`+card.innerHTML+'</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),300);
+}
+function renderCPD(){
+  const tab=S.cpdTab||'cpd';
+  return `
+<div class="alert alert-info mb-3">
+  📊 <strong>EEF Balanced Design Framework:</strong> Sessions should cover all 4 groups: A) Build Knowledge · B) Motivate Staff · C) Develop Techniques · D) Embed Practice
+  <div class="flex gap-2 mt-2" style="flex-wrap:wrap">
+    <a href="https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF_PD_Planning_resource.pdf" target="_blank" class="btn btn-sm btn-ghost">📄 EEF Balanced Design Worksheet ↗</a>
+    <a href="https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF-Effective-Professional-Development-Guidance-Report.pdf" target="_blank" class="btn btn-sm btn-ghost">📘 EEF Full Report ↗</a>
+    <a href="https://educationendowmentfoundation.org.uk/education-evidence/guidance-reports/effective-professional-development" target="_blank" class="btn btn-sm btn-ghost" style="background:#fef3c7;border-color:#fbbf24">🟡 EEF 14 Mechanisms ↗</a>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab ${tab==='cpd'?'active':''}" data-cpd-tab="cpd">CPD Sessions (${S.cpd.length})</button>
+  <button class="tab ${tab==='trips'?'active':''}" data-cpd-tab="trips">Coaching Triplets (${S.triplets.length})</button>
+</div>
+${tab==='cpd'?renderCPDSessions():renderTripletsList()}`}
+
+function renderCPDSessions(){
+  return `
+${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="cpd">+ New CPD Session</button></div>':''}
+${S.cpd.slice().reverse().map(c=>{
+  const linked=S.schedule.find(r=>r.cpdId===c.id);
+  const tech=techDisplay(c);
+  return `<div class="card" style="border-left:3px solid var(--amber)">
+    <div class="flex justify-between items-center mb-2">
+      <div>
+        <span style="font-weight:700;font-size:14px;direction:auto">${esc(c.title)}</span>
+        <span class="text-xs text-muted ml-2">${c.date||''} · ${esc(c.audience||'All')}</span>
+        ${linked?'<span style="font-size:10px;margin-left:4px">🔗</span>':''}
+      </div>
+      ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-cpd="${c.id}">✏</button><button class="btn btn-sm btn-danger" data-del-cpd="${c.id}">✕</button></div>`:''}
+    </div>
+    ${tech?'<span class="badge badge-purple mb-2">Technique: '+esc(tech)+'</span>':''}
+    ${c.before||c.during||c.after?`<div class="grid-3 mt-2">
+      ${c.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto"><strong>📋 Before:</strong><br>'+esc(c.before)+'</div>':''}
+      ${c.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(c.during)+'</div>':''}
+      ${c.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(c.after)+'</div>':''}
+    </div>`:''}
+  </div>`;
+}).join('')}
+${!S.cpd.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No CPD sessions yet.</div>':''}
+`}
+
+function renderTripletsList(){
+  const trips=S.triplets,groups=S.groups;
+  return `
+<div class="flex justify-between items-center mb-3">
+  <div class="flex gap-2">
+    ${canEdit()?'<button class="btn btn-primary" data-modal="trip">+ New Coaching Triplet</button>':''}
+    <button class="btn btn-ghost" data-modal="care">📖 CARE Protocol</button>
+  </div>
+  <span class="text-xs text-muted">${trips.length} triplets · ${trips.filter(t=>t.status==='complete').length} complete</span>
+</div>
+${groups.map(g=>{
+  const ts=trips.filter(t=>t.gid===g.id);
+  if(!ts.length)return'';
+  return `<div class="card">
+    <div class="card-title" style="color:${g.color}">${esc(g.name)}</div>
+    ${ts.map(t=>{
+      const ob=S.teachers.find(tc=>tc.id===t.oid);
+      const coach=S.teachers.find(tc=>tc.id===t.cid);
+      const fac=S.teachers.find(tc=>tc.id===t.fid);
+      const tech=techDisplay(t);
+      const sc=t.status==='complete'?'badge-green':t.status==='active'?'badge-amber':'badge-gray';
+      return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">
+        <div class="flex justify-between items-center mb-1">
+          <span style="font-weight:600;direction:auto">${esc(t.name||'Triplet')}</span>
+          <div class="flex gap-1">
+            <span class="badge ${sc}">${t.status}</span>
+            <span class="badge badge-blue">Cycle ${t.cycle}</span>
+            ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-trip="${t.id}">✏</button>
+            <button class="btn btn-sm btn-danger" data-del-trip="${t.id}">✕</button>`:''}
+          </div>
+        </div>
+        <div class="text-xs text-muted mb-1">
+          👁 ${esc(ob?.name||'—')} · 🎓 ${esc(coach?.name||'—')} · 🎙 ${esc(fac?.name||'—')}
+        </div>
+        ${tech?'<span class="badge badge-purple mb-1">'+esc(tech)+'</span>':''}
+        ${t.wwwNotes?'<div class="text-xs mt-1"><strong>WWW:</strong> '+esc(t.wwwNotes)+'</div>':''}
+        ${t.ebiNotes?'<div class="text-xs mt-1"><strong>EBI:</strong> '+esc(t.ebiNotes)+'</div>':''}
+        ${t.action?`<div class="text-xs mt-1"><strong>Action Step:</strong> ${esc(t.action)} <a href="https://steplab.co" target="_blank" style="color:var(--teal);font-size:10px">→ Log in Steplab ↗</a></div>`:''}
+        ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #e5e7eb">
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${t.slLinked?'var(--teal)':'var(--muted)'}">
+            <input type="checkbox" data-sl-trip="${t.id}" ${t.slLinked?'checked':''}> 📎 Logged in Steplab
+          </label>
+        </div>`:''}
+      </div>`;
+    }).join('')}
+  </div>`;
+}).join('')}
+${!trips.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No coaching triplets yet.</div>':''}
+`}
+function renderImpact(){
+  const tab=S.impTab||'L1';
+  const dept=S.impactDept||'';
+  let obs=scopedObs(),lws=S.lwalks,trips=S.triplets;
+  if(dept){
+    obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&t.dept===dept;});
+    lws=lws.filter(lw=>lw.dept===dept);
+    trips=trips.filter(tr=>{const ot=S.teachers.find(t=>t.id===tr.oid);return ot&&ot.dept===dept;});
+  }
+  const impacts=S.impacts.filter(i=>{
+    if(tab==='progress')return false;
+    if(i.level!==tab.replace('L',''))return false;
+    if(dept&&i.tid){const t=S.teachers.find(t=>t.id===i.tid);return t&&t.dept===dept;}
+    return true;
+  });
+  const progress=dept?S.progress.filter(p=>p.dept===dept):S.progress;
+  // L1 — FIXED: only count if actual data exists, no default 3.5
+  const confObs=obs.filter(o=>o.conf>0);
+  const avgConf=confObs.length>0?avg(confObs.map(o=>o.conf)):0;
+  const autoL1=[
+    ...confObs.map(o=>{const t=S.teachers.find(t=>t.id===o.tid);return{type:'confidence',source:'Observation',teacher:t?.name,value:o.conf+'/5',date:o.date,evidence:'Technique: '+esc(techDisplay(o)||'none')}}),
+    ...trips.filter(t=>t.action).map(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);return{type:'action-step',source:'Coaching',teacher:tc?.name,value:'Action set',date:t.od,evidence:'Steplab action: '+esc(t.action)}}),
+  ];
+  const autoL2=[
+    ...obs.filter(o=>domAvg(o.scores)>0).map(o=>{const t=S.teachers.find(t=>t.id===o.tid);const da=domAvg(o.scores);return{type:'obs-domain-score',source:'Observation',teacher:t?.name,value:da.toFixed(1)+'/5',date:o.date,evidence:'5-domain avg · SC: '+(scScore(o.scores).toFixed(1)||'—')+'/5'}}),
+    ...lws.filter(lw=>lw.afd).map(lw=>({type:'learning-walk',source:'Learning Walk',teacher:null,value:esc(lw.dept||'All'),date:lw.date,evidence:'AFD: '+esc(lw.afd)})),
+  ];
+  const autoL3=[
+    ...obs.filter(o=>(o.scores?.d4||[]).some(v=>v>=4)).map(o=>{const t=S.teachers.find(t=>t.id===o.tid);return{type:'student-engagement',source:'Observation d4',teacher:t?.name,value:avg(o.scores?.d4||[]).toFixed(1)+'/5',date:o.date,evidence:'Active Learning ≥4'}}),
+    ...trips.filter(t=>t.status==='complete').map(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);return{type:'coaching-impact',source:'Triplet Complete',teacher:tc?.name,value:'Cycle '+t.cycle+' done',date:t.od,evidence:'CARE debrief · action logged'}}),
+  ];
+  const autoData={L1:autoL1,L2:autoL2,L3:autoL3};
+  const autoItems=autoData[tab]||[];
+  return `
+<div class="filter-bar mb-3">
+  <label>Filter by Department:</label>
+  <select data-impact-dept class="form-control" style="width:auto">
+    <option value="">Whole School</option>
+    ${DEPTS.map(d=>`<option ${dept===d?'selected':''}>${d}</option>`).join('')}
+  </select>
+  ${dept?`<button class="btn btn-ghost btn-sm" data-impact-dept-clear>✕ Clear</button>`:''}
+</div>
+<div class="tabs">
+  ${['L1','L2','L3','progress'].map(t=>`<button class="tab ${tab===t?'active':''}" data-imp-tab="${t}">${t==='progress'?'Student Progress':t+': '+{L1:'Teacher Knowledge',L2:'Classroom Practice',L3:'Student Outcomes'}[t]}</button>`).join('')}
+</div>
+${tab==='L1'?`
+<div class="card mb-3" style="border-left:4px solid #1e40af">
+  <div class="card-title" style="color:#1e40af">Level 1 — Teacher Knowledge & Confidence${dept?' · '+esc(dept):''}</div>
+  <div class="grid-4 mb-3">
+    <div class="kpi" style="border-color:#bfdbfe">
+      <div class="kpi-val" style="color:var(--navy)">${avgConf>0?avgConf.toFixed(1):'0'}</div>
+      <div class="kpi-label">Avg confidence /5</div>
+      <div class="text-xs text-muted">${confObs.length} entries</div>
+    </div>
+    <div class="kpi" style="border-color:#bfdbfe">
+      <div class="kpi-val" style="color:var(--teal)">${obs.filter(o=>techDisplay(o)).length}</div>
+      <div class="kpi-label">Obs with technique</div>
+    </div>
+    <div class="kpi" style="border-color:#bfdbfe">
+      <div class="kpi-val" style="color:var(--navy)">${trips.filter(t=>t.action).length}</div>
+      <div class="kpi-label">Action steps set</div>
+    </div>
+    <div class="kpi" style="border-color:#bfdbfe">
+      <div class="kpi-val" style="color:var(--amber)">${obs.filter(o=>o.slLinked).length}</div>
+      <div class="kpi-label">Steplab-linked</div>
+    </div>
+  </div>
+  <div class="alert alert-info mb-3" style="font-size:12px">📊 Auto-evidence: ${autoItems.length} entries from observations, coaching and learning walks.</div>
+  ${canEdit()?'<div class="mb-3"><button class="btn btn-primary btn-sm" data-modal="impact">+ Add Manual Entry</button></div>':''}
+  ${autoItems.slice(0,10).map(a=>`<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
+    <div><span class="badge badge-green">${a.type}</span> <span class="badge badge-gray ml-1">${a.source}</span>
+    ${a.teacher?'<span class="text-xs text-muted ml-1">'+esc(a.teacher)+'</span>':''}</div>
+    <div class="text-right"><div style="font-weight:700;font-size:12px;color:var(--navy)">${a.value}</div><div class="text-xs text-muted">${a.date||''}</div></div>
+  </div>`).join('')}
+  ${!autoItems.length?'<div class="text-xs text-muted" style="font-style:italic">No entries yet. Add observations and coaching triplets to see auto-evidence here.</div>':''}
+  ${impacts.slice().reverse().map(i=>{const t=S.teachers.find(t=>t.id===i.tid);return`<div class="card mt-2" style="border-left:3px solid var(--purple)">
+    <div class="flex justify-between items-center">
+      <div><span class="badge badge-purple">${i.type}</span>${t?'<span class="text-xs text-muted ml-2">'+esc(t.name)+'</span>':''}<span class="text-xs text-muted ml-2">${i.date||''}</span></div>
+      ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-impact="${i.id}">✏</button><button class="btn btn-sm btn-danger" data-del-impact="${i.id}">✕</button></div>`:''}
+    </div>
+    ${i.value?'<div class="mt-1 font-semibold">'+esc(i.value)+'</div>':''}
+    ${i.evidence?'<div class="text-xs text-muted mt-1">'+esc(i.evidence)+'</div>':''}
+  </div>`;}).join('')}
+</div>`:''}
+${tab==='L2'?`
+<div class="card mb-3" style="border-left:4px solid var(--amber)">
+  <div class="card-title" style="color:var(--amber)">Level 2 — Classroom Practice${dept?' · '+esc(dept):''}</div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px">
+    ${getDomains().map((d,i)=>{
+      const vals=obs.map(o=>avg(o.scores?.[d.id]||[])).filter(x=>x>0);
+      const score=vals.length?avg(vals):0;
+      const colors=['#1e40af','#065f46','#92400e','#5b21b6','#991b1b'];
+      return `<div class="kpi" style="border-top:3px solid ${colors[i]}">
+        <div class="kpi-val" style="color:${colors[i]};font-size:26px">${score>0?score.toFixed(1):'—'}</div>
+        <div class="kpi-label">${d.n}</div><div class="text-xs text-muted">${vals.length} obs</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="alert alert-info mb-3" style="font-size:12px">📊 ${autoL2.length} entries from platform data.</div>
+  ${canEdit()?'<div class="mb-3"><button class="btn btn-primary btn-sm" data-modal="impact">+ Add Manual Entry</button></div>':''}
+  ${autoL2.slice(0,8).map(a=>`<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
+    <div><span class="badge badge-amber">${a.type}</span><span class="badge badge-gray ml-1">${a.source}</span>${a.teacher?'<span class="text-xs text-muted ml-1">'+esc(a.teacher)+'</span>':''}</div>
+    <div style="font-weight:700;font-size:12px;color:var(--navy)">${a.value}</div>
+  </div>`).join('')}
+  ${impacts.slice().reverse().map(i=>{const t=S.teachers.find(t=>t.id===i.tid);return`<div class="card mt-2" style="border-left:3px solid var(--purple)">
+    <div class="flex justify-between items-center">
+      <div><span class="badge badge-purple">${i.type}</span>${t?'<span class="text-xs text-muted ml-2">'+esc(t.name)+'</span>':''}</div>
+      ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-impact="${i.id}">✏</button><button class="btn btn-sm btn-danger" data-del-impact="${i.id}">✕</button></div>`:''}
+    </div>
+    ${i.value?'<div class="mt-1">'+esc(i.value)+'</div>':''}
+  </div>`;}).join('')}
+</div>`:''}
+${tab==='L3'?`
+<div style="border:2px solid var(--teal);border-radius:10px;padding:16px;margin-bottom:14px">
+  <div style="font-size:14px;font-weight:700;color:var(--teal);margin-bottom:14px">Level 3 — Student Outcomes${dept?' · '+esc(dept):''}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    ${canEdit()?'<button class="btn btn-primary btn-sm" data-modal="impact">+ Log Impact</button>':'<div></div>'}
+  </div>
+  ${(()=>{
+    // Build indicator grid from L3 impact entries + auto data
+    // Each indicator = {name, lps[], technique, score, manualEntryId}
+    const L3_INDICATORS=[
+      {key:'engagement',name:'Student Engagement',defaultLPs:['LP5']},
+      {key:'formative',name:'Formative Assessment',defaultLPs:['LP3']},
+      {key:'questioning',name:'Depth of Questioning',defaultLPs:['LP4']},
+      {key:'thinking',name:'Critical Thinking',defaultLPs:['LP4']},
+      {key:'collaboration',name:'Collaboration',defaultLPs:['LP2','LP5']},
+      {key:'ownership',name:'Student Ownership',defaultLPs:['LP5','LP6']},
+      {key:'independence',name:'Independence',defaultLPs:['LP5']},
+    ];
+    // Get technique from latest obs with matching LP
+    const colorFor=n=>n>=4?'var(--teal)':n>=3?'var(--amber)':n>0?'var(--red)':'#e5e7eb';
+    const rows=L3_INDICATORS.map(ind=>{
+      // Find manual L3 rating entry for this indicator
+      const manualEntry=impacts.find(i=>i.type===ind.key||i.type===ind.name.toLowerCase().replace(/ /g,'-'));
+      const rating=manualEntry?parseFloat(manualEntry.value)||0:0;
+      // Find obs-linked techniques for this LP
+      const relObs=obs.filter(o=>(o.autoLPs||[]).some(lp=>ind.defaultLPs.includes(lp)));
+      const techniques=[...new Set(relObs.map(o=>techDisplay(o)).filter(Boolean))];
+      const tech=techniques[0]||'';
+      // Avg from obs d4 for student outcome proxy
+      const obsAvg=relObs.length?avg(relObs.map(o=>avg([...(o.scores?.d4||[]),(o.scores?.d3||[])].filter(x=>x>0))).filter(x=>x>0)):0;
+      const displayScore=rating>0?rating:obsAvg;
+      const pct=displayScore/5*100;
+      return{...ind,tech,lps:ind.defaultLPs,rating,displayScore,pct,manualEntry,colorFor};
+    });
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${rows.map(row=>`
+        <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">${row.name}</div>
+          <div class="flex gap-1 mb-2 flex-wrap">
+            ${row.lps.map(lp=>'<span class="badge badge-blue" style="font-size:10px">'+lp+'</span>').join('')}
+            ${row.tech?'<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600">'+esc(row.tech)+'</span>':''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <div style="flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden">
+              <div style="height:100%;border-radius:3px;background:${row.displayScore>=4?'var(--teal)':row.displayScore>=3?'var(--teal)':'var(--teal)'};width:${Math.min(100,row.pct)}%;transition:width .4s"></div>
+            </div>
+            <span style="font-size:13px;font-weight:700;color:var(--teal);min-width:28px">${row.displayScore>0?row.displayScore.toFixed(1):''}</span>
+          </div>
+          <div class="flex gap-1 items-center">
+            ${[1,2,3,4,5].map(n=>`<button data-l3-rate="${row.key}-${n}" style="width:26px;height:26px;border-radius:4px;border:1px solid ${row.rating>=n?'var(--teal)':'var(--border)'};background:${row.rating>=n?'var(--teal)':'transparent'};color:${row.rating>=n?'#fff':'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer">${n}</button>`).join('')}
+            <span style="font-size:10px;color:var(--muted);margin-left:4px">${row.rating>0?row.rating+'/5':''}</span>
+            ${row.manualEntry&&canEdit()?`<button class="btn btn-sm btn-danger" style="margin-left:auto" data-del-impact="${row.manualEntry.id}">✕</button>`:''}
+          </div>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted);font-style:italic">
+      ${impacts.filter(i=>['engagement','formative','questioning','thinking','collaboration','ownership','independence'].includes(i.type)).length===0&&autoL3.length===0?'No entries yet.':''}
+    </div>`;
+  })()}
+</div>
+${impacts.filter(i=>!['engagement','formative','questioning','thinking','collaboration','ownership','independence'].includes(i.type)).length?`
+<div class="card-title mb-2" style="margin-top:8px">📝 Other L3 Manual Entries</div>
+${impacts.filter(i=>!['engagement','formative','questioning','thinking','collaboration','ownership','independence'].includes(i.type)).slice().reverse().map(i=>{const t=S.teachers.find(t=>t.id===i.tid);return`<div class="card" style="border-left:3px solid var(--forest)">
+  <div class="flex justify-between items-center">
+    <div><span class="badge badge-green">${i.type}</span>${t?'<span class="text-xs text-muted ml-2">'+esc(t.name)+'</span>':''}<span class="text-xs text-muted ml-2">${i.date||''}</span></div>
+    ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-impact="${i.id}">✏</button><button class="btn btn-sm btn-danger" data-del-impact="${i.id}">✕</button></div>`:''}
+  </div>
+  ${i.value?'<div class="mt-1 font-semibold">'+esc(i.value)+'</div>':''}
+  ${i.evidence?'<div class="text-xs text-muted mt-1">'+esc(i.evidence)+'</div>':''}
+</div>`;}).join('')}`:''}
+`:''}
+${tab==='progress'?`
+<div class="mb-3 flex gap-2">
+  ${canEdit()?'<button class="btn btn-primary" data-modal="prog">+ Add Progress Entry</button>':''}
+  ${canEdit()?'<button class="btn btn-ghost" data-modal="prog-import">⬆ Import CSV / URL</button>':''}
+</div>
+<div class="tabs" style="margin-bottom:8px">
+  ${['internal','external','portfolio'].map(m=>`<button class="tab ${(S.progMode||'internal')===m?'active':''}" data-prog-mode="${m}">${m}</button>`).join('')}
+</div>
+${progress.filter(p=>p.mode===(S.progMode||'internal')).slice().reverse().map(p=>`
+  <div class="card" style="border-left:3px solid var(--teal)">
+    <div class="flex justify-between items-center mb-1">
+      <div><span style="font-weight:600;direction:auto">${esc(p.subject)}</span> <span class="badge badge-blue">${esc(p.dept)}</span> <span class="badge badge-gray">${esc(p.grade)}</span></div>
+      <div class="flex gap-1 items-center">
+        ${p.folderLink?'<a href="'+p.folderLink+'" target="_blank" class="btn btn-sm btn-ghost">📂 Folder</a>':''}
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-prog="${p.id}">✏</button><button class="btn btn-sm btn-danger" data-del-prog="${p.id}">✕</button>`:''}
+      </div>
+    </div>
+    <div class="flex gap-2 flex-wrap mt-1">
+      ${Object.entries(p.scores||{}).map(([k,v])=>`<span class="badge badge-${v>=70?'green':v>=50?'amber':'red'}">${k}: ${v}</span>`).join('')}
+    </div>
+  </div>`).join('')}
+`:''}
+`}
+function renderProcess(){
+  const snaps=S.snapshots,ratings=S.currentRatings||{};
+  const dept=S.procDept||'';
+  const obs=scopedObs(),trips=S.triplets,cpd=S.cpd,impacts=S.impacts;
+  const SECS=[
+    {title:'Design Quality',color:'var(--navy)',items:[
+      {id:'dq1',lbl:'Sessions content-focused & NEASC LP linked',weak:'Ad hoc topics, no LP alignment',strong:'Every session: QFT + NEASC + EEF evidence',live:obs.length>0?obs.length+' obs logged':null},
+      {id:'dq2',lbl:'Biol-Og booklet assigned before every session ★',weak:'No booklet assigned',strong:'1 week ahead via Canvas; activation + model',live:obs.filter(o=>techDisplay(o)).length>0?obs.filter(o=>techDisplay(o)).length+' obs with technique':null},
+      {id:'dq3',lbl:'All 6 D-H pillars active',weak:'1–2 pillars only',strong:'All 6 consistently evidenced',live:totalDH()+'/6 active'},
+      {id:'dq4',lbl:'Prior knowledge activated every session',weak:'No activation',strong:'Allen model / Biol-Og opener',live:obs.filter(o=>techDisplay(o)).length>0?obs.filter(o=>techDisplay(o)).length+' obs with activation':null},
+      {id:'dq5',lbl:'In-session rehearsal (15 min) included',weak:'No rehearsal',strong:'15-min technique rehearsal in every session',live:null},
+      {id:'dq6',lbl:'Groups right-sized (≤8, subject + grade)',weak:'Large impersistent groups',strong:'Subject/grade ≤8; same group persists',live:null},
+    ]},
+    {title:'Collaboration & Coaching',color:'var(--teal)',items:[
+      {id:'cc1',lbl:'Coaching triplets operating (all 3 cycles)',weak:'None active',strong:'All staff in rotating triplets; 3 full cycles',live:trips.length+' sessions · '+trips.filter(t=>t.status==='complete').length+' complete'},
+      {id:'cc2',lbl:'Biol-Og technique = triplet focus ★',weak:'No specific focus',strong:'Booklet technique is the observable',live:trips.filter(t=>techDisplay(t)).length>0?trips.filter(t=>techDisplay(t)).length+' trips with focus':null},
+      {id:'cc3',lbl:'Peer visits with WWW/EBI + domain focus',weak:'No structured visits',strong:'Structured protocol; domain-linked feedback',live:obs.filter(o=>o.www&&o.ebi).length>0?obs.filter(o=>o.www&&o.ebi).length+' with full feedback':null},
+      {id:'cc4',lbl:'MLs empowered as CPD designers',weak:'SLT designs all CPD',strong:'MLs complete balanced design sheet',live:cpd.length>0?cpd.length+' CPD sessions':null},
+      {id:'cc5',lbl:'Learning Walks active and feeding planning',weak:'No walks',strong:'Regular walks; AFD feeds CPD design',live:S.lwalks.length>0?S.lwalks.length+' walks':null},
+    ]},
+    {title:'Time & Sustainability',color:'var(--amber)',items:[
+      {id:'ts1',lbl:'Protected time for coaching triplets (Tue)',weak:'No dedicated time',strong:'Weekly Tue slot protected',live:null},
+      {id:'ts2',lbl:'CPD not end-of-week or end-of-day',weak:'All Thu pm; fatigue',strong:'Tue/Wed, high-energy; max 60 min',live:null},
+      {id:'ts3',lbl:'Meetings replaced with collaboration time',weak:'All time in meetings',strong:'50%+ → TLC/coaching',live:null},
+      {id:'ts4',lbl:'Booklet distributed 1 week before ★',weak:'Same day or after',strong:'Always 1 week ahead via Canvas LMS',live:null},
+    ]},
+    {title:'Impact & Accountability',color:'var(--red)',items:[
+      {id:'ia1',lbl:'CPD linked to 360° feedback data',weak:'No connection',strong:'360° formally drives CPD priorities',live:null},
+      {id:'ia2',lbl:'Biol-Og techniques visible in learning walks ★',weak:'Not tracked',strong:'LW proforma includes technique check',live:obs.filter(o=>techDisplay(o)).length>0?[...new Set(obs.filter(o=>techDisplay(o)).map(o=>techDisplay(o)))].length+' techniques':null},
+      {id:'ia3',lbl:'Student outcomes reviewed against CPD',weak:'Siloed',strong:'Termly review links both; NEASC tracked',live:impacts.filter(i=>i.level==='3').length>0?impacts.filter(i=>i.level==='3').length+' L3 entries':null},
+      {id:'ia4',lbl:'NEASC LP progress formally tracked',weak:'Not tracked',strong:'Termly vs Feb 2026 baseline; board reported',live:totalMechs()+'/14 mechanisms'},
+      {id:'ia5',lbl:'Process audit snapshots reviewed',weak:'No review',strong:'Termly snapshot + trend analysis',live:S.snapshots.length+' snapshots'},
+    ]},
+  ];
+  const colorFor=n=>n>=4?'var(--teal)':n>=3?'var(--amber)':n>0?'var(--red)':'var(--muted)';
+  const dSnaps=snaps.filter(s=>(s.dept||'Whole School')===(dept||'Whole School'));
+  return `
+<div class="filter-bar mb-3">
+  <label>Department:</label>
+  <select data-proc-dept class="form-control" style="width:auto">
+    <option value="">Whole School</option>
+    ${DEPTS.map(d=>'<option '+(dept===d?'selected':'')+' value="'+d+'">'+d+'</option>').join('')}
+  </select>
+  <span class="text-xs text-muted ml-2">${dSnaps.length}/3 snapshots for ${esc(dept||'Whole School')}</span>
+  ${canEdit()&&dSnaps.length<3?'<button class="btn btn-success btn-sm" data-submit-snap>✓ Submit Snapshot</button>':''}
+  ${dSnaps.length>=3?'<span class="badge badge-amber">Max 3 snapshots — delete one to re-submit</span>':''}
+</div>
+${snaps.length?`<div class="card mb-3">
+  <div class="card-title">Previous Snapshots</div>
+  ${snaps.map((snap,i)=>`<div class="flex justify-between items-center p-2 mb-1" style="background:var(--light);border-radius:6px">
+    <div>
+      <span class="text-xs"><strong>Snapshot ${i+1}</strong> — ${esc(snap.dept||'Whole School')} · ${new Date(snap.date||Date.now()).toLocaleDateString()} · ${snap.obsCount} obs</span>
+      <div class="flex gap-1 mt-1 flex-wrap">
+        ${Object.entries(snap.ratings||{}).slice(0,6).map(([id,r])=>{const c=r>=4?'#375C15':r>=3?'#7B4F0C':r>0?'#993C1D':'#9ca3af';return'<span style="padding:1px 6px;border-radius:3px;background:'+c+'18;border:1px solid '+c+'33;font-size:10px;color:'+c+';font-weight:600">'+id+': '+r+'</span>';}).join('')}
+      </div>
+    </div>
+    <div class="flex gap-1">
+      <button class="btn btn-sm btn-ghost" data-load-snap="${i}">Edit</button>
+      ${canEdit()?'<button class="btn btn-sm btn-danger" data-del-snap="'+i+'">✕</button>':''}
+    </div>
+  </div>`).join('')}
+</div>`:''}
+${SECS.map(sec=>`
+  <div class="card">
+    <div class="card-title" style="color:${sec.color}">${sec.title}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 160px 110px;gap:8px;padding:4px 0;border-bottom:2px solid var(--border);margin-bottom:6px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted)">Criterion</div>
+      <div style="font-size:10px;font-weight:700;color:var(--red)">1 — Weak</div>
+      <div style="font-size:10px;font-weight:700;color:var(--forest)">5 — Strong</div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted)">Rating</div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted)">Live data</div>
+    </div>
+    ${sec.items.map(item=>`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 160px 110px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5">
+        <div style="font-size:12px;font-weight:600">${item.lbl}</div>
+        <div style="font-size:11px;color:var(--red);font-style:italic">${item.weak||'—'}</div>
+        <div style="font-size:11px;color:var(--forest);font-style:italic">${item.strong||'—'}</div>
+        <div class="flex gap-1">
+          ${[1,2,3,4,5].map(n=>`<button data-rate="${item.id}-${n}" style="width:26px;height:26px;border-radius:4px;border:2px solid ${(ratings[item.id]||0)>=n?colorFor(n):'var(--border)'};background:${(ratings[item.id]||0)>=n?colorFor(n)+'22':'transparent'};cursor:pointer;font-size:11px;font-weight:700;color:${(ratings[item.id]||0)>=n?colorFor(n):'var(--muted)'}">${n}</button>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--navy);font-weight:600">${item.live||'<span style="color:var(--muted);font-style:italic">log data</span>'}</div>
+      </div>
+    `).join('')}
+  </div>
+`).join('')}`}
+
+function renderResources(){
+  const obs=scopedObs();
+  const lowD=getDomains().map(d=>({d,a:avg(obs.flatMap(o=>o.scores?.[d.id]||[]).filter(x=>x>0))})).filter(x=>x.a>0&&x.a<3);
+  return `
+${lowD.length?`<div class="alert alert-warn mb-3"><strong>💡 Smart Suggestions:</strong> ${lowD.map(x=>'<span class="badge badge-amber ml-1">'+x.d.n+' ('+x.a.toFixed(1)+'/5)</span>').join('')}</div>`:''}
+${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="resource">+ Add Resource</button></div>':''}
+<div class="grid-2">${S.resources.map(r=>`<div class="card" style="border-left:3px solid var(--navy)">
+  <div class="flex justify-between items-start mb-1">
+    <a href="${r.url||'#'}" target="_blank" style="font-weight:600;font-size:13px;color:var(--navy);text-decoration:none">${esc(r.title)} ↗</a>
+    ${canEdit()?`<button class="btn btn-sm btn-danger" data-del-res="${r.id}">✕</button>`:''}
+  </div>
+  <div class="text-xs text-muted">${esc(r.desc||'')}</div>
+</div>`).join('')}</div>`}
+
+function renderSteplab(){
+  const obs=scopedObs();
+  const linked=obs.filter(o=>o.slLinked).length;
+  const trips=S.triplets.filter(t=>t.slLinked).length;
+  return `
+<div class="alert alert-info mb-3">
+  <strong>Steplab Integration:</strong> Track which observations and coaching sessions have been logged in Steplab.
+  <a href="https://steplab.co" target="_blank" class="btn btn-sm btn-ghost ml-2">Open Steplab ↗</a>
+</div>
+<div class="grid-3 mb-3">
+  <div class="kpi"><div class="kpi-val">${linked}</div><div class="kpi-label">Observations linked</div></div>
+  <div class="kpi"><div class="kpi-val">${trips}</div><div class="kpi-label">Triplets linked</div></div>
+  <div class="kpi"><div class="kpi-val">${linked+trips>0&&(obs.length+S.triplets.length)>0?Math.round((linked+trips)/(obs.length+S.triplets.length)*100)+'%':'—'}</div><div class="kpi-label">Sync rate</div></div>
+</div>
+${obs.filter(o=>o.slLinked).map(o=>{
+  const t=S.teachers.find(t=>t.id===o.tid);
+  return `<div class="card" style="border-left:3px solid var(--teal)">
+    <div class="flex justify-between items-center">
+      <div><span style="font-weight:600;direction:auto">${esc(t?.name||'Whole School')}</span> <span class="text-xs text-muted">${o.date||''}</span></div>
+      <span class="badge badge-green">✓ Steplab</span>
+    </div>
+    ${o.action?'<div class="text-xs mt-1">Action: '+esc(o.action)+'</div>':''}
+  </div>`;
+}).join('')}`}
+function renderSettings(){
+  const allUsers=getAllUsers();
+  const roles=Object.entries(S.roleCfg);
+  return `
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">🎨 Platform Branding</div>
+    <div class="form-group"><label class="form-label">Platform Name</label>
+      <input class="form-control" id="brand-name" value="${esc(S.branding.name||'Waad Academy')}"></div>
+    <div class="form-group"><label class="form-label">Primary Logo URL</label>
+      <input class="form-control" id="brand-logo" value="${esc(S.branding.logo||'')}" placeholder="https://..."></div>
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px">
+      <div class="form-label mb-2">Partner / Accreditation Logos</div>
+      ${['COBIS','NEASC','MAWHIBA','Ministry of Education','Custom 1','Custom 2'].map((lbl,i)=>`
+        <div class="flex items-center gap-2 mb-2">
+          <span style="font-size:11px;width:130px;flex-shrink:0;color:var(--muted)">${lbl}</span>
+          <input class="form-control" id="brand-partner-${i}" value="${esc((S.branding.partners||[])[i]||'')}" placeholder="Logo URL">
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-primary btn-sm mt-2" data-save-brand>✓ Save Branding</button>
+  </div>
+  <div class="card">
+    <div class="flex justify-between items-center mb-2">
+      <div class="card-title" style="margin:0">👥 Users (${allUsers.length})</div>
+      <button class="btn btn-success btn-sm" id="export-users-btn">⬇ Export for GitHub</button>
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 10px;font-size:11px;color:#92400e;margin-bottom:10px">
+      💡 After adding users, tap <strong>Export for GitHub</strong> → paste into index.html SEED_USERS → commit → all devices get access automatically.
+    </div>
+    <div style="max-height:260px;overflow-y:auto;margin-bottom:10px">
+      ${allUsers.map(u=>`<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
+        <div><div style="font-weight:600;font-size:13px">${esc(u.fullName||u.name||u.username)}</div>
+        <div class="text-xs text-muted">${esc(u.username)} · ${esc(S.roleCfg[u.role]?.label||u.role||'admin')}</div></div>
+        ${S.users.find(x=>x.id===u.id)?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:'<span style="font-size:10px;color:var(--muted)">seed</span>'}
+      </div>`).join('')}
+    </div>
+    ${canEdit()?'<button class="btn btn-primary btn-sm" data-modal="user">+ Add User</button>':''}
+  </div>
+</div>
+<div class="card">
+  <div class="card-title">🔑 Role Permissions</div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>Role</th>${ALL_VIEWS.map(v=>'<th style="font-size:10px" title="'+VIEW_META[v].label+'">'+VIEW_META[v].icon+'</th>').join('')}<th>Edit</th><th>Scoped</th>${canEdit()?'<th></th>':''}</tr></thead>
+    <tbody>${roles.map(([key,r])=>`<tr>
+      <td style="font-weight:600">${esc(r.label||key)} <span style="font-size:10px;color:var(--muted)">(${key})</span></td>
+      ${ALL_VIEWS.map(v=>'<td style="text-align:center;font-size:12px">'+(r.views?.includes(v)?'<span style="color:var(--teal);font-weight:700">✓</span>':'<span style="color:#d1d5db">·</span>')+'</td>').join('')}
+      <td style="text-align:center">${r.canEdit?'<span style="color:var(--teal);font-weight:700">✓</span>':'<span style="color:#d1d5db">·</span>'}</td>
+      <td style="text-align:center">${r.scoped?'<span style="color:var(--amber);font-weight:700">⚠</span>':'<span style="color:#d1d5db">·</span>'}</td>
+      ${canEdit()?`<td><div class="flex gap-1">${key!=='admin'?'<button class="btn btn-sm btn-ghost" data-edit-role="'+key+'">✏</button>':''}<button class="btn btn-sm btn-danger" data-del-role="${key}"${key==='admin'?' disabled style="opacity:.4"':''}>✕</button></div></td>`:'<td></td>'}
+    </tr>`).join('')}</tbody>
+  </table></div>
+  ${canEdit()?'<button class="btn btn-primary btn-sm mt-3" data-modal="role">+ Custom Role</button>':''}
+</div>
+${isAdmin()?`
+<div class="card">
+  <div class="flex justify-between items-center mb-3">
+    <div class="card-title" style="margin:0">📋 Observation Rubric — Domains & Criteria</div>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost btn-sm" data-reset-domains>↺ Reset to Defaults</button>
+      <button class="btn btn-success btn-sm" data-save-domains>✓ Save Rubric</button>
+    </div>
+  </div>
+  <p class="text-xs text-muted mb-3">Edit domain names and criteria. Each criterion is scored 1–5 in observations.</p>
+  <div id="domain-editor">
+    ${getDomains().map((d,di)=>`
+      <div style="background:var(--light);border-radius:8px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--border)">
+        <div class="flex items-center gap-2 mb-2">
+          <span style="background:var(--navy);color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${d.id.toUpperCase()}</span>
+          <input class="form-control domain-name-input" data-di="${di}" value="${esc(d.n)}" style="font-weight:700;font-size:13px;max-width:220px">
+        </div>
+        <div id="criteria-list-${di}">
+          ${d.criteria.map((c,ci)=>`
+            <div class="flex items-center gap-2 mb-1">
+              <span style="width:20px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0">${ci+1}.</span>
+              <input class="form-control crit-input" data-di="${di}" data-ci="${ci}" value="${esc(c)}" style="font-size:12px">
+              <button class="btn btn-sm btn-danger" data-del-crit="${di}-${ci}">✕</button>
+            </div>`).join('')}
+        </div>
+        <button class="btn btn-ghost btn-sm mt-2" data-add-crit="${di}">+ Add Criterion</button>
+      </div>`).join('')}
+  </div>
+</div>`:''}
+<div class="card">
+  <div class="card-title">📊 Quick Resources</div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    ${S.resources.filter(r=>r.url&&r.url!=='#').slice(0,6).map(r=>`<a href="${r.url}" target="_blank" style="font-size:12px;color:var(--navy);text-decoration:none;padding:4px 0;border-bottom:1px solid var(--border)">🔗 ${esc(r.title)}</a>`).join('')}
+    <button class="btn btn-ghost btn-sm mt-1" data-nav="resources">View all resources →</button>
+  </div>
+</div>`}
+
+function exportUsersForGitHub(){
+  const allUsers=getAllUsers();
+  const lines=allUsers.map(u=>`  {id:'${u.id}',name:'${(u.name||'').replace(/'/g,"\\'")}',fullName:'${(u.fullName||u.name||'').replace(/'/g,"\\'")}',username:'${u.username}',password:'${u.password}',role:'${u.role}',depts:${JSON.stringify(u.depts||[])}}`).join(',\n');
+  window.__exportCode=`const SEED_USERS = [\n${lines}\n];`;
+  S.modal=`<div class="modal-overlay" id="modal-overlay"><div class="modal">
+    <div class="modal-header"><h3>⬇ Export Users for GitHub</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+    <div class="modal-body">
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto">${esc(window.__exportCode)}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+        <strong>Steps:</strong><br>1. Tap Copy below<br>2. Go to GitHub → index.html → pencil icon<br>3. Find <code>const SEED_USERS = [</code> and replace that whole block<br>4. Commit → Vercel deploys in ~2 min → all devices have all accounts
+      </div>
+      <button class="btn btn-success" style="margin-top:10px;width:100%" id="copy-export-btn">📋 Copy to Clipboard</button>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" data-close-modal>Close</button></div>
+  </div></div>`;
+  render();
+}
+function openModal(type,data={}){S.modal=renderModal(type,data);render()}
+
+function techSelector(selId,customId,val,customVal){
+  val=val||'';customVal=customVal||'';
+  const isOther=(val==='Other');
+  return `<div class="form-group"><label class="form-label">Biol-Og / Technique Focus</label>
+    <select class="form-control" id="${selId}" onchange="handleTechChange('${selId}','${customId}')">
+      <option value="">— None —</option>
+      ${TECHS.map(t=>`<option ${val===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <div id="${customId}-wrap" style="margin-top:6px;${isOther?'':'display:none'}">
+      <input class="form-control" id="${customId}" placeholder="Type custom technique name..." value="${esc(customVal)}">
+      <div style="font-size:10px;color:var(--teal);margin-top:3px">✓ Auto-links to NEASC LPs if technique name matches</div>
+    </div>
+  </div>`;
+}
+function handleTechChange(selId,customId){
+  const sel=document.getElementById(selId);
+  const wrap=document.getElementById(customId+'-wrap');
+  if(sel&&wrap)wrap.style.display=sel.value==='Other'?'block':'none';
+}
+function getTechFromForm(selId,customId){
+  const sel=(document.getElementById(selId)||{}).value||'';
+  if(sel==='Other'){const cv=(document.getElementById(customId)||{}).value||'';return{bio:'Other',customTech:cv};}
+  return{bio:sel==='— None —'||sel===''?'':sel,customTech:''};
+}
+
+function renderModal(type,data={}){
+  const M=(title,body,footer)=>`<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header"><h3>${title}</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-footer">${footer}</div>
+    </div>
+  </div>`;
+  const FI=(id,lbl,val='',tp='text',ph='')=>`<div class="form-group"><label class="form-label">${lbl}</label><input class="form-control rtl" id="${id}" type="${tp}" value="${esc(val||'')}" placeholder="${esc(ph)}"></div>`;
+  const FS=(id,lbl,opts,val='')=>`<div class="form-group"><label class="form-label">${lbl}</label><select class="form-control" id="${id}">${opts.map(o=>typeof o==='string'?'<option '+(val===o?'selected':'')+'>'+esc(o)+'</option>':'<option value="'+esc(o.v)+'" '+(val===o.v?'selected':'')+'>'+esc(o.l)+'</option>').join('')}</select></div>`;
+  const FTA=(id,lbl,val='',rows=3)=>`<div class="form-group"><label class="form-label">${lbl}</label><textarea class="form-control rtl" id="${id}" rows="${rows}">${esc(val||'')}</textarea></div>`;
+  const G2=(a,b)=>`<div class="grid-2">${a}${b}</div>`;
+  const un=S.session?.name||'';
+
+  if(type==='obs'){
+    const isEdit=!!(data.id);
+    const techVal=data.customTech?'Other':(data.bio||'');
+    return M(`📋 ${isEdit?'Edit':'New'} Observation`,
+      FS('obs-tid','Teacher',[{v:'',l:'— Whole School / Dept —'},...scopedTeachers().map(t=>({v:t.id,l:t.name+' ('+t.dept+')'}))],data.tid||'')+
+      G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||un))+
+      techSelector('obs-tech','obs-custom-tech',techVal,data.customTech||'')+
+      '<div id="obs-domains">'+getDomains().map(d=>`<div class="form-group"><label class="form-label">${d.n}</label>
+        <div class="flex gap-2 flex-wrap">${d.criteria.map((c,i)=>`
+          <div style="background:var(--light);border-radius:6px;padding:6px 8px;flex:1;min-width:140px">
+            <div class="text-xs text-muted mb-1">${c}</div>
+            <div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button type="button" data-score="${d.id}-${i}-${n}" style="width:26px;height:26px;border-radius:4px;border:1px solid var(--border);background:${(data.scores?.[d.id]?.[i]||0)===n?'var(--navy)':'var(--white)'};color:${(data.scores?.[d.id]?.[i]||0)===n?'#fff':'inherit'};font-size:11px;font-weight:600;cursor:pointer">${n}</button>`).join('')}</div>
+          </div>`).join('')}</div></div>`).join('')+'</div>'+
+      G2(FI('obs-conf','Confidence (1-5)',data.conf||'','number'),FS('obs-scope','Scope',['teacher','dept','boys','girls','school'],data.scope||'teacher'))+
+      G2(FTA('obs-www','Key Strengths (WWW)',data.www||''),FTA('obs-ebi','Areas for Development (EBI)',data.ebi||''))+
+      FTA('obs-action','Action Step (→ Steplab)',data.action||''),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-obs>${isEdit?'Update':'Save'} Observation</button>`
+    );
+  }
+
+  if(type==='lw'){
+    const isEdit=!!(data.id);
+    const techVal=data.customTech?'Other':(data.bio||'');
+    return M(`${isEdit?'✏ Edit':'🚶 New'} Learning Walk`,
+      G2(FI('lw-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('lw-obs','Observer',data.observer||un))+
+      G2(FS('lw-sect','Section',['','Boys','Girls'],data.section||''),FS('lw-dept','Department',['',...DEPTS],data.dept||''))+
+      techSelector('lw-tech','lw-custom-tech',techVal,data.customTech||'')+
+      FI('lw-focus','Focus Area / Question',data.focusArea||'','text','What are we looking for?')+
+      G2(FTA('lw-str','Strengths',data.strengths||''),FTA('lw-afd','Areas for Development',data.afd||'')),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-lw>${isEdit?'Update Walk':'Save Walk'}</button>`
+    );
+  }
+
+  if(type==='cpd'){
+    const isEdit=!!(data.id);
+    const techVal=data.customTech?'Other':(data.bio||'');
+    return M(`${isEdit?'✏ Edit':'📚 New'} CPD Session`,
+      FI('cpd-title','Session Title',data.title||'','text','e.g. AFL Workshop — Biology Dept')+
+      G2(FI('cpd-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('cpd-fac','Facilitator',data.facilitator||un))+
+      G2(FS('cpd-aud','Audience',['Whole School','Boys Section','Girls Section',...DEPTS.map(d=>d+' — Girls'),...DEPTS.map(d=>d+' — Boys')],data.audience||'Whole School'),
+         FS('cpd-month','Month',MONTHS,data.month||MONTHS[0]))+
+      G2(FS('cpd-type','Type',['Internal','External','Cambridge','COBIS','WLC','Other'],data.type||'Internal'),
+         FS('cpd-del','Delivery',['Workshop','WLC','Course','Online','Face to Face','In School','Other'],data.delivery||'Workshop'))+
+      techSelector('cpd-tech','cpd-custom-tech',techVal,data.customTech||'')+
+      G2(FTA('cpd-bef','Before — Planned outcomes',data.before||''),FTA('cpd-dur','During — Activities',data.during||''))+
+      FTA('cpd-aft','After — Implementation & monitoring',data.after||''),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-cpd>${isEdit?'Update Session':'Save Session'}</button>`
+    );
+  }
+
+  if(type==='trip'){
+    const isEdit=!!(data.id);
+    const techVal=data.customTech?'Other':(data.bio||'');
+    return M(`${isEdit?'✏ Edit':'🎯 New'} Coaching Triplet`,
+      G2(FI('tr-name','Session Name',data.name||'','text','e.g. Term 1 Cycle 1'),
+         FS('tr-gid','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],data.gid||''))+
+      G2(FS('tr-cycle','Cycle',[{v:1,l:'Cycle 1'},{v:2,l:'Cycle 2'},{v:3,l:'Cycle 3'}],data.cycle||1),
+         FS('tr-status','Status',['planned','active','complete'],data.status||'planned'))+
+      G2(FS('tr-oid','Observer (Teacher observed)',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.oid||''),
+         FS('tr-cid','Coach',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.cid||''))+
+      FS('tr-fid','Facilitator',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.fid||'')+
+      techSelector('tr-tech','tr-custom-tech',techVal,data.customTech||'')+
+      G2(FI('tr-od','Observe Date',data.od||'','date'),FI('tr-dd','CARE Debrief Date',data.dd||'','date'))+
+      G2(FTA('tr-www','What Went Well (WWW)',data.wwwNotes||''),FTA('tr-ebi','Even Better If (EBI)',data.ebiNotes||''))+
+      FTA('tr-action','Action Step → log in Steplab',data.action||'')+
+      '<div class="alert alert-info mt-2" style="font-size:11px">After saving, log this action step in <a href="https://steplab.co" target="_blank" style="color:var(--navy);font-weight:600">Steplab ↗</a></div>',
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-trip>${isEdit?'Update Triplet':'Save Triplet'}</button>`
+    );
+  }
+
+  if(type==='sched'){
+    return M('🗓 Add Schedule Entry',
+      FS('sch-cat','Category',SCHED_CATS,SCHED_CATS[0])+
+      FI('sch-prog','Programme Name','','text','e.g. Cambridge PDQ Teaching & Learning')+
+      G2(FI('sch-fac','Facilitator',''),FI('sch-target','Target Audience',''))+
+      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],'Internal'),
+         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],'Workshop'))+
+      G2(FI('sch-dur','Duration','','text','e.g. 60 min'),FS('sch-month','Month',MONTHS,MONTHS[0]))+
+      G2(FI('sch-start','Start Date','','date'),FI('sch-end','End Date','','date')),
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>Save</button>'
+    );
+  }
+
+  if(type==='teacher'){
+    return M('👩‍🏫 Add Teacher',
+      FI('tch-name','Full Name (Arabic/English)','','text','Teacher name')+
+      G2(FS('tch-dept','Department',DEPTS,DEPTS[0]),FS('tch-sect','Section',SECTIONS,SECTIONS[0]))+
+      G2(FS('tch-stage','Stage',STAGES,STAGES[0]),
+         FS('tch-group','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))])),
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-teacher>Save Teacher</button>'
+    );
+  }
+
+  if(type==='user'){
+    return M('👤 Add User',
+      G2(FI('u-name','Full Name',''),FI('u-user','Username',''))+
+      G2(FI('u-pass','Password','','password'),
+         FS('u-role','Role',[...Object.entries(S.roleCfg).map(([k,r])=>({v:k,l:r.label||k}))],'viewer'))+
+      `<div class="form-group"><label class="form-label">Departments (hold Ctrl/⌘ for multi-select)</label>
+       <select class="form-control" id="u-depts" multiple size="5">${DEPTS.map(d=>'<option>'+d+'</option>').join('')}</select></div>`,
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-user>Save User</button>'
+    );
+  }
+
+  if(type==='impact'){
+    const typeOpts={1:['confidence','knowledge-check','I-will-try-card','voice-survey','other'],2:['obs-domain-score','triplet-evidence','action-plan-rate','learning-walk','other'],3:['student-engagement','formative-assessment','questioning-depth','collaboration','student-ownership','other']};
+    const lvl=data.level||'1';
+    return M('📈 Add Impact Entry',
+      FS('imp-level','Level',[{v:'1',l:'L1: Teacher Knowledge'},{v:'2',l:'L2: Classroom Practice'},{v:'3',l:'L3: Student Outcomes'}],lvl)+
+      FS('imp-type','Type',(typeOpts[lvl]||typeOpts[1]),data.type||'')+
+      G2(FS('imp-tid','Teacher (optional)',[{v:'',l:'All Staff'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.tid||''),
+         FI('imp-val','Value / Score',data.value||'','text','e.g. 3.8/5'))+
+      G2(FI('imp-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('imp-term','Term',data.term||'','text','e.g. Term 1'))+
+      FTA('imp-evidence','Evidence',data.evidence||''),
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-impact>Save Entry</button>'
+    );
+  }
+
+  if(type==='prog'){
+    const mode=S.progMode||'internal';
+    const cols=mode==='external'?['Mock 1','Mock 2','Official']:mode==='portfolio'?['Subject activation','Quality activation']:['Baseline','Mid-Term 1','End of Term 1','Mid-Term 2','End of Term 2'];
+    return M('📊 Add Student Progress',
+      G2(FI('pr-subj','Subject / Class Group',data.subject||'','text'),FS('pr-dept','Department',DEPTS,data.dept||DEPTS[0]))+
+      G2(FS('pr-grade','Grade',GRADES,data.grade||GRADES[3]),FS('pr-sect','Section',SECTIONS,data.section||SECTIONS[0]))+
+      cols.map(c=>FI('pr-sc-'+c.replace(/ /g,'_'),'Score: '+c,String(data.scores?.[c]||''),'number')).join('')+
+      (mode==='portfolio'?FI('pr-link','Portfolio Folder Link (URL)',data.folderLink||'','url'):''),
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-prog>Save Progress</button>'
+    );
+  }
+
+  if(type==='prog-import'){
+    return M('⬆ Import Student Progress',
+      `<div class="alert alert-info mb-3">Import from a Google Sheets URL or paste CSV data.</div>
+      <div class="form-group"><label class="form-label">Google Sheets / Folder URL</label>
+        <input class="form-control" id="pi-url" type="url" placeholder="https://docs.google.com/..."></div>
+      <div class="form-group"><label class="form-label">Or paste CSV (subject, dept, grade, section, Baseline, Mid-Term 1, ...)</label>
+        <textarea class="form-control" id="pi-csv" rows="6" placeholder="Mathematics,Mathematics,Grade 7,Boys,65,72,75,78,80"></textarea></div>`,
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" id="do-import-prog">Import</button>'
+    );
+  }
+
+  if(type==='group'){
+    const isEdit=!!(data.id);
+    return M(`${isEdit?'✏ Edit':'👥 Add'} TLC Group`,
+      FI('grp-name','Group Name',data.name||'','text','e.g. Math & Science TLC'),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-group>${isEdit?'Update Group':'Save Group'}</button>`
+    );
+  }
+
+  if(type==='resource'){
+    return M('📂 Add Resource',
+      FI('res-title','Title','')+FI('res-url','URL','','url')+FTA('res-desc','Description'),
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-res>Save Resource</button>'
+    );
+  }
+
+  if(type==='role'){
+    const editKey=data.editKey||'';
+    const existing=editKey?S.roleCfg[editKey]:null;
+    const isBuiltIn=['admin','obsLead','coachLead','cpdLead','deptHead','viewer'].includes(editKey);
+    const viewChecks=ALL_VIEWS.map(v=>`<label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0;cursor:pointer">
+      <input type="checkbox" class="role-view-cb" value="${v}" ${existing?(existing.views||[]).includes(v)?'checked':'':' checked'}> ${VIEW_META[v].icon} ${VIEW_META[v].label}</label>`).join('');
+    return M(editKey?'✏️ Edit Role: '+(existing?.label||editKey):'🔑 Create Custom Role',
+      (editKey&&isBuiltIn?'<div class="alert alert-warn mb-3">⚠ Built-in role — key is fixed.</div>':'')+
+      FI('role-key','Role key',editKey||'','text',editKey?'':'e.g. hod_math')+
+      FI('role-label','Display label',existing?.label||'','text','e.g. Head of Mathematics')+
+      `<div class="form-group"><label class="form-label">Accessible Views</label>
+       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--light);padding:10px;border-radius:6px">${viewChecks}</div></div>`+
+      `<div class="flex gap-4 mt-2">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canedit" ${existing?.canEdit!==false?'checked':''}> Can edit data</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-scoped" ${existing?.scoped?'checked':''}> Department scoped</label>
+      </div>`+(editKey?`<input type="hidden" id="role-editkey" value="${editKey}">`:''),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-role>${editKey?'Update Role':'Save Role'}</button>`
+    );
+  }
+
+  if(type==='care'){
+    const tabs=['overview','templates','examples','reflection','criteria','resources'];
+    const tLabels={overview:'Overview',templates:'Templates',examples:'Examples',reflection:'Reflection Qs',criteria:'Success Criteria',resources:'Resources'};
+    const CARE={
+      overview:`CARE Coaching Protocol — Waad Academy\n\n1. CLARIFY — Coach asks clarifying questions. No judgement yet. (5 min)\n2. ASK & LISTEN — 'What went well?' Teacher reflects first. (8 min)\n3. REINFORCE — Specific evidence-based positive feedback. (4 min)\n4. ESTABLISH — Co-construct 1 action step. Follow-up date agreed. (3 min)\n\nTotal: 20 minutes. One criterion only. One action step.`,
+      templates:`OBSERVATION SCRIPT:\n□ Date / Teacher / Domain / Biol-Og technique\n□ Verbatim student quotes (3+)\n□ Teacher moves (questioning, wait time, CFU)\n□ Evidence of technique\n\nDEBRIEF TEMPLATE:\n□ WWW: 2 specific observable strengths\n□ EBI: 1 precise actionable next step\n□ Action: [teacher] will [technique] in [lesson] by [date]\n□ Steplab micro-prompt: set before leaving room`,
+      examples:`EXAMPLE — Think, Pair, Share:\nWWW: 'All 27 students generated written responses during Think — 100% engagement'\nEBI: 'During Pair, students needed sentence starters'\nAction: Add sentence starter card for next TPS lesson by 15 Oct`,
+      reflection:`1. What did students know at the end that they couldn't at the start?\n2. Where was pupil thought ratio highest?\n3. What would you change if you taught this again?\n4. How did the Biol-Og technique change engagement?\n5. What evidence do you have that learning happened?`,
+      criteria:`✓ Observer scripts evidence for 25+ min\n✓ Debrief follows CARE — teacher speaks first\n✓ Exactly 1 specific observable action step\n✓ Action step in Steplab before leaving room\n✓ Follow-up date in calendar before leaving room\n✓ Roles rotate every cycle`,
+      resources:`• Biol-Og CPD Booklets: https://biol-og.com/cpd-booklets/\n• Darling-Hammond (2017): learningpolicyinstitute.org\n• EEF (2021) 14 Mechanisms: educationendowmentfoundation.org.uk\n• Steplab: https://steplab.co\n• NEASC ACE: neasc.org`
+    };
+    const curTab=S.careTab||'overview';
+    return M('📖 Coaching Triplet Protocol — CARE Framework',
+      `<div class="tabs mb-3">${tabs.map(t=>`<button class="tab ${curTab===t?'active':''}" data-care-tab="${t}">${tLabels[t]}</button>`).join('')}</div>
+      <div style="background:var(--light);border-radius:8px;padding:14px 16px;font-size:13px;color:#444;line-height:1.8;white-space:pre-wrap;max-height:380px;overflow-y:auto">${CARE[curTab]||''}</div>`,
+      '<button class="btn btn-primary" data-close-modal>Close</button>'
+    );
+  }
+
+  return M('Modal','<p>Coming soon</p>','<button class="btn btn-ghost" data-close-modal>Close</button>');
+}
+const g=id=>document.getElementById(id);
+const gv=id=>(g(id)||{}).value||'';
+
+function bindEvents(){
+  document.querySelectorAll('[data-nav]').forEach(el=>{el.onclick=()=>{S.view=el.dataset.nav;render()}});
+  const lb=g('logout-btn');
+  if(lb)lb.onclick=()=>{S.session=null;sset('session',null);render()};
+
+  const loginBtn=g('l-btn');
+  if(loginBtn){
+    const doLogin=async()=>{
+      const u=(gv('l-user')||'').trim().toLowerCase();
+      const p=(gv('l-pass')||'').trim();
+      const err=g('l-err');
+      // Check seed + local users first (instant)
+      const found=getAllUsers().find(x=>x.username.toLowerCase()===u&&x.password===p);
+      if(found){const sess={name:found.fullName||found.name||found.username,role:found.role||'viewer',depts:found.depts||[]};S.session=sess;sset('session',sess);render();return;}
+      if(err){err.style.display='block';err.textContent='Invalid credentials. Try admin / waad2026';}
+    };
+    loginBtn.onclick=doLogin;
+    [g('l-user'),g('l-pass')].forEach(el=>{if(el)el.onkeydown=e=>{if(e.key==='Enter')doLogin();}});
+  }
+
+  document.querySelectorAll('[data-modal]').forEach(el=>{el.onclick=()=>openModal(el.dataset.modal)});
+  document.querySelectorAll('[data-new-obs]').forEach(el=>{el.onclick=()=>openModal('obs',{tid:el.dataset.newObs})});
+  document.querySelectorAll('[data-close-modal]').forEach(el=>{el.onclick=()=>{S.modal=null;S.editingId=null;render()}});
+  const ov=g('modal-overlay');
+  if(ov)ov.onclick=e=>{if(e.target===ov){S.modal=null;S.editingId=null;render()}};
+
+  document.querySelectorAll('[data-care-tab]').forEach(el=>{el.onclick=()=>{S.careTab=el.dataset.careTab;S.modal=renderModal('care');render()}});
+  document.querySelectorAll('[data-fw-tab]').forEach(el=>{el.onclick=()=>{S.fwTab=el.dataset.fwTab;render()}});
+  document.querySelectorAll('[data-imp-tab]').forEach(el=>{el.onclick=()=>{S.impTab=el.dataset.impTab;render()}});
+  document.querySelectorAll('[data-prog-mode]').forEach(el=>{el.onclick=()=>{S.progMode=el.dataset.progMode;render()}});
+  document.querySelectorAll('[data-cpd-tab]').forEach(el=>{el.onclick=()=>{S.cpdTab=el.dataset.cpdTab;render()}});
+
+  // Dashboard dept pills
+  document.querySelectorAll('[data-dash-dept]').forEach(el=>{
+    el.onclick=()=>{
+      const d=el.dataset.dashDept;
+      if(d===''){S.dashDepts=[];}
+      else{const idx=S.dashDepts.indexOf(d);if(idx>=0)S.dashDepts.splice(idx,1);else S.dashDepts.push(d);}
+      render();
+    };
+  });
+
+  // Schedule filters
+  const sm=document.querySelector('[data-sched-month]');if(sm)sm.onchange=e=>{S.schedMonthFilter=e.target.value;render()};
+  const st=document.querySelector('[data-sched-type]');if(st)st.onchange=e=>{S.schedTypeFilter=e.target.value==='All Types'?'':e.target.value;render()};
+  const sc=document.querySelector('[data-sched-clear]');if(sc)sc.onclick=()=>{S.schedMonthFilter='';S.schedTypeFilter='';render()};
+
+  // Impact dept filter
+  const id=document.querySelector('[data-impact-dept]');if(id)id.onchange=e=>{S.impactDept=e.target.value;render()};
+  const idc=document.querySelector('[data-impact-dept-clear]');if(idc)idc.onclick=()=>{S.impactDept='';render()};
+
+  // Process audit
+  document.querySelectorAll('[data-rate]').forEach(el=>{
+    el.onclick=()=>{const[id,n]=el.dataset.rate.split('-');if(!S.currentRatings)S.currentRatings={};S.currentRatings[id]=parseInt(n);render();};
+  });
+  const pd=document.querySelector('[data-proc-dept]');if(pd)pd.onchange=e=>{S.procDept=e.target.value;render()};
+  const ss=document.querySelector('[data-submit-snap]');
+  if(ss)ss.onclick=()=>{
+    const dSnaps=S.snapshots.filter(s=>(s.dept||'Whole School')===(S.procDept||'Whole School'));
+    if(dSnaps.length>=3){showToast('Max 3 snapshots for this scope. Delete one first.','error');return;}
+    const snap={id:uid(),ratings:{...S.currentRatings||{}},obsCount:scopedObs().length,tripCount:S.triplets.length,lwCount:S.lwalks.length,dept:S.procDept||'Whole School',date:new Date().toISOString()};
+    S.snapshots=[...S.snapshots,snap];save('snapshots',S.snapshots);S.currentRatings={};showToast('Snapshot saved ✓');render();
+  };
+  document.querySelectorAll('[data-load-snap]').forEach(el=>{
+    el.onclick=()=>{S.currentRatings={...S.snapshots[parseInt(el.dataset.loadSnap)]?.ratings||{}};showToast('Ratings loaded for editing ✓');render();};
+  });
+  document.querySelectorAll('[data-del-snap]').forEach(el=>{
+    el.onclick=()=>{S.snapshots.splice(parseInt(el.dataset.delSnap),1);save('snapshots',S.snapshots);showToast('Snapshot deleted');render();};
+  });
+
+  // L3 indicator rating buttons
+  document.querySelectorAll('[data-l3-rate]').forEach(el=>{
+    el.onclick=()=>{
+      const[key,n]=el.dataset.l3Rate.split('-');
+      const rating=parseInt(n);
+      // Find or create an impact entry for this indicator key
+      const existing=S.impacts.find(i=>i.level==='3'&&i.type===key);
+      if(existing){existing.value=String(rating);save('impacts',S.impacts);}
+      else{S.impacts.push({id:uid(),level:'3',type:key,tid:null,value:String(rating),evidence:'Rated from L3 indicator grid',date:new Date().toISOString().split('T')[0],term:''});save('impacts',S.impacts);}
+      render();
+    };
+  });
+
+  // Mechanism toggles
+  document.querySelectorAll('[data-toggle-mech]').forEach(el=>{el.onclick=()=>{const id=parseInt(el.dataset.toggleMech);S.mechM[id]=!mechActive(id);save('mechM',S.mechM);render();}});
+  document.querySelectorAll('[data-toggle-dh]').forEach(el=>{el.onclick=()=>{const id=parseInt(el.dataset.toggleDh);S.dhM[id]=S.dhM[id]===undefined?false:!S.dhM[id];save('dhM',S.dhM);render();}});
+
+  // Schedule status
+  document.querySelectorAll('[data-status-sched]').forEach(el=>{el.onchange=()=>{const row=S.schedule.find(r=>r.id===el.dataset.statusSched);if(row){row.status=el.value;save('sched',S.schedule);showToast('Status updated ✓');}}});
+
+  // Score buttons in obs modal
+  const scoreState={};
+  document.querySelectorAll('[data-score]').forEach(el=>{
+    el.onclick=()=>{
+      const[domId,criIdx,val]=el.dataset.score.split('-');
+      if(!scoreState[domId])scoreState[domId]=[];
+      scoreState[domId][parseInt(criIdx)]=parseInt(val);
+      document.querySelectorAll('[data-score]').forEach(btn=>{
+        const[d,c,v]=btn.dataset.score.split('-');
+        if(d===domId&&c===criIdx){const active=parseInt(v)===parseInt(val);btn.style.background=active?'var(--navy)':'var(--white)';btn.style.color=active?'#fff':'inherit';btn.style.borderColor=active?'var(--navy)':'var(--border)';}
+      });
+    };
+  });
+
+  // SAVE OBS
+  const saveObs=document.querySelector('[data-save-obs]');
+  if(saveObs)saveObs.onclick=()=>{
+    const{bio,customTech}=getTechFromForm('obs-tech','obs-custom-tech');
+    const sc={};
+    document.querySelectorAll('[data-score]').forEach(btn=>{
+      const[d,c]=btn.dataset.score.split('-');
+      if(btn.style.background==='var(--navy)'||btn.style.background==='rgb(31, 78, 121)'){if(!sc[d])sc[d]=[];sc[d][parseInt(c)]=parseInt(btn.dataset.score.split('-')[2]);}
+    });
+    const scores={};getDomains().forEach(d=>{scores[d.id]=Array.from({length:d.criteria.length},(_,i)=>sc[d.id]?sc[d.id][i]||0:0);});
+    const editId=S.editingId?.type==='obs'?S.editingId.id:null;
+    const existing=editId?S.observations.find(o=>o.id===editId):{};
+    const obs={...(existing||{}),id:editId||uid(),tid:gv('obs-tid')||null,date:gv('obs-date'),observer:gv('obs-obs'),
+      scope:gv('obs-scope'),bio,customTech,scores,conf:parseInt(gv('obs-conf'))||0,
+      www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
+      autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false};
+    S.observations=editId?S.observations.map(o=>o.id===editId?obs:o):[...S.observations,obs];
+    save('obs',S.observations);S.modal=null;S.editingId=null;showToast(editId?'Observation updated ✓':'Observation saved ✓');
+  };
+
+  // SAVE LW
+  const saveLW=document.querySelector('[data-save-lw]');
+  if(saveLW)saveLW.onclick=()=>{
+    const{bio,customTech}=getTechFromForm('lw-tech','lw-custom-tech');
+    const editId=S.editingId?.type==='lw'?S.editingId.id:null;
+    const lw={...(editId?S.lwalks.find(l=>l.id===editId):{}),id:editId||uid(),date:gv('lw-date'),observer:gv('lw-obs'),section:gv('lw-sect'),dept:gv('lw-dept'),bio,customTech,strengths:gv('lw-str'),afd:gv('lw-afd'),focusArea:gv('lw-focus')};
+    S.lwalks=editId?S.lwalks.map(l=>l.id===editId?lw:l):[...S.lwalks,lw];
+    save('lwalks',S.lwalks);S.modal=null;S.editingId=null;showToast(editId?'Learning walk updated ✓':'Learning walk saved ✓');
+  };
+
+  // SAVE CPD
+  const saveCPD=document.querySelector('[data-save-cpd]');
+  if(saveCPD)saveCPD.onclick=()=>{
+    const title=gv('cpd-title');if(!title.trim()){showToast('Please enter a session title','error');return;}
+    const{bio,customTech}=getTechFromForm('cpd-tech','cpd-custom-tech');
+    const month=gv('cpd-month'),aud=gv('cpd-aud');
+    const editId=S.editingId?.type==='cpd'?S.editingId.id:null;
+    const existing=editId?S.cpd.find(c=>c.id===editId):{};
+    const cpd={...(existing||{}),id:editId||uid(),title,date:gv('cpd-date'),facilitator:gv('cpd-fac'),audience:aud,type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio,customTech,before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active'};
+    S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
+    save('cpd',S.cpd);
+    if(!editId){const nr={id:uid(),category:'Internal - SDP-Based Training',program:title,facilitator:cpd.facilitator,delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};S.schedule=[...S.schedule,nr];save('sched',S.schedule);}
+    S.modal=null;S.editingId=null;showToast(editId?'CPD updated ✓':'CPD saved & linked to schedule ✓');
+  };
+
+  // SAVE TRIP
+  const saveTrip=document.querySelector('[data-save-trip]');
+  if(saveTrip)saveTrip.onclick=()=>{
+    const editId=S.editingId?.type==='trip'?S.editingId.id:null;
+    const gid=gv('tr-gid'),cycle=parseInt(gv('tr-cycle'))||1;
+    if(!editId&&S.triplets.filter(t=>t.gid===gid&&t.cycle===cycle).length>0){showToast('Cycle '+cycle+' already exists for this group','error');return;}
+    const{bio,customTech}=getTechFromForm('tr-tech','tr-custom-tech');
+    const existing=editId?S.triplets.find(t=>t.id===editId):{};
+    const trip={...(existing||{}),id:editId||uid(),gid,name:gv('tr-name'),cycle,status:gv('tr-status'),oid:gv('tr-oid'),cid:gv('tr-cid'),fid:gv('tr-fid'),bio,customTech,od:gv('tr-od'),dd:gv('tr-dd'),wwwNotes:gv('tr-www'),ebiNotes:gv('tr-ebi'),action:gv('tr-action'),slLinked:existing?.slLinked||false};
+    S.triplets=editId?S.triplets.map(t=>t.id===editId?trip:t):[...S.triplets,trip];
+    save('trips',S.triplets);S.modal=null;S.editingId=null;showToast(editId?'Triplet updated ✓':'Triplet saved ✓');
+  };
+
+  // SAVE SCHEDULE
+  const saveSched=document.querySelector('[data-save-sched]');
+  if(saveSched)saveSched.onclick=()=>{
+    const prog=gv('sch-prog');if(!prog.trim()){showToast('Please enter a programme name','error');return;}
+    const row={id:uid(),category:gv('sch-cat'),program:prog,facilitator:gv('sch-fac'),delivery:gv('sch-del'),type:gv('sch-type'),duration:gv('sch-dur'),month:gv('sch-month'),startDate:gv('sch-start'),endDate:gv('sch-end'),venue:'TBC',target:gv('sch-target'),status:'planned',cpdId:null};
+    S.schedule=[...S.schedule,row];save('sched',S.schedule);S.modal=null;showToast('Schedule entry saved ✓');
+  };
+
+  // SAVE TEACHER
+  const saveTch=document.querySelector('[data-save-teacher]');
+  if(saveTch)saveTch.onclick=()=>{
+    const name=gv('tch-name');if(!name.trim()){showToast('Please enter a name','error');return;}
+    S.teachers=[...S.teachers,{id:uid(),name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:[],groupId:gv('tch-group')||S.groups[0]?.id}];
+    save('teachers',S.teachers);S.modal=null;showToast('Teacher added ✓');
+  };
+
+  // SAVE USER
+  const saveUser=document.querySelector('[data-save-user]');
+  if(saveUser)saveUser.onclick=()=>{
+    const name=gv('u-name'),uname=gv('u-user'),pass=gv('u-pass'),role=gv('u-role');
+    if(!name||!uname||!pass){showToast('Name, username and password required','error');return;}
+    if(getAllUsers().find(u=>u.username===uname)){showToast('Username already exists','error');return;}
+    const deptsEl=g('u-depts');
+    const depts=deptsEl?[...deptsEl.selectedOptions].map(o=>o.value):[];
+    S.users=[...S.users,{id:uid(),name,fullName:name,username:uname,password:pass,role,depts}];
+    save('users',S.users);S.modal=null;showToast('User created ✓ — click Export for GitHub to enable on all devices');
+  };
+
+  // SAVE GROUP
+  const saveGrp=document.querySelector('[data-save-group]');
+  if(saveGrp)saveGrp.onclick=()=>{
+    const editId=S.editingId?.type==='group'?S.editingId.id:null;
+    const name=gv('grp-name');if(!name.trim()){showToast('Enter a group name','error');return;}
+    if(editId){S.groups=S.groups.map(grp=>grp.id===editId?{...grp,name}:grp);save('groups',S.groups);S.modal=null;S.editingId=null;showToast('Group updated ✓');}
+    else{const COLORS=['#1F4E79','#0F6E56','#3C3489','#7B4F0C','#993C1D'];S.groups=[...S.groups,{id:uid(),name,color:COLORS[S.groups.length%COLORS.length]}];save('groups',S.groups);S.modal=null;showToast('Group added ✓');}
+  };
+
+  // SAVE IMPACT
+  const saveImpact=document.querySelector('[data-save-impact]');
+  if(saveImpact)saveImpact.onclick=()=>{
+    const editId=S.editingId?.type==='impact'?S.editingId.id:null;
+    const entry={...(editId?S.impacts.find(i=>i.id===editId):{}),id:editId||uid(),level:gv('imp-level'),type:gv('imp-type'),tid:gv('imp-tid')||null,value:gv('imp-val'),evidence:gv('imp-evidence'),date:gv('imp-date'),term:gv('imp-term')};
+    S.impacts=editId?S.impacts.map(i=>i.id===editId?entry:i):[...S.impacts,entry];
+    save('impacts',S.impacts);S.modal=null;S.editingId=null;showToast(editId?'Entry updated ✓':'Impact entry saved ✓');
+  };
+
+  // SAVE PROGRESS
+  const saveProg=document.querySelector('[data-save-prog]');
+  if(saveProg)saveProg.onclick=()=>{
+    const editId=S.editingId?.type==='prog'?S.editingId.id:null;
+    const mode=S.progMode||'internal';
+    const cols=mode==='external'?['Mock 1','Mock 2','Official']:mode==='portfolio'?['Subject activation','Quality activation']:['Baseline','Mid-Term 1','End of Term 1','Mid-Term 2','End of Term 2'];
+    const scores={};cols.forEach(c=>{const v=parseFloat(gv('pr-sc-'+c.replace(/ /g,'_')));if(v)scores[c]=v;});
+    const entry={...(editId?S.progress.find(p=>p.id===editId):{}),id:editId||uid(),mode,subject:gv('pr-subj'),dept:gv('pr-dept'),grade:gv('pr-grade'),section:gv('pr-sect'),scores,folderLink:gv('pr-link')||''};
+    S.progress=editId?S.progress.map(p=>p.id===editId?entry:p):[...S.progress,entry];
+    save('progress',S.progress);S.modal=null;S.editingId=null;showToast(editId?'Progress updated ✓':'Progress saved ✓');
+  };
+
+  // IMPORT PROGRESS
+  const doImport=g('do-import-prog');
+  if(doImport)doImport.onclick=()=>{
+    const url=gv('pi-url'),csv=gv('pi-csv');
+    if(url){S.progress=[...S.progress,{id:uid(),mode:S.progMode||'internal',subject:'Imported',dept:'All',grade:'All',section:'All',scores:{},folderLink:url}];save('progress',S.progress);S.modal=null;showToast('Folder link saved ✓');return;}
+    if(csv){
+      const cols=['Baseline','Mid-Term 1','End of Term 1','Mid-Term 2','End of Term 2'];
+      let count=0;
+      csv.trim().split('\n').slice(1).forEach(line=>{
+        const p=line.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+        if(p.length>=4){const scores={};cols.forEach((c,i)=>{const v=parseFloat(p[4+i]);if(v)scores[c]=v;});S.progress.push({id:uid(),mode:S.progMode||'internal',subject:p[0]||'',dept:p[1]||'',grade:p[2]||'',section:p[3]||'',scores,folderLink:''});count++;}
+      });
+      save('progress',S.progress);S.modal=null;showToast(count+' rows imported ✓');return;
+    }
+    showToast('Enter a URL or paste CSV','error');
+  };
+
+  // SAVE RESOURCE
+  const saveRes=document.querySelector('[data-save-res]');
+  if(saveRes)saveRes.onclick=()=>{const title=gv('res-title');if(!title){showToast('Enter a title','error');return;}S.resources=[...S.resources,{id:uid(),title,url:gv('res-url'),desc:gv('res-desc')}];save('resources',S.resources);S.modal=null;showToast('Resource added ✓');};
+
+  // SAVE ROLE
+  const saveRole=document.querySelector('[data-save-role]');
+  if(saveRole)saveRole.onclick=()=>{
+    const editKey=(g('role-editkey')?.value||'').trim();
+    const rawKey=(g('role-key')?.value||'').trim().replace(/\s+/g,'_');
+    const key=editKey||rawKey,label=(g('role-label')?.value||'').trim();
+    if(!key||!label){showToast('Key and label required','error');return;}
+    if(!editKey&&S.roleCfg[key]){showToast('Role key already exists','error');return;}
+    const views=[...document.querySelectorAll('.role-view-cb:checked')].map(cb=>cb.value);
+    S.roleCfg[key]={...S.roleCfg[key],label,views,canEdit:g('role-canedit')?.checked||false,scoped:g('role-scoped')?.checked||false};
+    save('roleCfg',S.roleCfg);S.modal=null;showToast('Role "'+label+'" '+(editKey?'updated':'created')+' ✓');
+  };
+  document.querySelectorAll('[data-edit-role]').forEach(el=>{el.onclick=()=>{S.modal=renderModal('role',{editKey:el.dataset.editRole});render();}});
+  document.querySelectorAll('[data-del-role]').forEach(el=>{el.onclick=()=>{const key=el.dataset.delRole;if(key==='admin'){showToast('Cannot delete admin role','error');return;}if(!confirm('Delete role "'+key+'"?'))return;delete S.roleCfg[key];save('roleCfg',S.roleCfg);showToast('Role deleted');render();};});
+
+  // BRANDING
+  const saveBrand=document.querySelector('[data-save-brand]');
+  if(saveBrand)saveBrand.onclick=()=>{S.branding.name=gv('brand-name')||'Waad Academy';S.branding.logo=gv('brand-logo')||'';S.branding.partners=[0,1,2,3,4,5].map(i=>gv('brand-partner-'+i)||'');save('branding',S.branding);showToast('Branding saved ✓');render();};
+
+  // DOMAIN RUBRIC
+  const saveDoms=document.querySelector('[data-save-domains]');
+  if(saveDoms)saveDoms.onclick=()=>{
+    const updated=getDomains().map((d,di)=>{
+      const nameEl=document.querySelector('.domain-name-input[data-di="'+di+'"]');
+      const name=nameEl?nameEl.value.trim():d.n;
+      const criteria=[...document.querySelectorAll('.crit-input[data-di="'+di+'"]')].map(el=>el.value.trim()).filter(Boolean);
+      return{id:d.id,n:name,criteria:criteria.length?criteria:d.criteria};
+    });
+    S.customDomains=updated;save('customDomains',S.customDomains);showToast('Observation rubric saved ✓');render();
+  };
+  const resetDoms=document.querySelector('[data-reset-domains]');
+  if(resetDoms)resetDoms.onclick=()=>{if(!confirm('Reset to default criteria?'))return;S.customDomains=null;save('customDomains',null);showToast('Rubric reset ✓');render();};
+  document.querySelectorAll('[data-add-crit]').forEach(el=>{el.onclick=()=>{const di=parseInt(el.dataset.addCrit);const base=getDomains();const updated=base.map((d,i)=>i===di?{...d,criteria:[...d.criteria,'New criterion']}:d);S.customDomains=updated;save('customDomains',S.customDomains);render();};});
+  document.querySelectorAll('[data-del-crit]').forEach(el=>{el.onclick=()=>{const[di,ci]=el.dataset.delCrit.split('-').map(Number);const base=getDomains();if(base[di].criteria.length<=1){showToast('Must have at least 1 criterion','error');return;}const updated=base.map((d,i)=>i===di?{...d,criteria:d.criteria.filter((_,j)=>j!==ci)}:d);S.customDomains=updated;save('customDomains',S.customDomains);render();};});
+
+  // EDIT handlers
+  document.querySelectorAll('[data-edit-obs]').forEach(el=>{el.onclick=()=>{const o=S.observations.find(o=>o.id===el.dataset.editObs);if(o){S.editingId={type:'obs',id:o.id};S.modal=renderModal('obs',o);render();}}});
+  document.querySelectorAll('[data-edit-lw]').forEach(el=>{el.onclick=()=>{const lw=S.lwalks.find(l=>l.id===el.dataset.editLw);if(lw){S.editingId={type:'lw',id:lw.id};S.modal=renderModal('lw',lw);render();}}});
+  document.querySelectorAll('[data-edit-cpd]').forEach(el=>{el.onclick=()=>{const c=S.cpd.find(c=>c.id===el.dataset.editCpd);if(c){S.editingId={type:'cpd',id:c.id};S.modal=renderModal('cpd',c);render();}}});
+  document.querySelectorAll('[data-edit-trip]').forEach(el=>{el.onclick=()=>{const t=S.triplets.find(t=>t.id===el.dataset.editTrip);if(t){S.editingId={type:'trip',id:t.id};S.modal=renderModal('trip',t);render();}}});
+  document.querySelectorAll('[data-edit-impact]').forEach(el=>{el.onclick=()=>{const i=S.impacts.find(i=>i.id===el.dataset.editImpact);if(i){S.editingId={type:'impact',id:i.id};S.modal=renderModal('impact',i);render();}}});
+  document.querySelectorAll('[data-edit-prog]').forEach(el=>{el.onclick=()=>{const p=S.progress.find(p=>p.id===el.dataset.editProg);if(p){S.editingId={type:'prog',id:p.id};S.progMode=p.mode;S.modal=renderModal('prog',p);render();}}});
+  document.querySelectorAll('[data-edit-group]').forEach(el=>{el.onclick=()=>{const grp=S.groups.find(grp=>grp.id===el.dataset.editGroup);if(grp){S.editingId={type:'group',id:grp.id};S.modal=renderModal('group',grp);render();}}});
+  document.querySelectorAll('[data-edit-teacher]').forEach(el=>{
+    el.onclick=()=>{
+      const t=S.teachers.find(t=>t.id===el.dataset.editTeacher);if(!t)return;
+      S.modal=`<div class="modal-overlay" id="modal-overlay"><div class="modal">
+        <div class="modal-header"><h3>✏ Edit Teacher</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+        <div class="modal-body">
+          <div class="form-group"><label class="form-label">Full Name</label><input class="form-control" id="et-name" value="${esc(t.name)}"></div>
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">Dept</label><select class="form-control" id="et-dept">${DEPTS.map(d=>'<option '+(t.dept===d?'selected':'')+'>'+d+'</option>').join('')}</select></div>
+            <div class="form-group"><label class="form-label">Section</label><select class="form-control" id="et-sect"><option ${t.section==='Boys'?'selected':''}>Boys</option><option ${t.section==='Girls'?'selected':''}>Girls</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">TLC Group</label><select class="form-control" id="et-group"><option value="">— None —</option>${S.groups.map(grp=>'<option value="'+grp.id+'" '+(t.groupId===grp.id?'selected':'')+'>'+esc(grp.name)+'</option>').join('')}</select></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" id="do-edit-tch">Save</button></div>
+      </div></div>`;
+      render();
+      const btn=g('do-edit-tch');
+      if(btn)btn.onclick=()=>{t.name=gv('et-name');t.dept=gv('et-dept');t.section=gv('et-sect');t.groupId=gv('et-group')||null;save('teachers',S.teachers);S.modal=null;showToast('Teacher updated ✓');render();};
+    };
+  });
+
+  // Steplab toggles
+  document.querySelectorAll('[data-sl-obs]').forEach(el=>{el.onchange=()=>{S.observations=S.observations.map(o=>o.id===el.dataset.slObs?{...o,slLinked:el.checked}:o);save('obs',S.observations);showToast(el.checked?'Linked to Steplab ✓':'Unlinked');render();}});
+  document.querySelectorAll('[data-sl-trip]').forEach(el=>{el.onchange=()=>{S.triplets=S.triplets.map(t=>t.id===el.dataset.slTrip?{...t,slLinked:el.checked}:t);save('trips',S.triplets);showToast(el.checked?'Linked to Steplab ✓':'Unlinked');render();}});
+
+  // DELETE handlers
+  document.querySelectorAll('[data-del-obs]').forEach(el=>{el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);save('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-lw]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-cpd]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delCpd;S.cpd=S.cpd.filter(o=>o.id!==id);save('cpd',S.cpd);sbRemove('cpd_sessions',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-trip]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-sched]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delSched;S.schedule=S.schedule.filter(o=>o.id!==id);save('sched',S.schedule);sbRemove('schedule_rows',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-teacher]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-user]').forEach(el=>{el.onclick=()=>{S.users=S.users.filter(o=>o.id!==el.dataset.delUser);save('users',S.users);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-impact]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delImpact;S.impacts=S.impacts.filter(o=>o.id!==id);save('impacts',S.impacts);sbRemove('impact_entries',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-prog]').forEach(el=>{el.onclick=()=>{const id=el.dataset.delProg;S.progress=S.progress.filter(o=>o.id!==id);save('progress',S.progress);sbRemove('student_progress',id);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-res]').forEach(el=>{el.onclick=()=>{S.resources=S.resources.filter(o=>o.id!==el.dataset.delRes);save('resources',S.resources);showToast('Deleted');render();}});
+  document.querySelectorAll('[data-del-group]').forEach(el=>{el.onclick=()=>{const grp=S.groups.find(g=>g.id===el.dataset.delGroup);if(!grp)return;const has=S.teachers.filter(t=>t.groupId===grp.id).length;if(has&&!confirm(has+' teachers will be unassigned. Delete?'))return;S.groups=S.groups.filter(g=>g.id!==grp.id);S.teachers=S.teachers.map(t=>t.groupId===grp.id?{...t,groupId:''}:t);save('groups',S.groups);save('teachers',S.teachers);sbRemove('tlc_groups',grp.id);showToast('Group deleted');render();}});
+
+  // Export CSV buttons
+  const expBtn=g('export-senior-btn');
+  if(expBtn)expBtn.onclick=()=>{
+    const dObs=scopedObs();const dA=arr=>{const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};
+    exportCSV('senior-dashboard-'+new Date().toISOString().split('T')[0]+'.csv',[
+      {indicator:'Avg obs score',value:dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0)).toFixed(2)},
+      {indicator:'EEF mechanisms',value:totalMechs()+'/14'},{indicator:'Observations',value:dObs.length},
+      {indicator:'Coaching triplets',value:S.triplets.length},{indicator:'Confidence avg',value:dA(dObs.filter(o=>o.conf>0).map(o=>o.conf)).toFixed(2)},
+    ]);
+  };
+  document.querySelectorAll('[data-export-sched]').forEach(el=>{el.onclick=()=>exportCSV('annual-schedule.csv',S.schedule.map(r=>({category:r.category,program:r.program,facilitator:r.facilitator,type:r.type,month:r.month,startDate:r.startDate,endDate:r.endDate,status:r.status})));});
+
+  // Export users for GitHub
+  const expUsersBtn=g('export-users-btn');if(expUsersBtn)expUsersBtn.onclick=()=>exportUsersForGitHub();
+  const copyBtn=g('copy-export-btn');
+  if(copyBtn)copyBtn.onclick=()=>{
+    if(navigator.clipboard&&window.__exportCode){navigator.clipboard.writeText(window.__exportCode).then(()=>showToast('Copied! Paste into GitHub index.html')).catch(()=>showToast('Select text above and copy manually','error'));}
+    else{showToast('Select the code above and copy manually','error');}
+  };
+}
+
+function exportCSV(filename,rows){
+  if(!rows||!rows.length)return;
+  const keys=Object.keys(rows[0]);
+  const csv=[keys.join(','),...rows.map(r=>keys.map(k=>{const v=String(r[k]||'').replace(/"/g,'""');return'"'+v+'"';}).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();
+}
+
+function getLPs(bio,customTech){
+  if(customTech)return TECH_LP[customTech]||[];
+  return TECH_LP[bio]||[];
+}
+
+// ═══ ASYNC BOOT
+async function refreshFromDB(){
+  showToast('Refreshing from database...');
+  await loadAll();
+  render();
+  showToast('Data refreshed ✓');
+}
+
+async function boot(){
+  document.getElementById('app').innerHTML=`
+    <div style="min-height:100vh;background:#1F4E79;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+      <div style="font-size:40px">🏫</div>
+      <div style="color:#fff;font-size:18px;font-weight:700">Waad Academy</div>
+      <div style="color:rgba(255,255,255,.7);font-size:13px" id="boot-msg">Connecting to database...</div>
+      <div style="width:200px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;margin-top:8px">
+        <div style="width:60%;height:100%;background:#0F6E56;border-radius:2px;animation:pulse 1.5s ease-in-out infinite"></div>
+      </div>
+      <style>@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}</style>
+    </div>`;
+  await loadAll();
+  // First run: if no groups in DB, seed them (groups must exist before teachers due to FK)
+  if(SCHOOL_ID&&S.groups.length===0){
+    document.getElementById('boot-msg')&&(document.getElementById('boot-msg').textContent='Setting up school data...');
+    S.groups=SEED_GROUPS;
+    await save('groups',S.groups);
+    // Small delay to ensure groups are committed before teachers
+    await new Promise(r=>setTimeout(r,500));
+  }
+  console.info('[Waad Platform] School:',SCHOOL_ID,'Teachers:',S.teachers.length,'Groups:',S.groups.length,'Obs:',S.observations.length);
+  render();
+}
+boot();
+</script>
+</body>
+</html>
