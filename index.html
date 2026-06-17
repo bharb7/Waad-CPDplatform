@@ -1365,7 +1365,6 @@ ${impacts.filter(i=>i.level==='3'&&!['engagement','formative','questioning','thi
   ${i.value?'<div class="mt-1 font-semibold">'+esc(i.value)+'</div>':''}
   ${i.evidence?'<div class="text-xs text-muted mt-1">'+esc(i.evidence)+'</div>':''}
 </div>`;}).join('')}`:''}
-`:''}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     ${canEdit()?'<button class="btn btn-primary btn-sm" data-modal="impact">+ Log Impact</button>':'<div></div>'}
   </div>
@@ -1433,7 +1432,6 @@ ${impacts.filter(i=>!['engagement','formative','questioning','thinking','collabo
   ${i.value?'<div class="mt-1 font-semibold">'+esc(i.value)+'</div>':''}
   ${i.evidence?'<div class="text-xs text-muted mt-1">'+esc(i.evidence)+'</div>':''}
 </div>`;}).join('')}`:''}
-`:''}
 ${tab==='progress'?`
 <div class="mb-3 flex gap-2">
   ${canEdit()?'<button class="btn btn-primary" data-modal="prog">+ Add Progress Entry</button>':''}
@@ -1455,8 +1453,7 @@ ${progress.filter(p=>p.mode===(S.progMode||'internal')).slice().reverse().map(p=
       ${Object.entries(p.scores||{}).map(([k,v])=>`<span class="badge badge-${v>=70?'green':v>=50?'amber':'red'}">${k}: ${v}</span>`).join('')}
     </div>
   </div>`).join('')}
-`:''}
-`}
+`:''}}
 function renderProcess(){
   const snaps=S.snapshots,ratings=S.currentRatings||{};
   const dept=S.procDept||'';
