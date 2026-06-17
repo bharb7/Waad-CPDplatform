@@ -242,15 +242,19 @@ const SEED_SCHEDULE=[
   {id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},
   {id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null},
 ];
-const SEED_GROUPS=[{id:'g1',name:'Math & Science TLC',color:'#1F4E79'},{id:'g2',name:'English & Humanities TLC',color:'#0F6E56'},{id:'g3',name:'Science ICT & Primary TLC',color:'#3C3489'}];
+const SEED_GROUPS=[
+  {id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},
+  {id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},
+  {id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}
+];
 const SEED_TEACHERS=[
-  {id:'t1',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'g1'},
-  {id:'t2',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'g1'},
-  {id:'t3',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'g2'},
-  {id:'t4',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'g2'},
-  {id:'t5',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'g1'},
-  {id:'t6',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'g3'},
-  {id:'t7',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'g3'},
+  {id:'22222222-0000-4000-8000-000000000001',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},
+  {id:'22222222-0000-4000-8000-000000000002',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},
+  {id:'22222222-0000-4000-8000-000000000003',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000002'},
+  {id:'22222222-0000-4000-8000-000000000004',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'11111111-0000-4000-8000-000000000002'},
+  {id:'22222222-0000-4000-8000-000000000005',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'11111111-0000-4000-8000-000000000001'},
+  {id:'22222222-0000-4000-8000-000000000006',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000003'},
+  {id:'22222222-0000-4000-8000-000000000007',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'11111111-0000-4000-8000-000000000003'},
 ];
 let S={
   session:null,view:'dashboard',modal:null,
@@ -272,7 +276,13 @@ let S={
   editingId:null,
 };
 
-function uid(){return Math.random().toString(36).slice(2,10)+'_'+Date.now().toString(36)}
+function uid(){
+  // Generate UUID v4 — required by Supabase UUID columns
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r=Math.random()*16|0;
+    return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+}
 
 async function loadAll(){
   // Resolve school ID (uses cache or fetches once)
@@ -2189,17 +2199,16 @@ async function boot(){
       <style>@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}</style>
     </div>`;
   await loadAll();
-  const status=SCHOOL_ID
-    ?`✓ Connected — ${S.teachers.length} teachers, ${S.observations.length} obs, ${S.groups.length} groups`
-    :'⚠ Offline mode — data from local cache';
-  console.info('[Waad Platform]',status);
-  render();
-  if(SCHOOL_ID&&S.teachers.length===0&&S.groups.length===0){
-    // First time — seed the default groups into Supabase
+  // First run: if no groups in DB, seed them (groups must exist before teachers due to FK)
+  if(SCHOOL_ID&&S.groups.length===0){
+    document.getElementById('boot-msg')&&(document.getElementById('boot-msg').textContent='Setting up school data...');
     S.groups=SEED_GROUPS;
     await save('groups',S.groups);
-    render();
+    // Small delay to ensure groups are committed before teachers
+    await new Promise(r=>setTimeout(r,500));
   }
+  console.info('[Waad Platform] School:',SCHOOL_ID,'Teachers:',S.teachers.length,'Groups:',S.groups.length,'Obs:',S.observations.length);
+  render();
 }
 boot();
 </script>
