@@ -820,9 +820,36 @@ ${!S.cpd.length?'<div class="card" style="text-align:center;color:var(--muted);p
 
 function renderImpact(){
   const tab=S.impTab||'L1';
-  const impacts=S.impacts.filter(i=>i.level===tab.replace('L',''));
-  const progress=S.progress;
-  const obs=scopedObs(), trips=S.triplets, lws=S.lwalks;
+  // Multi-filter state
+  const iDepts=S.impDepts||[];
+  const iSects=S.impSects||[];
+  const iStages=S.impStages||[];
+
+  // Apply filters to obs/trips/lws
+  const filterT=(t)=>{
+    if(!t)return true;
+    if(iDepts.length&&!iDepts.includes(t.dept))return false;
+    if(iSects.length&&!iSects.includes(t.section))return false;
+    if(iStages.length&&!iStages.includes(t.stage))return false;
+    return true;
+  };
+  const obs=scopedObs().filter(o=>{const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;return filterT(t);});
+  const trips=S.triplets.filter(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);return filterT(tc);});
+  const lws=S.lwalks.filter(lw=>{
+    if(iDepts.length&&lw.dept&&!iDepts.includes(lw.dept))return false;
+    if(iSects.length&&lw.section&&!iSects.includes(lw.section))return false;
+    return true;
+  });
+  const impacts=S.impacts.filter(i=>{
+    if(i.level!==tab.replace('L',''))return false;
+    if(i.tid){const t=S.teachers.find(t=>t.id===i.tid);if(!filterT(t))return false;}
+    return true;
+  });
+  const progress=S.progress.filter(p=>{
+    if(iDepts.length&&p.dept&&!iDepts.includes(p.dept))return false;
+    if(iSects.length&&p.section&&!iSects.includes(p.section))return false;
+    return true;
+  });
 
   // Auto-computed evidence from live data
   const autoL1=[
@@ -841,6 +868,23 @@ function renderImpact(){
   const autoItems=autoData[tab]||[];
 
   return `
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Department:</span>
+    <div class="pill-opt ${iDepts.length===0?'sel':''}" data-imp-dept="">All</div>
+    ${DEPTS.map(d=>`<div class="pill-opt ${iDepts.includes(d)?'sel':''}" data-imp-dept="${d}">${d}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Section:</span>
+    <div class="pill-opt ${iSects.length===0?'sel':''}" data-imp-sect="">All</div>
+    ${SECTIONS.map(s=>`<div class="pill-opt ${iSects.includes(s)?'sel':''}" data-imp-sect="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Stage:</span>
+    <div class="pill-opt ${iStages.length===0?'sel':''}" data-imp-stage="">All Stages</div>
+    ${STAGES.map(s=>`<div class="pill-opt ${iStages.includes(s)?'sel':''}" data-imp-stage="${s}">${s}</div>`).join('')}
+  </div>
+</div>
 <div class="tabs">
   ${['L1','L2','L3','progress'].map(t=>`<button class="tab ${tab===t?'active':''}" data-imp-tab="${t}">${t==='progress'?'Student Progress':t+': '+{L1:'Teacher Knowledge',L2:'Classroom Practice',L3:'Student Outcomes'}[t]}</button>`).join('')}
 </div>
@@ -940,15 +984,15 @@ function renderProcess(){
   const labelFor=n=>n>=5?'Highly Effective':n>=4?'Strong':n>=3?'Developing':n>=2?'Emerging':'Weak';
   const colorFor=n=>n>=4?'var(--teal)':n>=3?'var(--amber)':n>0?'var(--red)':'var(--muted)';
   return `
-<div class="flex justify-between items-center mb-3">
-  <div class="flex items-center gap-2">
-    <label class="text-xs font-semibold text-muted">Evaluate for:</label>
-    <select class="form-control" style="width:auto" data-proc-dept>
-      <option value="">Whole School</option>
-      ${DEPTS.map(d=>'<option '+(dept===d?'selected':'')+' value="'+d+'">'+d+'</option>').join('')}
-    </select>
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:100px">Evaluate for:</span>
+    <div class="pill-opt ${dept===''?'sel':''}" data-proc-dept-pill="">Whole School</div>
+    ${DEPTS.map(d=>`<div class="pill-opt ${dept===d?'sel':''}" data-proc-dept-pill="${d}">${d}</div>`).join('')}
   </div>
-  ${(()=>{const dSnaps=snaps.filter(s=>(s.dept||'Whole School')===(dept||'Whole School'));const canSubmit=canEdit()&&dSnaps.length<3;return canSubmit?'<button class="btn btn-success" data-submit-snap>✓ Submit Snapshot ('+dSnaps.length+'/3 for '+(dept||'Whole School')+')</button>':'<span class="badge badge-amber">Max 3 for this dept/scope — delete one to re-submit</span>';})()}
+  <div class="flex items-center gap-2 mt-2">
+    ${(()=>{const dSnaps=snaps.filter(s=>(s.dept||'Whole School')===(dept||'Whole School'));const canSubmit=canEdit()&&dSnaps.length<3;return (canSubmit?'<button class="btn btn-success btn-sm" data-submit-snap>✓ Submit Snapshot ('+dSnaps.length+'/3)</button>':'<span class="badge badge-amber">Max 3 snapshots — delete one to re-submit</span>')+'<span class="text-xs text-muted ml-2">Currently: '+esc(dept||'Whole School')+'</span>';})()}
+  </div>
 </div>
 ${snaps.length?'`<div class="card mb-3">`'+
   '<div class="card-title">Previous Snapshots</div>'+
@@ -1033,7 +1077,7 @@ ${obs.filter(o=>o.slLinked).map(o=>{
 }).join('')}`}
 
 function renderSettings(){
-  const users=S.users;
+  const users=getAllUsers();
   const roles=Object.entries(S.roleCfg);
   return `
 <div class="grid-2">
@@ -1061,7 +1105,7 @@ function renderSettings(){
     <div class="card-title">👥 Users (${users.length})</div>
     ${users.map(u=>`<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
       <div><div style="font-weight:600;font-size:13px">${u.name}</div><div class="text-xs text-muted">${u.username} · ${S.roleCfg[u.role]?.label||u.role}</div></div>
-      ${canEdit()?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:''}
+      ${S.users.find(x=>x.id===u.id)?canEdit()?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:'':'<span style="font-size:10px;color:var(--muted)">seed</span>'}
     </div>`).join('')}
     ${canEdit()?'<button class="btn btn-primary btn-sm mt-2" data-modal="user">+ Add User</button>':''}
   </div>
@@ -1437,6 +1481,33 @@ function bindEvents(){
     el.onclick=()=>{S.progMode=el.dataset.progMode;render()};
   });
 
+  // ── CPD tab (Coaching Triplets / CPD Sessions) ─────────────────────────
+  document.querySelectorAll('[data-cpd-tab]').forEach(el=>{
+    el.onclick=()=>{S.cpdTab=el.dataset.cpdTab;render();};
+  });
+
+  // ── Dashboard 3-row multi-filter ─────────────────────────────────────
+  document.querySelectorAll('[data-dash-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.dashDept;if(d===''){S.dashDepts=[];}else{if(!S.dashDepts)S.dashDepts=[];const i=S.dashDepts.indexOf(d);if(i>=0)S.dashDepts.splice(i,1);else S.dashDepts.push(d);}render();};
+  });
+  document.querySelectorAll('[data-dash-sect]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.dashSect;if(s===''){S.dashSects=[];}else{if(!S.dashSects)S.dashSects=[];const i=S.dashSects.indexOf(s);if(i>=0)S.dashSects.splice(i,1);else S.dashSects.push(s);}render();};
+  });
+  document.querySelectorAll('[data-dash-stage]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.dashStage;if(s===''){S.dashStages=[];}else{if(!S.dashStages)S.dashStages=[];const i=S.dashStages.indexOf(s);if(i>=0)S.dashStages.splice(i,1);else S.dashStages.push(s);}render();};
+  });
+
+  // ── Impact 3-row multi-filter ─────────────────────────────────────────
+  document.querySelectorAll('[data-imp-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.impDept;if(d===''){S.impDepts=[];}else{if(!S.impDepts)S.impDepts=[];const i=S.impDepts.indexOf(d);if(i>=0)S.impDepts.splice(i,1);else S.impDepts.push(d);}render();};
+  });
+  document.querySelectorAll('[data-imp-sect]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.impSect;if(s===''){S.impSects=[];}else{if(!S.impSects)S.impSects=[];const i=S.impSects.indexOf(s);if(i>=0)S.impSects.splice(i,1);else S.impSects.push(s);}render();};
+  });
+  document.querySelectorAll('[data-imp-stage]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.impStage;if(s===''){S.impStages=[];}else{if(!S.impStages)S.impStages=[];const i=S.impStages.indexOf(s);if(i>=0)S.impStages.splice(i,1);else S.impStages.push(s);}render();};
+  });
+
   // Process audit
   document.querySelectorAll('[data-rate]').forEach(el=>{
     el.onclick=()=>{
@@ -1446,8 +1517,10 @@ function bindEvents(){
       render();
     };
   });
-  const procDept=document.querySelector('[data-proc-dept]');
-  if(procDept)procDept.onchange=e=>{S.procDept=e.target.value;render()};
+  // Process audit dept pills
+  document.querySelectorAll('[data-proc-dept-pill]').forEach(el=>{
+    el.onclick=()=>{S.procDept=(S.procDept===el.dataset.procDeptPill&&el.dataset.procDeptPill!==''?'':el.dataset.procDeptPill);render();};
+  });
 
   const submitSnap=document.querySelector('[data-submit-snap]');
   if(submitSnap)submitSnap.onclick=()=>{
