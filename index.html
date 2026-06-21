@@ -260,9 +260,9 @@ function avg(arr){const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b
 function domAvg(scores){const all=Object.values(scores||{}).flat();return avg(all)}
 function scScore(scores){return avg([...(scores?.d3||[]),...(scores?.d4||[])])}
 function tStats(t){const obs=S.observations.filter(o=>o.tid===t.id);const last=obs[obs.length-1];const prev=obs[obs.length-2];const la=last?domAvg(last.scores):0;const pa=prev?domAvg(prev.scores):0;return{obs,last,la,pa,trend:la&&pa?la-pa:0,sc:last?scScore(last.scores):0,conf:last?.conf||0,count:obs.length,trips:S.triplets.filter(tr=>tr.oid===t.id||tr.cid===t.id||tr.fid===t.id).length};}
-function mechActive(id){if(S.mechM[id]!==undefined)return S.mechM[id];const obs=scopedObs(),trips=S.triplets;if(id===1)return obs.some(o=>o.bio||o.customTech);if(id===2)return S.cpd.some(c=>c.during);if(id===3)return obs.some(o=>o.bio||o.customTech);if(id===5)return S.cpd.some(c=>c.before);if(id===8)return obs.some(o=>o.bio||o.customTech);if(id===9)return obs.some(o=>(o.scores?.d4||[]).some(v=>v>=3));if(id===10)return obs.some(o=>o.ebi)||trips.some(t=>t.ebiNotes);if(id===11)return obs.some(o=>o.slLinked)||trips.some(t=>t.slLinked);if(id===12)return trips.some(t=>t.action);if(id===13)return trips.some(t=>t.action&&t.dd);if(id===14)return trips.filter(t=>t.status==='complete').length>=2;return false;}
-function totalMechs(){return MECHS.filter(m=>mechActive(m.id)).length}
-function totalDH(){return DH_PILLARS.filter(p=>S.dhM[p.id]!==undefined?S.dhM[p.id]:mechActive(p.id*2-1)||mechActive(p.id*2)).length}
+function mechActive(id,filtObs,filtTrips){if(S.mechM[id]!==undefined)return S.mechM[id];const obs=filtObs||scopedObs();const trips=filtTrips||S.triplets;if(id===1)return obs.some(o=>o.bio||o.customTech);if(id===2)return S.cpd.some(c=>c.during);if(id===3)return obs.some(o=>o.bio||o.customTech);if(id===5)return S.cpd.some(c=>c.before);if(id===8)return obs.some(o=>o.bio||o.customTech);if(id===9)return obs.some(o=>(o.scores?.d4||[]).some(v=>v>=3));if(id===10)return obs.some(o=>o.ebi)||trips.some(t=>t.ebiNotes);if(id===11)return obs.some(o=>o.slLinked)||trips.some(t=>t.slLinked);if(id===12)return trips.some(t=>t.action);if(id===13)return trips.some(t=>t.action&&t.dd);if(id===14)return trips.filter(t=>t.status==='complete').length>=2;return false;}
+function totalMechs(fo,ft){return MECHS.filter(m=>mechActive(m.id,fo,ft)).length}
+function totalDH(fo,ft){return DH_PILLARS.filter(p=>S.dhM[p.id]!==undefined?S.dhM[p.id]:mechActive(p.id*2-1,fo,ft)||mechActive(p.id*2,fo,ft)).length}
 function myRole(){if(!S.session)return DEFAULT_ROLES.viewer;if(S.session.role==='admin')return DEFAULT_ROLES.admin;return S.roleCfg[S.session.role]||DEFAULT_ROLES.viewer;}
 function isAdmin(){return S.session?.role==='admin'}
 function canEdit(){return isAdmin()||myRole()?.canEdit}
@@ -275,6 +275,8 @@ function dashFilteredObs(){
   if(S.dashDepts&&S.dashDepts.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.dashDepts.includes(t.dept);});
   if(S.dashSects&&S.dashSects.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.dashSects.includes(t.section);});
   if(S.dashStages&&S.dashStages.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.dashStages.includes(t.stage);});
+  if(S.dashDateFrom) obs=obs.filter(o=>(o.date||'')>=S.dashDateFrom);
+  if(S.dashDateTo) obs=obs.filter(o=>(o.date||'')<=S.dashDateTo);
   return obs;
 }
 function dashFilteredTeachers(){
@@ -300,6 +302,18 @@ function techSelector(selId,customId,val,customVal){
 }
 function handleTechChange(selId,customId){const sel=document.getElementById(selId);const wrap=document.getElementById(customId+'-wrap');if(sel&&wrap)wrap.style.display=sel.value==='Other'?'block':'none';}
 function getTechFromForm(selId,customId){const sel=(document.getElementById(selId)||{}).value||'';if(sel==='Other'){const cv=(document.getElementById(customId)||{}).value||'';return{bio:'Other',customTech:cv};}return{bio:sel==='— None —'||sel===''?'':sel,customTech:''};}
+function printDashboard(){
+  const content=document.querySelector('.content');
+  if(!content)return;
+  const w=window.open('','_blank','width=1100,height=900');
+  w.document.write('<!DOCTYPE html><html><head><title>Waad Academy Dashboard</title><style>body{font-family:Segoe UI,sans-serif;padding:20px;font-size:12px;color:#1a1a2e}@media print{button{display:none!important}}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}.badge-blue{background:#dbeafe;color:#1e40af}.badge-green{background:#d1fae5;color:#065f46}.badge-gray{background:#f3f4f6;color:#374151}</style></head><body><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:10px;border-bottom:3px solid #1F4E79"><h1 style="color:#1F4E79;font-size:18px;margin:0">🏫 Waad Academy — School Improvement Dashboard</h1><div style="font-size:11px;color:#6b7280">'+new Date().toLocaleDateString()+'</div></div>'+content.innerHTML+'</body></html>');
+  w.document.close();setTimeout(()=>w.print(),600);
+}
+function downloadDashboardCSV(){
+  const obs=dashFilteredObs?dashFilteredObs():S.observations;
+  const rows=obs.map(o=>{const t=S.teachers.find(t=>t.id===o.tid);return{teacher:t?t.name:'Whole School',dept:t?t.dept:'',section:t?t.section:'',date:o.date,observer:o.observer,avg:domAvg(o.scores).toFixed(2),sc:scScore(o.scores).toFixed(2),confidence:o.conf,technique:o.bio||o.customTech||'',www:o.www,ebi:o.ebi,action:o.action};});
+  exportCSV('waad-dashboard-'+new Date().toISOString().split('T')[0]+'.csv',rows);
+}
 function exportCSV(filename,rows){if(!rows||!rows.length)return;const keys=Object.keys(rows[0]);const csv=[keys.join(','),...rows.map(r=>keys.map(k=>{const v=String(r[k]||'').replace(/"/g,'""');return'"'+v+'"';}).join(','))].join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();}
 function render(){
   document.getElementById('app').innerHTML = S.session ? renderApp() : renderLogin();
@@ -366,7 +380,7 @@ ${S.modal?S.modal:''}
       <h2>${VIEW_META[S.view]?.icon} ${VIEW_META[S.view]?.label}</h2>
       <div class="flex items-center gap-2">
         ${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:24px;object-fit:contain;border-radius:3px">').join('')}
-        <span class="badge badge-green">🟢 Live</span>
+        <span class="badge ${SCHOOL_ID?'badge-green':'badge-amber'}">${SCHOOL_ID?'🟢 DB Live':'🟡 Offline'}</span>
         <span style="font-size:12px;color:var(--muted)">${S.session.name} · ${role.label||S.session.role}</span>
       </div>
     </div>
@@ -388,7 +402,7 @@ function renderView(){
     case 'schedule': return renderSchedule();
     case 'teachers': return renderTeachers();
     case 'fieldwork': return renderFieldwork();
-    case 'triplets': return renderTriplets();
+    case 'triplets': return renderCPD(); // triplets now embedded in CPD & Coaching tab
     case 'cpd': return renderCPD();
     case 'impact': return renderImpact();
     case 'process': return renderProcess();
@@ -407,7 +421,8 @@ function renderDashboard(){
   const avgScore=avg(obs.filter(o=>o.scores).map(o=>domAvg(o.scores)).filter(x=>x>0));
   const avgSC=avg(obs.filter(o=>o.scores).map(o=>scScore(o.scores)).filter(x=>x>0));
   const avgConf=avg(obs.filter(o=>o.conf>0).map(o=>o.conf));
-  const totalM=totalMechs(),totalP=totalDH();
+  const filtTrips=S.triplets.filter(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);if((S.dashSects||[]).length&&(!tc||!S.dashSects.includes(tc.section)))return false;if((S.dashStages||[]).length&&(!tc||!S.dashStages.includes(tc.stage)))return false;return true;});
+  const totalM=totalMechs(obs,filtTrips),totalP=totalDH(obs,filtTrips);
   const kpis=[
     {val:avgScore>0?avgScore.toFixed(1)+'/5':'—',label:'Avg Observation Score',color:'var(--navy)',pct:avgScore/5*100},
     {val:avgSC>0?avgSC.toFixed(1)+'/5':'—',label:'Student-Centred Score',color:'var(--teal)',pct:avgSC/5*100},
@@ -428,7 +443,7 @@ function renderDashboard(){
   const lowAvg=teachers.filter(t=>{const s=tStats(t);return s.count>0&&s.la<2.5});
   const grpLabels={A:'Build Knowledge',B:'Motivate Staff',C:'Develop Techniques',D:'Embed Practice'};
   const lastSnap=S.snapshots[S.snapshots.length-1];
-  const recentObs=allObs.slice(-5).reverse();
+  const recentObs=obs.slice(-5).reverse(); // obs is already dashFilteredObs()
   const upcoming=S.schedule.filter(s=>s.status!=='done').slice(0,4);
   const cpdHealth=[
     {label:'Observations',val:obs.length,color:'var(--navy)'},
@@ -452,6 +467,14 @@ function renderDashboard(){
     <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Stage:</span>
     <div class="pill-opt ${(S.dashStages||[]).length===0?'sel':''}" data-dash-stage="">All Stages</div>
     ${STAGES.map(s=>`<div class="pill-opt ${(S.dashStages||[]).includes(s)?'sel':''}" data-dash-stage="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mt-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Period:</span>
+    <label style="font-size:11px;color:var(--muted)">From</label>
+    <input type="date" id="dash-date-from" class="form-control" style="width:140px;padding:3px 6px;font-size:11px" value="${S.dashDateFrom||''}" onchange="S.dashDateFrom=this.value;render()">
+    <label style="font-size:11px;color:var(--muted)">To</label>
+    <input type="date" id="dash-date-to" class="form-control" style="width:140px;padding:3px 6px;font-size:11px" value="${S.dashDateTo||''}" onchange="S.dashDateTo=this.value;render()">
+    ${(S.dashDateFrom||S.dashDateTo)?'<button class="btn btn-ghost btn-sm" onclick="S.dashDateFrom=\'\';S.dashDateTo=\'\';render()">✕ Clear dates</button>':''}
   </div>
 </div>
 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
@@ -509,7 +532,19 @@ ${(noObs.length||lowAvg.length)?`<div class="card mb-3"><div class="card-title">
   </div>
   <div style="overflow-x:auto"><table>
     <thead><tr><th>Teacher</th><th>Dept</th><th>Section</th><th>Stage</th><th>Group</th><th>Obs</th><th>Avg</th><th>Trend</th><th>SC</th><th>Conf</th>${canEdit()?'<th></th>':''}</tr></thead>
-    <tbody>${teachers.slice(0,30).map(t=>{const st=tStats(t);const trend=st.trend>0?'↑':st.trend<0?'↓':st.count>=2?'→':'—';const tc=st.trend>0?'var(--teal)':st.trend<0?'var(--red)':'var(--muted)';const dots=(v,max=5)=>Array.from({length:max},(_,i)=>`<span class="score-dot" style="background:${i<Math.round(v)?'var(--navy)':'#e5e7eb'}"></span>`).join('');const grp=S.groups.find(g=>g.id===t.groupId);return `<tr><td style="font-weight:600;direction:auto">${esc(t.name)}</td><td><span class="badge badge-blue">${esc(t.dept)}</span></td><td class="text-xs text-muted">${esc(t.section)}</td><td class="text-xs text-muted">${esc(t.stage)}</td><td>${grp?`<span style="background:${grp.color}18;color:${grp.color};padding:2px 6px;border-radius:10px;font-size:10px;font-weight:600">${esc(grp.name)}</span>`:'—'}</td><td style="font-weight:600">${st.count}</td><td>${st.la?'<div style="display:flex;align-items:center;gap:4px"><div class="pbar" style="width:50px"><div class="pbar-fill pbar-navy" style="width:'+Math.round(st.la/5*100)+'%"></div></div><span class="text-xs">'+st.la.toFixed(1)+'</span></div>':'—'}</td><td style="color:${tc};font-size:16px;font-weight:700">${trend}</td><td>${dots(st.sc)}</td><td>${dots(st.conf)}</td>${canEdit()?'<td><button class="btn btn-sm btn-ghost" data-new-obs="'+t.id+'">Obs</button></td>':''}</tr>`;}).join('')}</tbody>
+    <tbody>${teachers.slice(0,30).map(t=>{const st=tStats(t);const trend=st.trend>0?'↑':st.trend<0?'↓':st.count>=2?'→':'—';const tc=st.trend>0?'var(--teal)':st.trend<0?'var(--red)':'var(--muted)';const dots=(v,max=5)=>Array.from({length:max},(_,i)=>`<span class="score-dot" style="background:${i<Math.round(v)?'var(--navy)':'#e5e7eb'}"></span>`).join('');const grp=S.groups.find(g=>g.id===t.groupId);return `<tr><td style="font-weight:600;direction:auto">${esc(t.name)}</td><td><span class="badge badge-blue">${esc(t.dept)}</span></td><td class="text-xs text-muted">${esc(t.section)}</td><td class="text-xs text-muted">${esc(t.stage)}</td><td>${grp?`<span style="background:${grp.color}18;color:${grp.color};padding:2px 6px;border-radius:10px;font-size:10px;font-weight:600">${esc(grp.name)}</span>`:'—'}</td><td style="font-weight:600">${st.count}</td><td>${st.la?'<div style="display:flex;align-items:center;gap:4px"><div class="pbar" style="width:50px"><div class="pbar-fill pbar-navy" style="width:'+Math.round(st.la/5*100)+'%"></div></div><span class="text-xs">'+st.la.toFixed(1)+'</span></div>':'—'}</td><td style="color:${tc};font-size:16px;font-weight:700">${trend}</td><td>${dots(st.sc)}</td><td>${dots(st.conf)}</td>${canEdit()?'<td><button class="btn btn-sm btn-ghost" data-new-obs="'+t.id+'">Obs</button></td>':''}
+        </tr>
+        ${(()=>{
+          const tObs=S.observations.filter(o=>o.tid===t.id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+          if(tObs.length<2)return '';
+          const shown=[];
+          if(tObs.length>=1)shown.push({o:tObs[0],lbl:'Initial'});
+          if(tObs.length>=3)shown.push({o:tObs[tObs.length-2],lbl:'Prev'});
+          shown.push({o:tObs[tObs.length-1],lbl:'Latest'});
+          const cols=canEdit()?11:10;
+          return '<tr style="background:#f0f4ff"><td colspan="'+cols+'" style="padding:4px 10px 8px"><div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">'+
+            shown.map(({o,lbl})=>{const da=domAvg(o.scores);const bc=da>=4?'#0F6E56':da>=3?'#7B4F0C':da>0?'#993C1D':'#9ca3af';return '<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:#6b7280;font-weight:600">'+lbl+'</span><span style="font-size:10px;color:#6b7280">('+( o.date||'?')+'):</span><span style="font-size:12px;font-weight:700;color:'+bc+'">'+( da>0?da.toFixed(1)+'/5':'—')+'</span></div>';}).join('<span style="color:#d1d5db">│</span>')+'</div></td></tr>';
+        })()}`;}).join('')}</tbody>
   </table></div>
 </div>
 ${lastSnap?`<div class="card mb-3" style="border-top:3px solid var(--forest)"><div class="flex justify-between items-center mb-2"><div class="card-title" style="margin:0;color:var(--forest)">✅ Latest Process Audit — ${esc(lastSnap.dept||'Whole School')}</div><span class="text-xs text-muted">${new Date(lastSnap.date||Date.now()).toLocaleDateString()}</span></div><div class="flex flex-wrap gap-1 mb-2">${Object.entries(lastSnap.ratings||{}).slice(0,8).map(([id,r])=>{const c=r>=4?'#375C15':r>=3?'#7B4F0C':r>0?'#993C1D':'#9ca3af';return'<span style="padding:2px 8px;border-radius:4px;background:'+c+'18;border:1px solid '+c+'33;font-size:10px;color:'+c+';font-weight:600">'+id+': '+r+'</span>';}).join('')}</div><button class="btn btn-ghost btn-sm" data-nav="process">View Full Audit →</button></div>`:''}
@@ -588,19 +623,47 @@ ${groups.map(g=>{
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
-      ${ts.map(t=>{const st=tStats(t);return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
-        <div style="font-weight:600;font-size:13px;direction:auto">${t.name}</div>
-        <div class="text-xs text-muted mt-1">${t.dept} · ${t.section} · ${t.stage}</div>
-        <div class="flex gap-2 mt-2">
-          <span class="badge badge-${st.count>0?'green':'gray'}">${st.count} obs</span>
-          ${st.la?'<span class="badge badge-blue">'+st.la.toFixed(1)+'/5</span>':''}
-        </div>
-        ${canEdit()?`<div class="flex gap-1 mt-2">
-          <button class="btn btn-sm btn-primary" data-new-obs="${t.id}">+ Obs</button>
-          <button class="btn btn-sm btn-ghost" data-edit-teacher="${t.id}">✏</button>
-          <button class="btn btn-sm btn-danger" data-del-teacher="${t.id}">✕</button>
-        </div>`:''}
-      </div>`}).join('')}
+      ${ts.map(t=>{
+        const st=tStats(t);
+        const allObs=S.observations.filter(o=>o.tid===t.id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+        const allAvgs=allObs.map(o=>domAvg(o.scores));
+        const overallAvg=allAvgs.length?allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length:0;
+        const shownObs=[];
+        if(allObs.length>=1)shownObs.push({o:allObs[0],lbl:'Initial'});
+        if(allObs.length>=3)shownObs.push({o:allObs[allObs.length-2],lbl:'Prev'});
+        if(allObs.length>=2)shownObs.push({o:allObs[allObs.length-1],lbl:'Latest'});
+        else if(allObs.length===1)shownObs[0]={o:allObs[0],lbl:'Only'};
+        const trend=allObs.length>=2?allAvgs[allAvgs.length-1]-allAvgs[allAvgs.length-2]:null;
+        const trendIcon=trend===null?'':trend>0.15?'📈':trend<-0.15?'📉':'➡️';
+        const trendColor=trend===null?'':trend>0.15?'var(--teal)':trend<-0.15?'var(--red)':'var(--muted)';
+        return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+          <div style="font-weight:600;font-size:13px;direction:auto">${esc(t.name)}</div>
+          <div class="text-xs text-muted mt-1">${esc(t.dept)} · ${esc(t.section)} · ${esc(t.stage)}</div>
+          <div class="flex gap-2 mt-2 items-center flex-wrap">
+            <span class="badge badge-${st.count>0?'green':'gray'}">${st.count} obs</span>
+            ${overallAvg>0?`<span class="badge badge-blue">Avg ${overallAvg.toFixed(1)}/5</span>`:''}
+            ${trend!==null?`<span style="font-size:13px;font-weight:700;color:${trendColor}" title="Progress since last obs">${trendIcon} ${trend>0?'+':''}${trend.toFixed(1)}</span>`:''}
+          </div>
+          ${shownObs.length>0?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
+            ${shownObs.map(({o,lbl})=>{
+              const da=domAvg(o.scores);
+              const bc=da>=4?'var(--teal)':da>=3?'var(--amber)':da>0?'var(--red)':'#9ca3af';
+              return `<div style="margin-bottom:4px">
+                <div class="flex justify-between items-center">
+                  <span style="font-size:10px;color:var(--muted)">${lbl} · ${o.date||'—'}</span>
+                  <span style="font-size:11px;font-weight:700;color:${bc}">${da>0?da.toFixed(1)+'/5':'—'}</span>
+                </div>
+                <div class="pbar" style="height:3px;margin-top:2px"><div class="pbar-fill" style="width:${Math.min(100,da/5*100)}%;background:${bc}"></div></div>
+              </div>`;
+            }).join('')}
+          </div>`:''}
+          ${canEdit()?`<div class="flex gap-1 mt-2">
+            <button class="btn btn-sm btn-primary" data-new-obs="${t.id}">+ Obs</button>
+            <button class="btn btn-sm btn-ghost" data-edit-teacher="${t.id}">✏</button>
+            <button class="btn btn-sm btn-danger" data-del-teacher="${t.id}">✕</button>
+          </div>`:''}
+        </div>`;
+      }).join('')}
       ${!ts.length?'<p style="color:var(--muted);font-size:12px;font-style:italic">No teachers in this group</p>':''}
     </div>
   </div>`;
@@ -774,10 +837,55 @@ ${!trips.length?'<div class="card" style="text-align:center;color:var(--muted);p
 `}
 
 function printObs(id){
-  const card=document.getElementById('obs-card-'+id);if(!card)return;
-  const w=window.open('','_blank','width=800,height=600');
-  w.document.write('<!DOCTYPE html><html><head><title>Observation</title><style>body{font-family:Segoe UI,sans-serif;padding:24px;font-size:13px}.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}.badge-blue{background:#dbeafe;color:#1e40af}.badge-gray{background:#f3f4f6;color:#374151}.badge-purple{background:#ede9fe;color:#5b21b6}</style></head><body><h2 style="color:#1F4E79;margin-bottom:16px">🏫 Waad Academy — Observation Record</h2>'+card.innerHTML+'</body></html>');
-  w.document.close();setTimeout(()=>w.print(),300);
+  const o=S.observations.find(x=>x.id===id);if(!o)return;
+  const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;
+  const doms=getDomains();
+  let domTable='';
+  doms.forEach(d=>{
+    const scores=o.scores?.[d.id]||[];
+    domTable+='<div style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
+    domTable+='<div style="background:#1F4E79;color:#fff;padding:6px 12px;font-weight:700;font-size:13px">'+d.n+'</div>';
+    domTable+='<table style="width:100%;border-collapse:collapse">';
+    domTable+='<tr style="background:#f9fafb"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#6b7280">Criterion</th><th style="padding:6px 10px;text-align:center;width:120px;font-size:11px;color:#6b7280">Score (1–5)</th></tr>';
+    d.criteria.forEach((c,i)=>{
+      const sc=scores[i]||0;
+      const bc=sc>=4?'#065f46':sc>=3?'#92400e':sc>0?'#991b1b':'#374151';
+      domTable+='<tr style="border-top:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px">'+c+'</td><td style="padding:7px 10px;text-align:center">';
+      for(let n=1;n<=5;n++){domTable+='<span style="display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid '+(sc>=n?bc:'#e5e7eb')+';background:'+(n===sc?bc:'transparent')+';color:'+(n===sc?'#fff':'#6b7280')+';font-size:10px;font-weight:700;line-height:20px;text-align:center;margin:1px">'+n+'</span>';}
+      domTable+='</td></tr>';
+    });
+    domTable+='</table></div>';
+  });
+  const w=window.open('','_blank','width=850,height=1100');
+  w.document.write(`<!DOCTYPE html><html><head><title>Observation — ${t?t.name:'Whole School'}</title>
+  <style>body{font-family:'Segoe UI',sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:780px;margin:0 auto}
+  h1{color:#1F4E79;font-size:20px;margin-bottom:4px}
+  .meta{color:#6b7280;font-size:12px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1F4E79}
+  .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}
+  .blue{background:#dbeafe;color:#1e40af}.purple{background:#ede9fe;color:#5b21b6}.green{background:#d1fae5;color:#065f46}
+  .section{margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-left:4px solid #1F4E79;border-radius:4px}
+  .section-title{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:4px}
+  .section-content{font-size:13px;line-height:1.6}
+  @media print{button{display:none!important}}
+  </style></head><body>
+  <div style="display:flex;justify-content:space-between;align-items:start">
+    <div><h1>🏫 Waad Academy — Observation Record</h1>
+    <div class="meta">Teacher: <strong>${t?t.name:'Whole School/Dept'}</strong>${t?' · '+t.dept+' · '+t.section+' · '+t.stage:''} &nbsp;|&nbsp; Observer: <strong>${o.observer||'—'}</strong> &nbsp;|&nbsp; Date: <strong>${o.date||'—'}</strong></div>
+    </div>
+    <button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print / Save PDF</button>
+  </div>
+  ${o.bio||o.customTech?'<div style="margin-bottom:12px"><span class="pill purple">Technique: '+(o.customTech||o.bio)+'</span></div>':''}
+  <h3 style="color:#1F4E79;font-size:14px;margin-bottom:12px">📊 5-Domain Observation Scores</h3>
+  ${domTable}
+  ${o.www?'<div class="section"><div class="section-title">✅ Key Strengths (WWW)</div><div class="section-content">${o.www}</div></div>':''}
+  ${o.ebi?'<div class="section"><div class="section-title">🎯 Areas for Development (EBI)</div><div class="section-content">${o.ebi}</div></div>':''}
+  ${o.action?'<div class="section"><div class="section-title">📎 Action Step → Steplab</div><div class="section-content">${o.action}</div></div>':''}
+  ${o.conf?'<div class="section"><div class="section-title">💡 Teacher Confidence</div><div class="section-content">'+('★'.repeat(o.conf)+'☆'.repeat(5-o.conf))+' ('+o.conf+'/5)</div></div>':''}
+  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">
+    Waad Academy School Improvement Platform · Printed ${new Date().toLocaleDateString()} · Observation ID: ${o.id}
+  </div>
+  </body></html>`);
+  w.document.close();setTimeout(()=>w.print(),400);
 }
 function renderCPD(){
   const tab=S.cpdTab||'cpd';
@@ -833,8 +941,8 @@ function renderImpact(){
     if(iStages.length&&!iStages.includes(t.stage))return false;
     return true;
   };
-  const obs=scopedObs().filter(o=>{const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;return filterT(t);});
-  const trips=S.triplets.filter(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);return filterT(tc);});
+  const obs=scopedObs().filter(o=>{const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;if(!filterT(t))return false;if(S.impDateFrom&&(o.date||'')<S.impDateFrom)return false;if(S.impDateTo&&(o.date||'')>S.impDateTo)return false;return true;});
+  const trips=S.triplets.filter(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);if(!filterT(tc))return false;if(S.impDateFrom&&(t.od||'')<S.impDateFrom)return false;if(S.impDateTo&&(t.od||'')>S.impDateTo)return false;return true;});
   const lws=S.lwalks.filter(lw=>{
     if(iDepts.length&&lw.dept&&!iDepts.includes(lw.dept))return false;
     if(iSects.length&&lw.section&&!iSects.includes(lw.section))return false;
@@ -883,6 +991,14 @@ function renderImpact(){
     <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Stage:</span>
     <div class="pill-opt ${iStages.length===0?'sel':''}" data-imp-stage="">All Stages</div>
     ${STAGES.map(s=>`<div class="pill-opt ${iStages.includes(s)?'sel':''}" data-imp-stage="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mt-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Period:</span>
+    <label style="font-size:11px;color:var(--muted)">From</label>
+    <input type="date" class="form-control" style="width:140px;padding:3px 6px;font-size:11px" value="${S.impDateFrom||''}" onchange="S.impDateFrom=this.value;render()">
+    <label style="font-size:11px;color:var(--muted)">To</label>
+    <input type="date" class="form-control" style="width:140px;padding:3px 6px;font-size:11px" value="${S.impDateTo||''}" onchange="S.impDateTo=this.value;render()">
+    ${(S.impDateFrom||S.impDateTo)?'<button class="btn btn-ghost btn-sm" onclick="S.impDateFrom=\'\';S.impDateTo=\'\';render()">✕ Clear</button>':''}
   </div>
 </div>
 <div class="tabs">
@@ -946,10 +1062,21 @@ ${tab!=='progress'?`
 `}
 
 function renderProcess(){
-  const snaps=S.snapshots;
-  const ratings=S.currentRatings||{};
   const dept=S.procDept||'';
-  const obs=scopedObs(), trips=S.triplets, cpd=S.cpd, impacts=S.impacts;
+  const pSects=S.procSects||[];
+  const pStages=S.procStages||[];
+  const matchT=(t)=>{
+    if(!t)return true;
+    if(dept&&t.dept!==dept)return false;
+    if(pSects.length&&!pSects.includes(t.section))return false;
+    if(pStages.length&&!pStages.includes(t.stage))return false;
+    return true;
+  };
+  const snaps=dept?S.snapshots.filter(s=>(s.dept||'Whole School')===dept):S.snapshots;
+  const ratings=S.currentRatings||{};
+  const obs=scopedObs().filter(o=>{const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;if(!matchT(t))return false;if(S.procDateFrom&&(o.date||'')<S.procDateFrom)return false;if(S.procDateTo&&(o.date||'')>S.procDateTo)return false;return true;});
+  const trips=S.triplets.filter(t=>{const tc=S.teachers.find(tc=>tc.id===t.oid);if(!matchT(tc))return false;if(S.procDateFrom&&(t.od||'')<S.procDateFrom)return false;if(S.procDateTo&&(t.od||'')>S.procDateTo)return false;return true;});
+  const cpd=S.cpd, impacts=S.impacts;
   const totalM=totalMechs();
   const SECS=[
     {title:'Design Quality',color:'var(--navy)',items:[
@@ -986,12 +1113,31 @@ function renderProcess(){
   return `
 <div class="card mb-3" style="padding:10px 14px">
   <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:100px">Evaluate for:</span>
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Department:</span>
     <div class="pill-opt ${dept===''?'sel':''}" data-proc-dept-pill="">Whole School</div>
     ${DEPTS.map(d=>`<div class="pill-opt ${dept===d?'sel':''}" data-proc-dept-pill="${d}">${d}</div>`).join('')}
   </div>
-  <div class="flex items-center gap-2 mt-2">
-    ${(()=>{const dSnaps=snaps.filter(s=>(s.dept||'Whole School')===(dept||'Whole School'));const canSubmit=canEdit()&&dSnaps.length<3;return (canSubmit?'<button class="btn btn-success btn-sm" data-submit-snap>✓ Submit Snapshot ('+dSnaps.length+'/3)</button>':'<span class="badge badge-amber">Max 3 snapshots — delete one to re-submit</span>')+'<span class="text-xs text-muted ml-2">Currently: '+esc(dept||'Whole School')+'</span>';})()}
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Section:</span>
+    <div class="pill-opt ${pSects.length===0?'sel':''}" data-proc-sect-pill="">All</div>
+    ${SECTIONS.map(s=>`<div class="pill-opt ${pSects.includes(s)?'sel':''}" data-proc-sect-pill="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Stage:</span>
+    <div class="pill-opt ${pStages.length===0?'sel':''}" data-proc-stage-pill="">All Stages</div>
+    ${STAGES.map(s=>`<div class="pill-opt ${pStages.includes(s)?'sel':''}" data-proc-stage-pill="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Period:</span>
+    <label style="font-size:11px;color:var(--muted)">From</label>
+    <input type="date" class="form-control" style="width:140px;padding:3px 6px;font-size:11px" value="${S.procDateFrom||''}" onchange="S.procDateFrom=this.value;render()">
+    <label style="font-size:11px;color:var(--muted)">To</label>
+    <input type="date" class="form-control" style="width:140px;padding:3px 6px;font-size:11px" value="${S.procDateTo||''}" onchange="S.procDateTo=this.value;render()">
+    ${(S.procDateFrom||S.procDateTo)?'<button class="btn btn-ghost btn-sm" onclick="S.procDateFrom=\'\';S.procDateTo=\'\';render()">✕ Clear</button>':''}
+  </div>
+  <div class="flex items-center gap-2 mt-1" style="flex-wrap:wrap">
+    ${(()=>{const dSnaps=snaps.filter(s=>(s.dept||'Whole School')===(dept||'Whole School'));const canSubmit=canEdit()&&dSnaps.length<3;return canSubmit?'<button class="btn btn-success btn-sm" data-submit-snap>✓ Submit Snapshot ('+dSnaps.length+'/3)</button>':'<span class="badge badge-amber">Max 3 for this dept — delete one to re-submit</span>';})()}
+    <span class="text-xs text-muted">${obs.length} obs · ${trips.length} trips in current filter</span>
   </div>
 </div>
 ${snaps.length?'`<div class="card mb-3">`'+
@@ -1031,7 +1177,7 @@ ${SECS.map(sec=>`
 
 function renderResources(){
   const obs=scopedObs();
-  const domAvgs=DOMAINS.map(d=>({d,a:avg(obs.flatMap(o=>o.scores?.[d.id]||[]).filter(x=>x>0))}));
+  const domAvgs=getDomains().map(d=>({d,a:avg(obs.flatMap(o=>o.scores?.[d.id]||[]).filter(x=>x>0))}));
   const lowDomains=domAvgs.filter(x=>x.a>0&&x.a<3);
   return `
 ${lowDomains.length?`<div class="alert alert-warn mb-3">
@@ -1517,9 +1663,15 @@ function bindEvents(){
       render();
     };
   });
-  // Process audit dept pills
+  // Process audit filter pills
   document.querySelectorAll('[data-proc-dept-pill]').forEach(el=>{
     el.onclick=()=>{S.procDept=(S.procDept===el.dataset.procDeptPill&&el.dataset.procDeptPill!==''?'':el.dataset.procDeptPill);render();};
+  });
+  document.querySelectorAll('[data-proc-sect-pill]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.procSectPill;if(s===''){S.procSects=[];}else{if(!S.procSects)S.procSects=[];const i=S.procSects.indexOf(s);if(i>=0)S.procSects.splice(i,1);else S.procSects.push(s);}render();};
+  });
+  document.querySelectorAll('[data-proc-stage-pill]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.procStagePill;if(s===''){S.procStages=[];}else{if(!S.procStages)S.procStages=[];const i=S.procStages.indexOf(s);if(i>=0)S.procStages.splice(i,1);else S.procStages.push(s);}render();};
   });
 
   const submitSnap=document.querySelector('[data-submit-snap]');
