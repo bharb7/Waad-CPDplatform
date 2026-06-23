@@ -151,7 +151,7 @@ const DEFAULT_RESOURCES=[{id:'r1',title:'Darling-Hammond (2017) — Effective Te
 const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},{id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},{id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},{id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null}];
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 const SEED_TEACHERS=[{id:'22222222-0000-4000-8000-000000000001',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000002',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000003',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000004',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000005',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000006',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000003'},{id:'22222222-0000-4000-8000-000000000007',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'11111111-0000-4000-8000-000000000003'}];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedMonthFilter:'',schedTypeFilter:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],fwDepts:[],fwSects:[],fwStages:[],schedMonthFilter:'',schedTypeFilter:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 
 async function loadAll(){
@@ -224,7 +224,7 @@ async function saveSchoolSettings(){
 
 function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||''}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:'',fid:'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false}}
 function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
 function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
@@ -285,6 +285,13 @@ function dashFilteredTeachers(){
   if(S.dashSects&&S.dashSects.length>0) ts=ts.filter(t=>S.dashSects.includes(t.section));
   if(S.dashStages&&S.dashStages.length>0) ts=ts.filter(t=>S.dashStages.includes(t.stage));
   return ts;
+}
+function fwFilteredObs(){
+  let obs=scopedObs();
+  if(S.fwDepts&&S.fwDepts.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.fwDepts.includes(t.dept);});
+  if(S.fwSects&&S.fwSects.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.fwSects.includes(t.section);});
+  if(S.fwStages&&S.fwStages.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.fwStages.includes(t.stage);});
+  return obs;
 }
 function techDisplay(o){return o.customTech||o.bio||''}
 function getLPs(bio,customTech){if(customTech)return TECH_LP[customTech]||[];return TECH_LP[bio]||[];}
@@ -719,11 +726,29 @@ function renderFieldwork(){
 </div>
 
 ${tab==='obs'?`
+  <div class="card mb-3" style="padding:10px 14px">
+    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Department:</span>
+      <div class="pill-opt ${(S.fwDepts||[]).length===0?'sel':''}" data-fw-dept="">All Depts</div>
+      ${DEPTS.map(d=>`<div class="pill-opt ${(S.fwDepts||[]).includes(d)?'sel':''}" data-fw-dept="${d}">${d}</div>`).join('')}
+    </div>
+    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Section:</span>
+      <div class="pill-opt ${(S.fwSects||[]).length===0?'sel':''}" data-fw-sect="">All</div>
+      ${SECTIONS.map(s=>`<div class="pill-opt ${(S.fwSects||[]).includes(s)?'sel':''}" data-fw-sect="${s}">${s}</div>`).join('')}
+    </div>
+    <div class="flex items-center gap-2" style="flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Stage:</span>
+      <div class="pill-opt ${(S.fwStages||[]).length===0?'sel':''}" data-fw-stage="">All Stages</div>
+      ${STAGES.map(s=>`<div class="pill-opt ${(S.fwStages||[]).includes(s)?'sel':''}" data-fw-stage="${s}">${s}</div>`).join('')}
+    </div>
+    ${((S.fwDepts||[]).length||(S.fwSects||[]).length||(S.fwStages||[]).length)?`<div class="mt-2"><button class="btn btn-ghost btn-sm" onclick="S.fwDepts=[];S.fwSects=[];S.fwStages=[];render()">✕ Clear filters</button></div>`:''}
+  </div>
   <div class="flex justify-between items-center mb-3">
     ${canEdit()?'<button class="btn btn-primary" data-modal="obs">+ New Observation</button>':'<div></div>'}
-    <span class="text-xs text-muted">${obs.length} observations recorded</span>
+    <span class="text-xs text-muted">${fwFilteredObs().length} of ${obs.length} observations shown</span>
   </div>
-  ${obs.slice().reverse().slice(0,20).map(o=>{
+  ${fwFilteredObs().slice().reverse().map(o=>{
     const t=S.teachers.find(t=>t.id===o.tid);
     const da=domAvg(o.scores);
     const lps=[...(o.autoLPs||[]),(o.neasc||[])].flat().filter((v,i,a)=>a.indexOf(v)===i);
@@ -731,7 +756,7 @@ ${tab==='obs'?`
       <div class="flex justify-between items-center mb-2">
         <div>
           <span style="font-weight:700;direction:auto">${t?t.name:'Whole School/Dept'}</span>
-          <span class="text-xs text-muted ml-2">${o.date} · ${o.observer||'—'}</span>
+          <span class="text-xs text-muted ml-2">${o.date} · ${o.observer||'—'}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
         </div>
         <div class="flex gap-1 items-center">
           ${o.bio?'<span class="badge badge-purple">'+o.bio+'</span>':''}
@@ -744,9 +769,10 @@ ${tab==='obs'?`
         ${getDomains().map(d=>{const s=avg(o.scores?.[d.id]||[]);return s?'<span class="badge badge-gray" style="font-size:10px">'+d.n+': '+s.toFixed(1)+'</span>':''}).join('')}
       </div>
       ${lps.length?'<div class="flex gap-1 mb-1">'+lps.map(l=>'<span class="badge badge-blue">'+l+'</span>').join('')+'</div>':''}
-      ${o.www?'<div class="text-xs mb-1"><strong>WWW:</strong> '+o.www+'</div>':''}
-      ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+o.ebi+'</div>':''}
-      ${o.action?'<div class="text-xs mb-1"><strong>Action:</strong> '+o.action+'</div>':''}
+      ${(o.period||o.gradeClass)?`<div class="flex gap-2 mb-1">${o.period?'<span class="badge badge-gray" style="font-size:10px">🕐 '+esc(o.period)+'</span>':''}${o.gradeClass?'<span class="badge badge-gray" style="font-size:10px">🏫 '+esc(o.gradeClass)+'</span>':''}</div>`:''}
+      ${o.www?'<div class="text-xs mb-1"><strong>WWW:</strong> '+esc(o.www)+'</div>':''}
+      ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+esc(o.ebi)+'</div>':''}
+      ${o.action?'<div class="text-xs mb-1"><strong>Action:</strong> '+esc(o.action)+'</div>':''}
       ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6">
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${o.slLinked?'var(--teal)':'var(--muted)'}">
           <input type="checkbox" data-sl-obs="${o.id}" ${o.slLinked?'checked':''}> 📎 Logged in Steplab
@@ -754,7 +780,7 @@ ${tab==='obs'?`
       </div>`:''}
     </div>`;
   }).join('')}
-  ${!obs.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No observations yet. Click + New Observation to start.</div>':''}
+  ${!fwFilteredObs().length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(obs.length?'No observations match the current filters. Try clearing the department filter.':'No observations yet. Click + New Observation to start.')+'</div>':''}
 `:''}
 
 ${tab==='lw'?`
@@ -960,51 +986,58 @@ function printObs(id){
   const o=S.observations.find(x=>x.id===id);if(!o)return;
   const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;
   const doms=getDomains();
+  // Safe text encoder for print window
+  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>');
   let domTable='';
   doms.forEach(d=>{
     const scores=o.scores?.[d.id]||[];
     domTable+='<div style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
-    domTable+='<div style="background:#1F4E79;color:#fff;padding:6px 12px;font-weight:700;font-size:13px">'+d.n+'</div>';
+    domTable+='<div style="background:#1F4E79;color:#fff;padding:6px 12px;font-weight:700;font-size:13px">'+safe(d.n)+'</div>';
     domTable+='<table style="width:100%;border-collapse:collapse">';
     domTable+='<tr style="background:#f9fafb"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#6b7280">Criterion</th><th style="padding:6px 10px;text-align:center;width:120px;font-size:11px;color:#6b7280">Score (1–5)</th></tr>';
     d.criteria.forEach((c,i)=>{
       const sc=scores[i]||0;
       const bc=sc>=4?'#065f46':sc>=3?'#92400e':sc>0?'#991b1b':'#374151';
-      domTable+='<tr style="border-top:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px">'+c+'</td><td style="padding:7px 10px;text-align:center">';
+      domTable+='<tr style="border-top:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px">'+safe(c)+'</td><td style="padding:7px 10px;text-align:center">';
       for(let n=1;n<=5;n++){domTable+='<span style="display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid '+(sc>=n?bc:'#e5e7eb')+';background:'+(n===sc?bc:'transparent')+';color:'+(n===sc?'#fff':'#6b7280')+';font-size:10px;font-weight:700;line-height:20px;text-align:center;margin:1px">'+n+'</span>';}
       domTable+='</td></tr>';
     });
     domTable+='</table></div>';
   });
+  const tName=t?safe(t.name):'Whole School/Dept';
+  const tMeta=t?' · '+safe(t.dept)+' · '+safe(t.section)+' · '+safe(t.stage):'';
+  const periodLine=(o.period||o.gradeClass)?'<div style="margin-bottom:12px;font-size:12px;color:#6b7280">'+(o.period?'🕐 Period: <strong>'+safe(o.period)+'</strong>&nbsp;':'')+(o.gradeClass?'🏫 Class: <strong>'+safe(o.gradeClass)+'</strong>':'')+'</div>':'';
+  const techLine=(o.bio||o.customTech)?'<div style="margin-bottom:12px"><span class="pill purple">Technique: '+safe(o.customTech||o.bio)+'</span></div>':'';
+  const wwwLine=o.www?'<div class="section"><div class="section-title">✅ Key Strengths (WWW)</div><div class="section-content">'+safe(o.www)+'</div></div>':'';
+  const ebiLine=o.ebi?'<div class="section"><div class="section-title">🎯 Areas for Development (EBI)</div><div class="section-content">'+safe(o.ebi)+'</div></div>':'';
+  const actLine=o.action?'<div class="section"><div class="section-title">📎 Action Step → Steplab</div><div class="section-content">'+safe(o.action)+'</div></div>':'';
+  const confLine=o.conf?'<div class="section"><div class="section-title">💡 Teacher Confidence</div><div class="section-content">'+('★'.repeat(o.conf)+'☆'.repeat(5-o.conf))+' ('+o.conf+'/5)</div></div>':'';
   const w=window.open('','_blank','width=850,height=1100');
-  w.document.write(`<!DOCTYPE html><html><head><title>Observation — ${t?t.name:'Whole School'}</title>
-  <style>body{font-family:'Segoe UI',sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:780px;margin:0 auto}
-  h1{color:#1F4E79;font-size:20px;margin-bottom:4px}
-  .meta{color:#6b7280;font-size:12px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1F4E79}
-  .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}
-  .blue{background:#dbeafe;color:#1e40af}.purple{background:#ede9fe;color:#5b21b6}.green{background:#d1fae5;color:#065f46}
-  .section{margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-left:4px solid #1F4E79;border-radius:4px}
-  .section-title{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:4px}
-  .section-content{font-size:13px;line-height:1.6}
-  @media print{button{display:none!important}}
-  </style></head><body>
-  <div style="display:flex;justify-content:space-between;align-items:start">
-    <div><h1>🏫 Waad Academy — Observation Record</h1>
-    <div class="meta">Teacher: <strong>${t?t.name:'Whole School/Dept'}</strong>${t?' · '+t.dept+' · '+t.section+' · '+t.stage:''} &nbsp;|&nbsp; Observer: <strong>${o.observer||'—'}</strong> &nbsp;|&nbsp; Date: <strong>${o.date||'—'}</strong></div>
-    </div>
-    <button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print / Save PDF</button>
-  </div>
-  ${o.bio||o.customTech?'<div style="margin-bottom:12px"><span class="pill purple">Technique: '+(o.customTech||o.bio)+'</span></div>':''}
-  <h3 style="color:#1F4E79;font-size:14px;margin-bottom:12px">📊 5-Domain Observation Scores</h3>
-  ${domTable}
-  ${o.www?'<div class="section"><div class="section-title">✅ Key Strengths (WWW)</div><div class="section-content">${o.www}</div></div>':''}
-  ${o.ebi?'<div class="section"><div class="section-title">🎯 Areas for Development (EBI)</div><div class="section-content">${o.ebi}</div></div>':''}
-  ${o.action?'<div class="section"><div class="section-title">📎 Action Step → Steplab</div><div class="section-content">${o.action}</div></div>':''}
-  ${o.conf?'<div class="section"><div class="section-title">💡 Teacher Confidence</div><div class="section-content">'+('★'.repeat(o.conf)+'☆'.repeat(5-o.conf))+' ('+o.conf+'/5)</div></div>':''}
-  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">
-    Waad Academy School Improvement Platform · Printed ${new Date().toLocaleDateString()} · Observation ID: ${o.id}
-  </div>
-  </body></html>`);
+  w.document.write('<!DOCTYPE html><html><head><title>Observation \u2014 '+tName+'</title>'
+  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:780px;margin:0 auto}'
+  +'h1{color:#1F4E79;font-size:20px;margin-bottom:4px}'
+  +'.meta{color:#6b7280;font-size:12px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1F4E79}'
+  +'.pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}'
+  +'.purple{background:#ede9fe;color:#5b21b6}'
+  +'.section{margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-left:4px solid #1F4E79;border-radius:4px;white-space:pre-wrap}'
+  +'.section-title{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px}'
+  +'.section-content{font-size:13px;line-height:1.7;color:#1a1a2e}'
+  +'@media print{button{display:none!important}}'
+  +'</style></head><body>'
+  +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +'<div><h1>&#127983; Waad Academy \u2014 Observation Record</h1>'
+  +'<div class="meta">Teacher: <strong>'+tName+'</strong>'+tMeta+' &nbsp;|&nbsp; Observer: <strong>'+safe(o.observer||'\u2014')+'</strong> &nbsp;|&nbsp; Date: <strong>'+safe(o.date||'\u2014')+'</strong></div>'
+  +'</div>'
+  +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">&#128424; Print / Save PDF</button>'
+  +'</div>'
+  +periodLine
+  +techLine
+  +'<h3 style="color:#1F4E79;font-size:14px;margin-bottom:12px">&#128202; 5-Domain Observation Scores</h3>'
+  +domTable
+  +wwwLine+ebiLine+actLine+confLine
+  +'<div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">'
+  +'Waad Academy School Improvement Platform &middot; Printed '+new Date().toLocaleDateString()+' &middot; Observation ID: '+safe(o.id)
+  +'</div></body></html>');
   w.document.close();setTimeout(()=>w.print(),400);
 }
 function renderCPD(){
@@ -1610,8 +1643,16 @@ function renderModal(type, data={}){
     const preT=data.tid||'';
     const techVal=data.customTech?'Other':(data.bio||'');
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
-      FS('obs-tid','Teacher',[{v:'',l:'— Whole School / Dept —'},...scopedTeachers().map(t=>({v:t.id,l:t.name+' ('+t.dept+')'}))],preT)+
+      `<div class="form-group"><label class="form-label">Teacher</label>
+       <input class="form-control" id="obs-tid-search" list="obs-tid-list" placeholder="Type to search teacher…" value="${preT?((scopedTeachers().find(t=>t.id===preT)||{}).name||''):''}">
+       <datalist id="obs-tid-list">
+         <option value="">— Whole School / Dept —</option>
+         ${scopedTeachers().map(t=>`<option value="${t.name} (${t.dept})" data-id="${t.id}">${t.name} (${t.dept})</option>`).join('')}
+       </datalist>
+       <input type="hidden" id="obs-tid" value="${preT}">
+       </div>`+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
+      G2(FI('obs-period','Time / Period',data.period||'','text','e.g. Period 3 · 10:00–10:45'),FS('obs-grade','Grade / Class',['— Select —',...GRADES],data.gradeClass||''))+
       techSelector('obs-tech','obs-custom-tech',techVal,data.customTech||'')+
       '<div id="obs-domains">' +
       getDomains().map(d=>`<div class="form-group"><label class="form-label">${d.n}</label>
@@ -1914,6 +1955,17 @@ function bindEvents(){
     el.onclick=()=>{S.cpdTab=el.dataset.cpdTab;render();};
   });
 
+  // ── Observation (Fieldwork) 3-row dept/section/stage filter ──────────────
+  document.querySelectorAll('[data-fw-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.fwDept;if(d===''){S.fwDepts=[];}else{if(!S.fwDepts)S.fwDepts=[];const i=S.fwDepts.indexOf(d);if(i>=0)S.fwDepts.splice(i,1);else S.fwDepts.push(d);}render();};
+  });
+  document.querySelectorAll('[data-fw-sect]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.fwSect;if(s===''){S.fwSects=[];}else{if(!S.fwSects)S.fwSects=[];const i=S.fwSects.indexOf(s);if(i>=0)S.fwSects.splice(i,1);else S.fwSects.push(s);}render();};
+  });
+  document.querySelectorAll('[data-fw-stage]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.fwStage;if(s===''){S.fwStages=[];}else{if(!S.fwStages)S.fwStages=[];const i=S.fwStages.indexOf(s);if(i>=0)S.fwStages.splice(i,1);else S.fwStages.push(s);}render();};
+  });
+
   // ── Dashboard 3-row multi-filter ─────────────────────────────────────
   document.querySelectorAll('[data-dash-dept]').forEach(el=>{
     el.onclick=()=>{const d=el.dataset.dashDept;if(d===''){S.dashDepts=[];}else{if(!S.dashDepts)S.dashDepts=[];const i=S.dashDepts.indexOf(d);if(i>=0)S.dashDepts.splice(i,1);else S.dashDepts.push(d);}render();};
@@ -2025,6 +2077,19 @@ function bindEvents(){
     };
   });
 
+  // ── Obs teacher search: sync datalist to hidden id field ──────────────
+  const obsTidSearch=document.getElementById('obs-tid-search');
+  if(obsTidSearch){
+    const syncObsTid=()=>{
+      const val=obsTidSearch.value.trim();
+      if(!val){document.getElementById('obs-tid').value='';return;}
+      const match=scopedTeachers().find(t=>(t.name+' ('+t.dept+')'===val)||t.name===val);
+      document.getElementById('obs-tid').value=match?match.id:'';
+    };
+    obsTidSearch.oninput=syncObsTid;
+    obsTidSearch.onchange=syncObsTid;
+  }
+
   // Score buttons in obs modal
   const scoreState={};
   document.querySelectorAll('[data-score]').forEach(el=>{
@@ -2068,6 +2133,7 @@ function bindEvents(){
     const obs={
       ...(existing||{}),
       id:editId||uid(),tid:tid||null,date:gv('obs-date'),observer:gv('obs-obs'),
+      period:gv('obs-period')||'',gradeClass:(gv('obs-grade')||'')==='— Select —'?'':(gv('obs-grade')||''),
       scope:gv('obs-scope'),bio:bio==='— None —'||bio===''?'':bio,customTech:customTech||'',
       scores,conf:parseInt(gv('obs-conf'))||0,
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
