@@ -876,6 +876,86 @@ ${groups.map(g=>{
 ${!trips.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No coaching triplets yet.</div>':''}
 `}
 
+function printSnapshot(snap){
+  const colorFor=n=>n>=4?'#0F6E56':n>=3?'#7B4F0C':n>0?'#993C1D':'#9ca3af';
+  const labelFor=n=>n>=5?'Highly Effective':n>=4?'Strong':n>=3?'Developing':n>=2?'Emerging':n>=1?'Weak':'—';
+  const SECS=[
+    {title:'Design Quality',color:'#1F4E79',items:[
+      {id:'dq1',lbl:'Sessions content-focused & NEASC LP linked'},
+      {id:'dq2',lbl:'Biol-Og booklet assigned before every session'},
+      {id:'dq3',lbl:'All 6 D-H pillars active'},
+      {id:'dq4',lbl:'Prior knowledge activated every session'},
+      {id:'dq5',lbl:'In-session rehearsal (15 min) included'},
+      {id:'dq6',lbl:'Groups right-sized (≤8, subject + grade)'},
+    ]},
+    {title:'Collaboration & Coaching',color:'#0F6E56',items:[
+      {id:'cc1',lbl:'Coaching triplets operating (all 3 cycles)'},
+      {id:'cc2',lbl:'Biol-Og technique = triplet focus'},
+      {id:'cc3',lbl:'Peer visits with WWW/EBI + domain focus'},
+      {id:'cc4',lbl:'MLs empowered as CPD designers'},
+      {id:'cc5',lbl:'Learning Walks active and feeding planning'},
+    ]},
+    {title:'Time & Sustainability',color:'#7B4F0C',items:[
+      {id:'ts1',lbl:'Protected time for coaching triplets (Tue)'},
+      {id:'ts2',lbl:'CPD not end-of-week or end-of-day'},
+      {id:'ts3',lbl:'Meetings replaced with collaboration time'},
+      {id:'ts4',lbl:'Booklet distributed 1 week before'},
+    ]},
+    {title:'Impact & Accountability',color:'#993C1D',items:[
+      {id:'ia1',lbl:'CPD linked to 360° feedback data'},
+      {id:'ia2',lbl:'Biol-Og techniques visible in learning walks'},
+      {id:'ia3',lbl:'Student outcomes reviewed against CPD'},
+      {id:'ia4',lbl:'NEASC LP progress formally tracked'},
+      {id:'ia5',lbl:'Process audit snapshots reviewed'},
+    ]},
+  ];
+  const rated=Object.values(snap.ratings||{}).filter(v=>v>0);
+  const overallAvg=rated.length?(rated.reduce((a,b)=>a+b,0)/rated.length):0;
+  let html='<!DOCTYPE html><html><head><title>Process Audit — '+new Date(snap.date||Date.now()).toLocaleDateString()+'</title>';
+  html+='<style>body{font-family:Segoe UI,sans-serif;padding:24px;font-size:12px;color:#1a1a2e;max-width:820px;margin:0 auto}';
+  html+='h1{color:#1F4E79;font-size:18px;margin:0}';
+  html+='.meta{color:#6b7280;font-size:11px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #1F4E79;display:flex;justify-content:space-between;align-items:center}';
+  html+='.sec{margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}';
+  html+='.sec-head{padding:7px 12px;font-weight:700;font-size:12px;color:#fff}';
+  html+='.row{display:grid;grid-template-columns:1fr 60px 120px;gap:8px;padding:6px 12px;border-top:1px solid #f5f5f5;align-items:center}';
+  html+='.row:nth-child(even){background:#fafafa}';
+  html+='.score-badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;text-align:center}';
+  html+='.summary{background:#f0f4ff;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap}';
+  html+='.sum-item{text-align:center}.sum-val{font-size:28px;font-weight:800;color:#1F4E79}.sum-label{font-size:10px;color:#6b7280}';
+  html+='@media print{button{display:none!important}}</style></head><body>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:start"><div>';
+  html+='<h1>🏫 Waad Academy — Process Audit Snapshot</h1>';
+  html+='<div class="meta"><span>Department: <strong>'+(snap.dept||'Whole School')+'</strong> &nbsp;·&nbsp; Date: <strong>'+new Date(snap.date||Date.now()).toLocaleDateString()+'</strong></span>';
+  html+='<span>Observations: <strong>'+snap.obsCount+'</strong> &nbsp;·&nbsp; Triplets: <strong>'+snap.tripCount+'</strong> &nbsp;·&nbsp; Learning Walks: <strong>'+snap.lwCount+'</strong></span></div>';
+  html+='</div><button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px;flex-shrink:0">🖨 Print / Save PDF</button></div>';
+  html+='<div class="summary">';
+  html+='<div class="sum-item"><div class="sum-val">'+rated.length+'/20</div><div class="sum-label">Criteria Rated</div></div>';
+  html+='<div class="sum-item"><div class="sum-val" style="color:'+(overallAvg>=4?'#0F6E56':overallAvg>=3?'#7B4F0C':overallAvg>0?'#993C1D':'#9ca3af')+'">'+( overallAvg>0?overallAvg.toFixed(1):' —')+'</div><div class="sum-label">Overall Average</div></div>';
+  html+='<div class="sum-item"><div class="sum-val" style="color:#0F6E56">'+Object.values(snap.ratings||{}).filter(v=>v>=4).length+'</div><div class="sum-label">Strong/Highly Effective</div></div>';
+  html+='<div class="sum-item"><div class="sum-val" style="color:#993C1D">'+Object.values(snap.ratings||{}).filter(v=>v>0&&v<=2).length+'</div><div class="sum-label">Weak/Emerging</div></div>';
+  html+='</div>';
+  SECS.forEach(sec=>{
+    html+='<div class="sec"><div class="sec-head" style="background:'+sec.color+'">'+sec.title+'</div>';
+    html+='<div class="row" style="background:#f9fafb;font-size:10px;font-weight:700;color:#6b7280"><span>Criterion</span><span style="text-align:center">Score</span><span>Level</span></div>';
+    sec.items.forEach(item=>{
+      const n=snap.ratings?.[item.id]||0;
+      const c=colorFor(n);
+      const l=labelFor(n);
+      html+='<div class="row"><span>'+item.lbl+'</span>';
+      html+='<span style="text-align:center"><span class="score-badge" style="background:'+c+'22;color:'+c+';border:1px solid '+c+'44">'+(n||'—')+'</span></span>';
+      html+='<span style="font-size:11px;font-weight:600;color:'+c+'">'+l+'</span></div>';
+    });
+    html+='</div>';
+  });
+  html+='<div style="margin-top:16px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">';
+  html+='Waad Academy School Improvement Platform · Process Audit · Printed '+new Date().toLocaleDateString()+' · Snapshot ID: '+snap.id+'</div>';
+  html+='</body></html>';
+  const w=window.open('','_blank','width=880,height=1100');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
 function printObs(id){
   const o=S.observations.find(x=>x.id===id);if(!o)return;
   const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;
@@ -1308,16 +1388,22 @@ function renderProcess(){
     <span class="text-xs text-muted">${obs.length} obs · ${trips.length} trips in current filter</span>
   </div>
 </div>
-${snaps.length?'`<div class="card mb-3">`'+
-  '<div class="card-title">Previous Snapshots</div>'+
-  snaps.map((snap,i)=>'<div class="flex justify-between items-center p-2 mb-1" style="background:var(--light);border-radius:6px">'+
-    '<span class="text-xs"><strong>Snapshot '+(i+1)+'</strong> — '+
-    (snap.dept||'Whole School')+' · '+
-    new Date(snap.date||Date.now()).toLocaleDateString()+' · '+
-    snap.obsCount+' obs</span>'+
-    (canEdit()?'<button class="btn btn-sm btn-danger" data-del-snap="'+i+'">✕</button>':'')+
-  '</div>').join('')+
-  '</div>':''}
+${snaps.length?`<div class="card mb-3">
+  <div class="card-title">Previous Snapshots (${snaps.length}/3)</div>
+  ${snaps.map((snap,i)=>`<div class="flex justify-between items-center p-2 mb-1" style="background:var(--light);border-radius:8px;border:1px solid var(--border)">
+    <div>
+      <span class="text-xs font-bold">Snapshot ${i+1}</span>
+      <span class="badge badge-blue" style="margin-left:6px">${snap.dept||'Whole School'}</span>
+      <span class="text-xs text-muted" style="margin-left:6px">${new Date(snap.date||Date.now()).toLocaleDateString()}</span>
+      <span class="text-xs text-muted" style="margin-left:6px">${snap.obsCount} obs · ${snap.tripCount} trips</span>
+    </div>
+    <div class="flex gap-1">
+      <button class="btn btn-sm btn-ghost" data-print-snap="${snap.id}" title="Print snapshot">🖨</button>
+      ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-snap="${snap.id}" title="Load ratings for editing">✏</button>`:''}
+      ${canEdit()?`<button class="btn btn-sm btn-danger" data-del-snap="${snap.id}">✕</button>`:''}
+    </div>
+  </div>`).join('')}
+</div>`:''}
 ${SECS.map(sec=>`
   <div class="card">
     <div class="card-title" style="color:${sec.color}">${sec.title}</div>
@@ -1882,10 +1968,33 @@ function bindEvents(){
   };
   document.querySelectorAll('[data-del-snap]').forEach(el=>{
     el.onclick=()=>{
-      S.snapshots.splice(parseInt(el.dataset.delSnap),1);
+      const id=el.dataset.delSnap;
+      S.snapshots=S.snapshots.filter(s=>s.id!==id);
       save('snapshots',S.snapshots);
+      sbRemove('process_snapshots',id);
       showToast('Snapshot deleted');
       render();
+    };
+  });
+
+  // ── Snapshot edit (load ratings back into currentRatings) ─────────────────
+  document.querySelectorAll('[data-edit-snap]').forEach(el=>{
+    el.onclick=()=>{
+      const snap=S.snapshots.find(s=>s.id===el.dataset.editSnap);
+      if(snap){
+        S.currentRatings={...snap.ratings};
+        S.procDept=snap.dept==='Whole School'?'':snap.dept;
+        showToast('Snapshot ratings loaded — edit and re-submit');
+        render();
+      }
+    };
+  });
+
+  // ── Snapshot print ────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-print-snap]').forEach(el=>{
+    el.onclick=()=>{
+      const snap=S.snapshots.find(s=>s.id===el.dataset.printSnap);
+      if(snap)printSnapshot(snap);
     };
   });
 
