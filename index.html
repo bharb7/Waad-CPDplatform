@@ -288,6 +288,9 @@ function dashFilteredTeachers(){
 }
 function techDisplay(o){return o.customTech||o.bio||''}
 function getLPs(bio,customTech){if(customTech)return TECH_LP[customTech]||[];return TECH_LP[bio]||[];}
+function isDomainLW(lw){return lw.focusArea&&lw.focusArea.startsWith('DOMAIN:');}
+function domainLWDomain(lw){return lw.focusArea?lw.focusArea.replace('DOMAIN:','').split('|')[0]:'';}
+function domainLWScores(lw){try{return lw.focusArea?JSON.parse(lw.focusArea.split('|')[1]||'{}'):{}}catch(e){return {};}}
 function techSelector(selId,customId,val,customVal){
   val=val||'';customVal=customVal||'';const isOther=(val==='Other');
   const opts=TECHS.map(t=>'<option'+(val===t?' selected':'')+'>'+t+'</option>').join('');
@@ -377,10 +380,14 @@ ${S.modal?S.modal:''}
   </div>
   <div class="main">
     <div class="topbar">
-      <h2>${VIEW_META[S.view]?.icon} ${VIEW_META[S.view]?.label}</h2>
       <div class="flex items-center gap-2">
-        ${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:24px;object-fit:contain;border-radius:3px">').join('')}
+        ${S.branding.logo?`<img src="${S.branding.logo}" style="height:36px;object-fit:contain;border-radius:4px;margin-right:4px" onerror="this.style.display='none'">`:``}
+        <h2>${VIEW_META[S.view]?.icon} ${VIEW_META[S.view]?.label}</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        ${(S.branding.partners||[]).filter(Boolean).map(url=>`<img src="${url}" style="height:28px;object-fit:contain;border-radius:3px" onerror="this.style.display='none'">`).join('')}
         <span class="badge ${SCHOOL_ID?'badge-green':'badge-amber'}">${SCHOOL_ID?'🟢 DB Live':'🟡 Offline'}</span>
+        ${SCHOOL_ID?`<button onclick="refreshFromDB()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted)" title="Refresh from database">↻</button>`:''}
         <span style="font-size:12px;color:var(--muted)">${S.session.name} · ${role.label||S.session.role}</span>
       </div>
     </div>
@@ -551,7 +558,7 @@ ${lastSnap?`<div class="card mb-3" style="border-top:3px solid var(--forest)"><d
 <div class="card" style="border-top:3px solid var(--purple)">
   <div class="flex justify-between items-center mb-3"><div class="card-title" style="margin:0;color:var(--purple)">📊 Senior Leader Termly Dashboard</div><div class="flex gap-2 items-center"><select id="senior-dept" class="form-control" style="width:160px;font-size:11px"><option value="">Whole School</option>${DEPTS.map(d=>'<option>'+d+'</option>').join('')}</select><button class="btn btn-success btn-sm" id="export-senior-btn">⬇ Export CSV</button></div></div>
   <div style="overflow-x:auto"><table><thead><tr style="background:var(--purple)"><th style="color:#fff;font-size:11px">Indicator</th><th style="color:#fff;font-size:11px">Sep 2026 Baseline</th><th style="color:#fff;font-size:11px">Live (Whole School)</th><th style="color:#fff;font-size:11px">Mar 2027</th><th style="color:#fff;font-size:11px">Jun 2027</th></tr></thead>
-    <tbody>${(()=>{const dObs=scopedObs();const dA=arr=>{const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};const rows=[['Action plan completion','0%',dObs.filter(o=>o.action).length+S.triplets.filter(t=>t.action).length+' steps set'],['Avg 5-domain obs (/5)','baseline',dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0))>0?dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0)).toFixed(1):'No data'],['EEF mechanisms (/14)','3/14',totalMechs()+'/14'],['Coaching triplets','0',S.triplets.filter(t=>t.status==='active').length+' active · '+S.triplets.filter(t=>t.status==='complete').length+' complete'],['Teacher confidence (/5)','—',dA(dObs.filter(o=>o.conf>0).map(o=>o.conf))>0?dA(dObs.filter(o=>o.conf>0).map(o=>o.conf)).toFixed(1):'No data'],['Student-centred (/5)','—',dA(dObs.map(o=>scScore(o.scores)).filter(v=>v>0))>0?dA(dObs.map(o=>scScore(o.scores)).filter(v=>v>0)).toFixed(1):'No data'],['Student progress entries','0',S.progress.length+' entries']];return rows.map((r,i)=>'<tr style="background:'+(i%2?'#fafafa':'#fff')+'"><td style="padding:6px 10px;font-size:12px;font-weight:600">'+r[0]+'</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">'+r[1]+'</td><td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--navy)">'+r[2]+'</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">—</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">—</td></tr>').join('');})()}</tbody>
+    <tbody>${(()=>{const dObs=obs;const dA=arr=>{const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};const rows=[['Action plan completion','0%',dObs.filter(o=>o.action).length+filtTrips.filter(t=>t.action).length+' steps set'],['Avg 5-domain obs (/5)','baseline',dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0))>0?dA(dObs.map(o=>domAvg(o.scores)).filter(v=>v>0)).toFixed(1):'No data'],['EEF mechanisms (/14)','3/14',totalMechs(obs,filtTrips)+'/14'],['Coaching triplets','0',filtTrips.filter(t=>t.status==='active').length+' active · '+filtTrips.filter(t=>t.status==='complete').length+' complete'],['Teacher confidence (/5)','—',dA(dObs.filter(o=>o.conf>0).map(o=>o.conf))>0?dA(dObs.filter(o=>o.conf>0).map(o=>o.conf)).toFixed(1):'No data'],['Student-centred (/5)','—',dA(dObs.map(o=>scScore(o.scores)).filter(v=>v>0))>0?dA(dObs.map(o=>scScore(o.scores)).filter(v=>v>0)).toFixed(1):'No data'],['Student progress entries','0',S.progress.length+' entries']];return rows.map((r,i)=>'<tr style="background:'+(i%2?'#fafafa':'#fff')+'"><td style="padding:6px 10px;font-size:12px;font-weight:600">'+r[0]+'</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">'+r[1]+'</td><td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--navy)">'+r[2]+'</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">—</td><td style="padding:6px 10px;font-size:12px;color:#9ca3af">—</td></tr>').join('');})()}</tbody>
   </table></div>
 </div>
 `}
@@ -707,7 +714,8 @@ function renderFieldwork(){
 
 <div class="tabs">
   <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">Observations (${obs.length})</button>
-  <button class="tab ${tab==='lw'?'active':''}" data-fw-tab="lw">Learning Walks (${lws.length})</button>
+  <button class="tab ${tab==='lw'?'active':''}" data-fw-tab="lw">Learning Walks (${lws.filter(l=>!isDomainLW(l)).length})</button>
+  <button class="tab ${tab==='dlw'?'active':''}" data-fw-tab="dlw">LW by Domain (${lws.filter(l=>isDomainLW(l)).length})</button>
 </div>
 
 ${tab==='obs'?`
@@ -751,7 +759,7 @@ ${tab==='obs'?`
 
 ${tab==='lw'?`
   ${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="lw">+ New Learning Walk</button></div>':''}
-  ${lws.slice().reverse().slice(0,20).map(lw=>`<div class="card" style="border-left:3px solid var(--teal)">
+  ${lws.filter(l=>!isDomainLW(l)).slice().reverse().slice(0,20).map(lw=>`<div class="card" style="border-left:3px solid var(--teal)">
     <div class="flex justify-between items-center mb-1">
       <div><span class="badge badge-blue">${lw.dept||'—'}</span> <span class="badge badge-gray">${lw.section||'—'}</span> <span class="text-xs text-muted">${lw.date} · ${lw.observer||'—'}</span></div>
       <div class="flex gap-1">
@@ -763,7 +771,39 @@ ${tab==='lw'?`
     ${lw.afd?'<div class="text-xs mb-1"><strong>AFD:</strong> '+lw.afd+'</div>':''}
     ${lw.focusArea?'<div class="text-xs mb-1"><strong>Focus:</strong> '+lw.focusArea+'</div>':''}
   </div>`).join('')}
-  ${!lws.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No learning walks yet.</div>':''}
+  ${!lws.filter(l=>!isDomainLW(l)).length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No learning walks yet.</div>':''}
+`:''}
+
+${tab==='dlw'?`
+  ${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="dlw">+ New Domain Learning Walk</button></div>':''}
+  ${lws.filter(l=>isDomainLW(l)).length===0?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No domain-focused learning walks yet. Use this to evaluate one specific domain in depth.</div>':''}
+  ${lws.filter(l=>isDomainLW(l)).slice().reverse().slice(0,20).map(lw=>{
+    const domId=domainLWDomain(lw);
+    const domScores=domainLWScores(lw);
+    const dom=getDomains().find(d=>d.id===domId)||getDomains()[0];
+    const scored=Object.values(domScores).filter(x=>x>0);
+    const avgS=scored.length?scored.reduce((a,b)=>a+b,0)/scored.length:0;
+    const bc=avgS>=4?'var(--teal)':avgS>=3?'var(--amber)':avgS>0?'var(--red)':'var(--muted)';
+    return `<div class="card" style="border-left:4px solid var(--teal)">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span class="badge badge-blue" style="font-size:12px;font-weight:700">${dom.n}</span>
+          <span class="badge badge-gray ml-1">${esc(lw.dept||'—')}</span>
+          <span class="badge badge-gray ml-1">${esc(lw.section||'—')}</span>
+          <span class="text-xs text-muted ml-2">${lw.date||''} · ${esc(lw.observer||'—')}</span>
+        </div>
+        <div class="flex gap-1 items-center">
+          ${avgS>0?'<span class="badge badge-blue">'+avgS.toFixed(1)+'/5</span>':''}
+          ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-dlw="${lw.id}">✏</button><button class="btn btn-sm btn-danger" data-del-dlw="${lw.id}">✕</button>`:''}
+        </div>
+      </div>
+      <div style="margin-top:6px">
+        ${dom.criteria.map((c,i)=>{const sc=domScores[i]||0;const cc=sc>=4?'var(--teal)':sc>=3?'var(--amber)':sc>0?'var(--red)':'#e5e7eb';return `<div class="flex justify-between items-center mb-1 p-1" style="background:${sc>0?cc+'18':'var(--light)'};border-radius:4px;border:1px solid ${sc>0?cc+'44':'var(--border)'}"><span style="font-size:11px;color:var(--text)">${c}</span><span style="font-size:12px;font-weight:700;color:${cc}">${sc>0?sc+'/5':'—'}</span></div>`;}).join('')}
+      </div>
+      ${lw.strengths?'<div class="text-xs mt-2"><strong>Strengths:</strong> '+esc(lw.strengths)+'</div>':''}
+      ${lw.afd?'<div class="text-xs mt-1"><strong>AFD:</strong> '+esc(lw.afd)+'</div>':''}
+    </div>`;
+  }).join('')}
 `:''}
 
 ${tab==='cpd'?`
@@ -1480,24 +1520,26 @@ function renderModal(type, data={}){
   const userName=S.session?.name||'';
 
   if(type==='obs'){
+    const isEdit=!!(data.id);
     const preT=data.tid||'';
-    return M('📋 New Observation',
+    const techVal=data.customTech?'Other':(data.bio||'');
+    return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FS('obs-tid','Teacher',[{v:'',l:'— Whole School / Dept —'},...scopedTeachers().map(t=>({v:t.id,l:t.name+' ('+t.dept+')'}))],preT)+
-      G2(FI('obs-date','Date',new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',userName))+
-      FS('obs-tech','Biol-Og Technique',['',{v:'',l:'— None —'},...TECHS],'')+
+      G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
+      techSelector('obs-tech','obs-custom-tech',techVal,data.customTech||'')+
       '<div id="obs-domains">' +
       getDomains().map(d=>`<div class="form-group"><label class="form-label">${d.n}</label>
-        <div class="flex gap-2 flex-wrap">${d.criteria.map((c,i)=>`
+        <div class="flex gap-2 flex-wrap">${d.criteria.map((c,i)=>{const existingScore=(data.scores&&data.scores[d.id]&&data.scores[d.id][i])||0;return `
           <div style="background:var(--light);border-radius:6px;padding:6px 8px;flex:1;min-width:140px">
             <div class="text-xs text-muted mb-1">${c}</div>
-            <div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button type="button" data-score="${d.id}-${i}-${n}" style="width:26px;height:26px;border-radius:4px;border:1px solid var(--border);background:var(--white);font-size:11px;font-weight:600;cursor:pointer">${n}</button>`).join('')}</div>
-          </div>`).join('')}
+            <div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button type="button" data-score="${d.id}-${i}-${n}" style="width:26px;height:26px;border-radius:4px;border:1px solid ${n===existingScore?'var(--navy)':'var(--border)'};background:${n===existingScore?'var(--navy)':'var(--white)'};color:${n===existingScore?'#fff':'inherit'};font-size:11px;font-weight:600;cursor:pointer">${n}</button>`).join('')}</div>
+          </div>`;}).join('')}
         </div></div>`).join('') +
       '</div>'+
-      G2(FI('obs-conf','Confidence (1-5)','','number'),FS('obs-scope','Scope',['teacher','dept','boys','girls','school'],'teacher'))+
-      G2(FTA('obs-www','Key Strengths (WWW)'),FTA('obs-ebi','Areas for Development (EBI)'))+
-      FTA('obs-action','Action Step'),
-      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-obs>Save Observation</button>'
+      G2(FI('obs-conf','Confidence (1-5)',data.conf||'','number'),FS('obs-scope','Scope',['teacher','dept','boys','girls','school'],data.scope||'teacher'))+
+      G2(FTA('obs-www','Key Strengths (WWW)',data.www||''),FTA('obs-ebi','Areas for Development (EBI)',data.ebi||''))+
+      FTA('obs-action','Action Step',data.action||''),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-obs>${isEdit?'Update Observation':'Save Observation'}</button>`
     );
   }
 
@@ -1506,7 +1548,7 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'🚶 New')+' Learning Walk',
       G2(FI('lw-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('lw-obs','Observer',data.observer||userName))+
       G2(FS('lw-sect','Section',['','Boys','Girls'],data.section||''),FS('lw-dept','Department',['', ...DEPTS],data.dept||''))+
-      FS('lw-tech','Technique Focus',['',{v:'',l:'— None —'},...TECHS],data.bio||'')+
+      techSelector('lw-tech','lw-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       FI('lw-focus','Focus Area / Question',data.focusArea||'','text','What are we looking for?')+
       G2(FTA('lw-str','Strengths',data.strengths||''),FTA('lw-afd','Areas for Development',data.afd||'')),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-lw>${isEdit?'Update Walk':'Save Walk'}</button>`
@@ -1522,7 +1564,7 @@ function renderModal(type, data={}){
          FS('cpd-month','Month',MONTHS,data.month||MONTHS[new Date().getMonth()]||MONTHS[0]))+
       G2(FS('cpd-type','Type',['Internal','External','Cambridge','COBIS','WLC','Other'],data.type||'Internal'),
          FS('cpd-del','Delivery',['Workshop','WLC','Course','Online','Face to Face','In School','Other'],data.delivery||'Workshop'))+
-      FS('cpd-tech','Technique Focus',['',{v:'',l:'— None —'},...TECHS],data.bio||'')+
+      techSelector('cpd-tech','cpd-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       G2(FTA('cpd-bef','Before — Planned outcomes',data.before||''),FTA('cpd-dur','During — Activities',data.during||''))+
       FTA('cpd-aft','After — Implementation & monitoring',data.after||''),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-cpd>${isCpdEdit?'Update Session':'Save Session'}</button>`
@@ -1539,7 +1581,7 @@ function renderModal(type, data={}){
       G2(FS('tr-oid','Observer (Teacher being observed)',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.oid||''),
          FS('tr-cid','Coach',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.cid||''))+
       FS('tr-fid','Facilitator',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.fid||'')+
-      FS('tr-tech','Technique Focus',['',{v:'',l:'— None —'},...TECHS],data.bio||'')+
+      techSelector('tr-tech','tr-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       G2(FI('tr-od','Observe Date',data.od||'','date'),FI('tr-dd','CARE Debrief Date',data.dd||'','date'))+
       G2(FTA('tr-www','What Went Well (WWW)',data.wwwNotes||''),FTA('tr-ebi','Even Better If (EBI)',data.ebiNotes||''))+
       FTA('tr-action','Steplab Action Step',data.action||''),
@@ -1618,6 +1660,32 @@ function renderModal(type, data={}){
     return M('📂 Add Resource',
       FI('res-title','Title','')+FI('res-url','URL','','url')+FTA('res-desc','Description'),
       '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-res>Save Resource</button>'
+    );
+  }
+
+  if(type==='dlw'){
+    const isEdit=!!(data.id);
+    const existingDomId=isEdit?domainLWDomain(data):'d1';
+    const existingScores=isEdit?domainLWScores(data):{};
+    const selDomId=S._dlwDomainSel||existingDomId||'d1';
+    const selDom=getDomains().find(d=>d.id===selDomId)||getDomains()[0];
+    return M((isEdit?'✏ Edit':'🎯 New')+' Domain-Focused Learning Walk',
+      G2(FI('dlw-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('dlw-obs','Observed by',data.observer||userName))+
+      G2(FS('dlw-dept','Department',['', ...DEPTS],data.dept||''),FS('dlw-sect','Section',['','Boys','Girls'],data.section||''))+
+      FS('dlw-tid','Teacher (optional)',[{v:'',l:'— Department Walk (no specific teacher) —'},...scopedTeachers().map(t=>({v:t.id,l:t.name+' ('+t.dept+')'}))],data.tid||'')+
+      `<div class="form-group"><label class="form-label">Observation Domain</label>
+        <select class="form-control" id="dlw-domain" onchange="S._dlwDomainSel=this.value;S.modal=renderModal('dlw',${JSON.stringify(data)});render()">
+          ${getDomains().map(d=>`<option value="${d.id}" ${d.id===selDomId?'selected':''}>${d.n}</option>`).join('')}
+        </select>
+      </div>`+
+      `<div class="card" style="border-left:4px solid var(--teal);margin-bottom:10px"><div class="card-title" style="color:var(--teal)">${selDom.n} — Score each criterion</div>`+
+      selDom.criteria.map((c,i)=>{
+        const sc=existingScores[i]||0;
+        return `<div style="margin-bottom:8px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">${i+1}. ${c}</div><div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button type="button" data-dlw-score="${i}-${n}" style="width:32px;height:32px;border-radius:6px;border:2px solid ${n===sc?'var(--teal)':'var(--border)'};background:${n===sc?'var(--teal)':'transparent'};color:${n===sc?'#fff':'var(--muted)'};font-size:13px;font-weight:700;cursor:pointer">${n}</button>`).join('')}</div></div>`;
+      }).join('')+
+      '</div>'+
+      G2(FTA('dlw-str','Strengths observed'),FTA('dlw-afd','Areas for development')),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-dlw>${isEdit?'Update Walk':'Save Walk'}</button>`
     );
   }
 
@@ -1873,7 +1941,7 @@ function bindEvents(){
   const saveObs=document.querySelector('[data-save-obs]');
   if(saveObs)saveObs.onclick=()=>{
     const tid=gv('obs-tid');
-    const bio=gv('obs-tech');
+    const{bio,customTech}=getTechFromForm('obs-tech','obs-custom-tech');
     const scoreState={};
     document.querySelectorAll('[data-score]').forEach(btn=>{
       const[d,c]=btn.dataset.score.split('-');
@@ -1891,10 +1959,10 @@ function bindEvents(){
     const obs={
       ...(existing||{}),
       id:editId||uid(),tid:tid||null,date:gv('obs-date'),observer:gv('obs-obs'),
-      scope:gv('obs-scope'),bio:bio==='— None —'?'':bio,
+      scope:gv('obs-scope'),bio:bio==='— None —'||bio===''?'':bio,customTech:customTech||'',
       scores,conf:parseInt(gv('obs-conf'))||0,
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
-      autoLPs:TECH_LP[bio]||[],neasc:[],slLinked:existing?.slLinked||false
+      autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false
     };
     S.observations=editId?S.observations.map(o=>o.id===editId?obs:o):[...S.observations,obs];
     save('obs',S.observations);
@@ -1905,7 +1973,8 @@ function bindEvents(){
   const saveLW=document.querySelector('[data-save-lw]');
   if(saveLW)saveLW.onclick=()=>{
     const editId=S.editingId?.type==='lw'?S.editingId.id:null;
-    const lw={...(editId?S.lwalks.find(l=>l.id===editId):{}),id:editId||uid(),date:gv('lw-date'),observer:gv('lw-obs'),section:gv('lw-sect'),dept:gv('lw-dept'),bio:gv('lw-tech'),strengths:gv('lw-str'),afd:gv('lw-afd'),focusArea:gv('lw-focus')};
+    const{bio:lwBio,customTech:lwCustomTech}=getTechFromForm('lw-tech','lw-custom-tech');
+    const lw={...(editId?S.lwalks.find(l=>l.id===editId):{}),id:editId||uid(),date:gv('lw-date'),observer:gv('lw-obs'),section:gv('lw-sect'),dept:gv('lw-dept'),bio:lwBio,customTech:lwCustomTech||'',strengths:gv('lw-str'),afd:gv('lw-afd'),focusArea:gv('lw-focus')};
     S.lwalks=editId?S.lwalks.map(l=>l.id===editId?lw:l):[...S.lwalks,lw];
     save('lwalks',S.lwalks);
     S.modal=null;S.editingId=null;
@@ -1924,8 +1993,9 @@ function bindEvents(){
       if(conflict&&!confirm('⚠ Conflict: "'+conflict.title+'" (Whole School) is also in '+month+'. Save anyway?'))return;
     }
     const existing=editId?S.cpd.find(c=>c.id===editId):{};
+    const{bio:cpdBio,customTech:cpdCustomTech}=getTechFromForm('cpd-tech','cpd-custom-tech');
     const cpd={...(existing||{}),id:editId||uid(),title,date:gv('cpd-date'),facilitator:gv('cpd-fac'),audience:aud,
-      type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio:gv('cpd-tech'),
+      type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio:cpdBio,customTech:cpdCustomTech||'',
       before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active'};
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     save('cpd',S.cpd);
@@ -1946,9 +2016,10 @@ function bindEvents(){
       showToast('Cycle '+cycle+' already exists for this group','error');return;
     }
     const existing=editId?S.triplets.find(t=>t.id===editId):{};
+    const{bio:trBio,customTech:trCustomTech}=getTechFromForm('tr-tech','tr-custom-tech');
     const trip={...(existing||{}),id:editId||uid(),gid,name:gv('tr-name'),cycle,status:gv('tr-status'),
       oid:gv('tr-oid'),cid:gv('tr-cid'),fid:gv('tr-fid'),
-      bio:gv('tr-tech'),od:gv('tr-od'),dd:gv('tr-dd'),
+      bio:trBio,customTech:trCustomTech||'',od:gv('tr-od'),dd:gv('tr-dd'),
       wwwNotes:gv('tr-www'),ebiNotes:gv('tr-ebi'),action:gv('tr-action'),
       slLinked:existing?.slLinked||false};
     S.triplets=editId?S.triplets.map(t=>t.id===editId?trip:t):[...S.triplets,trip];
@@ -2045,6 +2116,60 @@ function bindEvents(){
     S.modal=null;
     showToast('Resource added ✓');
   };
+
+  // ── Domain LW save ────────────────────────────────────────────────────────
+  const saveDLW=document.querySelector('[data-save-dlw]');
+  if(saveDLW)saveDLW.onclick=()=>{
+    const editId=S.editingId?.type==='dlw'?S.editingId.id:null;
+    const selDomId=gv('dlw-domain')||'d1';
+    const dom=getDomains().find(d=>d.id===selDomId)||getDomains()[0];
+    // Collect scores from buttons
+    const dlwScores={};
+    document.querySelectorAll('[data-dlw-score]').forEach(btn=>{
+      if(btn.style.background==='var(--teal)'||btn.style.background==='rgb(15, 110, 86)'){
+        const[idx,val]=btn.dataset.dlwScore.split('-');
+        dlwScores[parseInt(idx)]=parseInt(val);
+      }
+    });
+    // Encode domain + scores in focusArea: "DOMAIN:d1|{0:3,1:4,...}"
+    const focusArea='DOMAIN:'+selDomId+'|'+JSON.stringify(dlwScores);
+    const existing=editId?S.lwalks.find(l=>l.id===editId):{};
+    const lw={...(existing||{}),id:editId||uid(),date:gv('dlw-date'),observer:gv('dlw-obs'),
+      dept:gv('dlw-dept'),section:gv('dlw-sect'),tid:gv('dlw-tid')||null,
+      bio:'',customTech:'',strengths:gv('dlw-str'),afd:gv('dlw-afd'),focusArea};
+    S.lwalks=editId?S.lwalks.map(l=>l.id===editId?lw:l):[...S.lwalks,lw];
+    save('lwalks',S.lwalks);
+    S._dlwDomainSel=null;
+    S.modal=null;S.editingId=null;
+    showToast(editId?'Domain walk updated ✓':'Domain walk saved ✓');
+  };
+
+  // ── Domain LW score buttons ───────────────────────────────────────────────
+  document.querySelectorAll('[data-dlw-score]').forEach(el=>{
+    el.onclick=()=>{
+      const[idx,val]=el.dataset.dlwScore.split('-');
+      document.querySelectorAll('[data-dlw-score]').forEach(btn=>{
+        const[bi]=btn.dataset.dlwScore.split('-');
+        if(bi===idx){
+          const active=btn.dataset.dlwScore===el.dataset.dlwScore;
+          btn.style.background=active?'var(--teal)':'transparent';
+          btn.style.color=active?'#fff':'var(--muted)';
+          btn.style.borderColor=active?'var(--teal)':'var(--border)';
+        }
+      });
+    };
+  });
+
+  // ── Domain LW edit/delete ─────────────────────────────────────────────────
+  document.querySelectorAll('[data-edit-dlw]').forEach(el=>{
+    el.onclick=()=>{
+      const lw=S.lwalks.find(l=>l.id===el.dataset.editDlw);
+      if(lw){S._dlwDomainSel=domainLWDomain(lw);S.editingId={type:'dlw',id:lw.id};S.modal=renderModal('dlw',lw);render();}
+    };
+  });
+  document.querySelectorAll('[data-del-dlw]').forEach(el=>{
+    el.onclick=()=>{const id=el.dataset.delDlw;S.lwalks=S.lwalks.filter(l=>l.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
+  });
 
   const saveRole=document.querySelector('[data-save-role]');
   if(saveRole)saveRole.onclick=()=>{
@@ -2237,34 +2362,34 @@ function bindEvents(){
   });
   // ── Deletes ──────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-del-obs]').forEach(el=>{
-    el.onclick=()=>{if(!confirm('Delete this observation?'))return;S.observations=S.observations.filter(o=>o.id!==el.dataset.delObs);save('obs',S.observations);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);save('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-lw]').forEach(el=>{
-    el.onclick=()=>{S.lwalks=S.lwalks.filter(o=>o.id!==el.dataset.delLw);save('lwalks',S.lwalks);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-cpd]').forEach(el=>{
-    el.onclick=()=>{S.cpd=S.cpd.filter(o=>o.id!==el.dataset.delCpd);save('cpd',S.cpd);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delCpd;S.cpd=S.cpd.filter(o=>o.id!==id);save('cpd',S.cpd);sbRemove('cpd_sessions',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-trip]').forEach(el=>{
-    el.onclick=()=>{S.triplets=S.triplets.filter(o=>o.id!==el.dataset.delTrip);save('trips',S.triplets);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-sched]').forEach(el=>{
-    el.onclick=()=>{S.schedule=S.schedule.filter(o=>o.id!==el.dataset.delSched);save('sched',S.schedule);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delSched;S.schedule=S.schedule.filter(o=>o.id!==id);save('sched',S.schedule);sbRemove('schedule_rows',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-teacher]').forEach(el=>{
-    el.onclick=()=>{S.teachers=S.teachers.filter(o=>o.id!==el.dataset.delTeacher);save('teachers',S.teachers);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-user]').forEach(el=>{
     el.onclick=()=>{S.users=S.users.filter(o=>o.id!==el.dataset.delUser);save('users',S.users);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-impact]').forEach(el=>{
-    el.onclick=()=>{S.impacts=S.impacts.filter(o=>o.id!==el.dataset.delImpact);save('impacts',S.impacts);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delImpact;S.impacts=S.impacts.filter(o=>o.id!==id);save('impacts',S.impacts);sbRemove('impact_entries',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-prog]').forEach(el=>{
-    el.onclick=()=>{S.progress=S.progress.filter(o=>o.id!==el.dataset.delProg);save('progress',S.progress);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delProg;S.progress=S.progress.filter(o=>o.id!==id);save('progress',S.progress);sbRemove('student_progress',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-res]').forEach(el=>{
-    el.onclick=()=>{S.resources=S.resources.filter(o=>o.id!==el.dataset.delRes);save('resources',S.resources);showToast('Deleted');render();};
+    el.onclick=()=>{const id=el.dataset.delRes;S.resources=S.resources.filter(o=>o.id!==id);save('resources',S.resources);sbRemove('resources',id);showToast('Deleted');render();};
   });
 }
 
