@@ -572,47 +572,142 @@ ${lastSnap?`<div class="card mb-3" style="border-top:3px solid var(--forest)"><d
 
 function renderSchedule(){
   const cats=SCHED_CATS;
-  const sched=S.schedule;
+  const mf=S.schedMonthFilter||'';
+  // Apply month filter
+  const filteredSched=mf?S.schedule.filter(r=>r.month===mf):S.schedule;
   const statusBadge=s=>s==='done'?'badge-green':s==='active'?'badge-amber':'badge-gray';
+  // Month pill colours: current calendar month highlighted
+  const curMonthName=new Date().toLocaleString('en',{month:'long'});
   return `
-<div class="flex justify-between items-center mb-3">
-  <div class="flex gap-2">
-    ${canEdit()?'<button class="btn btn-primary" data-modal="sched">+ Add Programme</button>':''}
-    <button class="btn btn-ghost" data-export-sched>⬇ Export CSV</button>
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:46px">Month:</span>
+    <div class="pill-opt ${mf===''?'sel':''}" data-sched-month="">All Months</div>
+    ${MONTHS.map(m=>`<div class="pill-opt ${mf===m?'sel':''}" style="${m===curMonthName&&mf!==m?'border-color:var(--teal);color:var(--teal);font-weight:700':''}" data-sched-month="${m}">${m}</div>`).join('')}
+    ${mf?`<button class="btn btn-ghost btn-sm" onclick="S.schedMonthFilter='';render()">✕ Clear</button>`:''}
   </div>
-  <span class="text-xs text-muted">${S.schedule.length} programmes total</span>
+</div>
+<div class="flex justify-between items-center mb-3">
+  <div class="flex gap-2" style="flex-wrap:wrap">
+    ${canEdit()?'<button class="btn btn-primary" data-modal="sched">+ Add Programme</button>':''}
+    <button class="btn btn-ghost" data-export-sched>⬇ CSV</button>
+    <button class="btn btn-ghost" id="print-sched-btn">🖨 Print</button>
+    <button class="btn btn-success" id="excel-sched-btn">📊 Export Excel</button>
+  </div>
+  <span class="text-xs text-muted">${filteredSched.length} of ${S.schedule.length} programmes${mf?' — '+mf:''}</span>
 </div>
 ${cats.map(cat=>{
-  const rows=sched.filter(r=>r.category===cat);
+  const rows=filteredSched.filter(r=>r.category===cat);
   if(!rows.length&&!canEdit())return'';
+  if(!rows.length)return'';
   return `<div class="card">
     <div class="flex justify-between items-center mb-2">
       <div class="card-title" style="margin:0">${cat}</div>
-      <span class="badge badge-blue">${rows.length} programmes</span>
+      <span class="badge badge-blue">${rows.length} programme${rows.length!==1?'s':''}</span>
     </div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Target</th><th>Status</th>${canEdit()?'<th></th>':''}</tr></thead>
+      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Target</th><th>Status</th>${canEdit()?'<th style="min-width:80px"></th>':''}</tr></thead>
       <tbody>${rows.map(r=>`<tr>
-        <td style="font-weight:600;direction:auto">${r.program}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}</td>
-        <td class="text-xs">${r.facilitator||'—'}</td>
-        <td><span class="badge badge-blue">${r.type||'—'}</span></td>
-        <td class="text-xs">${r.duration||'—'}</td>
+        <td style="font-weight:600;direction:auto">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}</td>
+        <td class="text-xs">${esc(r.facilitator||'—')}</td>
+        <td><span class="badge badge-${r.type==='Cambridge'?'purple':r.type==='External'?'amber':r.type==='COBIS'?'green':'blue'}">${esc(r.type||'—')}</span></td>
+        <td class="text-xs">${esc(r.duration||'—')}</td>
         <td class="text-xs">${r.startDate||'—'}</td>
         <td class="text-xs">${r.endDate||'—'}</td>
-        <td class="text-xs">${r.month||'—'}</td>
-        <td class="text-xs">${r.target||'—'}</td>
+        <td><span class="badge badge-gray" style="font-size:10px">${esc(r.month||'—')}</span></td>
+        <td class="text-xs">${esc(r.target||'—')}</td>
         <td>${canEdit()
           ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:90px" data-status-sched="${r.id}">
               ${['planned','active','done'].map(s=>`<option ${r.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
             </select>`
           :`<span class="badge ${statusBadge(r.status)}">${r.status}</span>`}
         </td>
-        ${canEdit()?`<td><button class="btn btn-sm btn-danger" data-del-sched="${r.id}">✕</button></td>`:''}
+        ${canEdit()?`<td><div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-sched="${r.id}" title="Edit">✏</button><button class="btn btn-sm btn-danger" data-del-sched="${r.id}" title="Delete">✕</button></div></td>`:''}
       </tr>`).join('')}
-      ${!rows.length?'<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px;font-style:italic">No programmes yet</td></tr>':''}</tbody>
+      </tbody>
     </table></div>
   </div>`;
-}).join('')}`
+}).join('')}
+${filteredSched.length===0&&mf?`<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No programmes scheduled for ${mf}. <button class="btn btn-ghost btn-sm ml-2" onclick="S.schedMonthFilter='';render()">Show all months</button></div>`:''}
+`}
+
+function printSchedule(){
+  const mf=S.schedMonthFilter||'';
+  const rows=mf?S.schedule.filter(r=>r.month===mf):S.schedule;
+  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const statusColor=s=>s==='done'?'#065f46':s==='active'?'#92400e':'#374151';
+  const statusBg=s=>s==='done'?'#d1fae5':s==='active'?'#fef3c7':'#f3f4f6';
+  const typeColor=t=>t==='Cambridge'?'#5b21b6':t==='External'?'#92400e':t==='COBIS'?'#065f46':'#1e40af';
+  const typeBg=t=>t==='Cambridge'?'#ede9fe':t==='External'?'#fef3c7':t==='COBIS'?'#d1fae5':'#dbeafe';
+  let html='<!DOCTYPE html><html><head><title>Waad Academy — Annual CPD Schedule'+(mf?' ('+mf+')':'')+'</title>';
+  html+='<style>body{font-family:"Segoe UI",sans-serif;padding:24px;font-size:11px;color:#1a1a2e;max-width:1050px;margin:0 auto}';
+  html+='h1{color:#1F4E79;font-size:17px;margin:0}';
+  html+='.meta{color:#6b7280;font-size:10px;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #1F4E79;display:flex;justify-content:space-between;align-items:center;margin-top:4px}';
+  html+='.cat-head{background:#1F4E79;color:#fff;padding:5px 10px;font-weight:700;font-size:11px;border-radius:4px 4px 0 0;margin-top:14px}';
+  html+='table{width:100%;border-collapse:collapse;margin-bottom:4px}';
+  html+='th{padding:5px 8px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;background:#f9fafb;border-bottom:2px solid #e5e7eb}';
+  html+='td{padding:5px 8px;border-bottom:1px solid #f3f4f6;font-size:11px;vertical-align:top}';
+  html+='.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600}';
+  html+='@media print{button{display:none!important}}</style></head><body>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:start">';
+  html+='<div><h1>🏫 Waad Academy — Annual CPD & Training Schedule</h1>';
+  html+='<div class="meta"><span>'+(mf?'Month: <strong>'+safe(mf)+'</strong> &nbsp;·&nbsp; ':'All Months &nbsp;·&nbsp; ')+'<strong>'+rows.length+'</strong> programmes listed</span><span>Printed: '+new Date().toLocaleDateString()+'</span></div></div>';
+  html+='<button onclick="window.print()" style="padding:5px 12px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-top:4px;flex-shrink:0">🖨 Print / Save PDF</button></div>';
+  SCHED_CATS.forEach(cat=>{
+    const catRows=rows.filter(r=>r.category===cat);
+    if(!catRows.length)return;
+    html+='<div class="cat-head">'+safe(cat)+' ('+catRows.length+')</div>';
+    html+='<table><thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Duration</th><th>Dates</th><th>Month</th><th>Venue</th><th>Target</th><th>Status</th></tr></thead><tbody>';
+    catRows.forEach(r=>{
+      const sc=statusColor(r.status);const sb=statusBg(r.status);
+      const tc=typeColor(r.type);const tb=typeBg(r.type);
+      html+='<tr>';
+      html+='<td style="font-weight:600">'+safe(r.program)+(r.cpdId?' 🔗':'')+'</td>';
+      html+='<td>'+safe(r.facilitator||'—')+'</td>';
+      html+='<td><span class="pill" style="background:'+tb+';color:'+tc+'">'+safe(r.type||'—')+'</span></td>';
+      html+='<td>'+safe(r.duration||'—')+'</td>';
+      html+='<td>'+(r.startDate||'—')+(r.endDate&&r.endDate!==r.startDate?' → '+r.endDate:'')+'</td>';
+      html+='<td>'+safe(r.month||'—')+'</td>';
+      html+='<td>'+safe(r.venue||'—')+'</td>';
+      html+='<td>'+safe(r.target||'—')+'</td>';
+      html+='<td><span class="pill" style="background:'+sb+';color:'+sc+'">'+safe(r.status)+'</span></td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table>';
+  });
+  html+='<div style="margin-top:16px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy School Improvement Platform &middot; Annual CPD Schedule &middot; '+new Date().toLocaleDateString()+'</div>';
+  html+='</body></html>';
+  const w=window.open('','_blank','width=1100,height=900');
+  w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);
+}
+
+function exportScheduleExcel(){
+  // Build a CSV-based Excel-compatible download with full formatting context
+  // Since we're in a vanilla JS app, we use SheetJS-style CSV that Excel opens natively
+  const mf=S.schedMonthFilter||'';
+  const rows=mf?S.schedule.filter(r=>r.month===mf):S.schedule;
+  const header=['Category','Programme','Facilitator','Type','Delivery','Duration','Start Date','End Date','Month','Venue','Target Audience','Status'];
+  const data=rows.map(r=>[r.category||'',r.program||'',r.facilitator||'',r.type||'',r.delivery||'',r.duration||'',r.startDate||'',r.endDate||'',r.month||'',r.venue||'',r.target||'',r.status||'']);
+  // Add summary rows at top
+  const summaryRows=[
+    ['Waad Academy — Annual CPD & Training Schedule','','','','','','','','','','',''],
+    [mf?'Month: '+mf:'All Months','','Total Programmes: '+rows.length,'','','','','','','','',''],
+    ['Printed: '+new Date().toLocaleDateString(),'','','','','','','','','','',''],
+    ['','','','','','','','','','','',''],
+    header
+  ];
+  const allRows=[...summaryRows,...data];
+  const csv=allRows.map(r=>r.map(v=>{const s=String(v||'').replace(/"/g,'""');return '"'+s+'"';}).join(',')).join('\r\n');
+  // Use BOM for Excel UTF-8 detection
+  const bom='\uFEFF';
+  const blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='Waad-Academy-Annual-Schedule'+(mf?'-'+mf:'')+'-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Excel-compatible file downloaded ✓');
 }
 
 function renderTeachers(){
@@ -755,11 +850,11 @@ ${tab==='obs'?`
     return `<div class="card" style="border-left:3px solid var(--navy)">
       <div class="flex justify-between items-center mb-2">
         <div>
-          <span style="font-weight:700;direction:auto">${t?t.name:'Whole School/Dept'}</span>
+          <span style="font-weight:700;direction:auto">${t?esc(t.name):'Whole School/Dept'}</span>
           <span class="text-xs text-muted ml-2">${o.date} · ${o.observer||'—'}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
         </div>
         <div class="flex gap-1 items-center">
-          ${o.bio?'<span class="badge badge-purple">'+o.bio+'</span>':''}
+          ${o.bio?'<span class="badge badge-purple">'+esc(o.bio)+'</span>':''}
           ${da?'<span class="badge badge-blue">'+da.toFixed(1)+'/5</span>':''}
           ${o.slLinked?'<span class="badge badge-green" style="font-size:10px">📎 Steplab</span>':''}
           ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-obs="${o.id}">✏</button><button class="btn btn-sm btn-ghost" onclick="printObs('${o.id}')" title="Print">🖨</button><button class="btn btn-sm btn-danger" data-del-obs="${o.id}">✕</button>`:''}
@@ -986,7 +1081,6 @@ function printObs(id){
   const o=S.observations.find(x=>x.id===id);if(!o)return;
   const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;
   const doms=getDomains();
-  // Safe text encoder for print window
   const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>');
   let domTable='';
   doms.forEach(d=>{
@@ -994,7 +1088,7 @@ function printObs(id){
     domTable+='<div style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
     domTable+='<div style="background:#1F4E79;color:#fff;padding:6px 12px;font-weight:700;font-size:13px">'+safe(d.n)+'</div>';
     domTable+='<table style="width:100%;border-collapse:collapse">';
-    domTable+='<tr style="background:#f9fafb"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#6b7280">Criterion</th><th style="padding:6px 10px;text-align:center;width:120px;font-size:11px;color:#6b7280">Score (1–5)</th></tr>';
+    domTable+='<tr style="background:#f9fafb"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#6b7280">Criterion</th><th style="padding:6px 10px;text-align:center;width:120px;font-size:11px;color:#6b7280">Score (1\u20135)</th></tr>';
     d.criteria.forEach((c,i)=>{
       const sc=scores[i]||0;
       const bc=sc>=4?'#065f46':sc>=3?'#92400e':sc>0?'#991b1b':'#374151';
@@ -1005,13 +1099,13 @@ function printObs(id){
     domTable+='</table></div>';
   });
   const tName=t?safe(t.name):'Whole School/Dept';
-  const tMeta=t?' · '+safe(t.dept)+' · '+safe(t.section)+' · '+safe(t.stage):'';
-  const periodLine=(o.period||o.gradeClass)?'<div style="margin-bottom:12px;font-size:12px;color:#6b7280">'+(o.period?'🕐 Period: <strong>'+safe(o.period)+'</strong>&nbsp;':'')+(o.gradeClass?'🏫 Class: <strong>'+safe(o.gradeClass)+'</strong>':'')+'</div>':'';
+  const tMeta=t?' \u00b7 '+safe(t.dept)+' \u00b7 '+safe(t.section)+' \u00b7 '+safe(t.stage):'';
+  const periodLine=(o.period||o.gradeClass)?'<div style="margin-bottom:12px;font-size:12px;color:#6b7280">'+(o.period?'\ud83d\udd50 Period: <strong>'+safe(o.period)+'</strong>&nbsp;':'')+(o.gradeClass?'\ud83c\udfeb Class: <strong>'+safe(o.gradeClass)+'</strong>':'')+'</div>':'';
   const techLine=(o.bio||o.customTech)?'<div style="margin-bottom:12px"><span class="pill purple">Technique: '+safe(o.customTech||o.bio)+'</span></div>':'';
-  const wwwLine=o.www?'<div class="section"><div class="section-title">✅ Key Strengths (WWW)</div><div class="section-content">'+safe(o.www)+'</div></div>':'';
-  const ebiLine=o.ebi?'<div class="section"><div class="section-title">🎯 Areas for Development (EBI)</div><div class="section-content">'+safe(o.ebi)+'</div></div>':'';
-  const actLine=o.action?'<div class="section"><div class="section-title">📎 Action Step → Steplab</div><div class="section-content">'+safe(o.action)+'</div></div>':'';
-  const confLine=o.conf?'<div class="section"><div class="section-title">💡 Teacher Confidence</div><div class="section-content">'+('★'.repeat(o.conf)+'☆'.repeat(5-o.conf))+' ('+o.conf+'/5)</div></div>':'';
+  const wwwLine=o.www?'<div class="section"><div class="section-title">\u2705 Key Strengths (WWW)</div><div class="section-content">'+safe(o.www)+'</div></div>':'';
+  const ebiLine=o.ebi?'<div class="section"><div class="section-title">\ud83c\udfaf Areas for Development (EBI)</div><div class="section-content">'+safe(o.ebi)+'</div></div>':'';
+  const actLine=o.action?'<div class="section"><div class="section-title">\ud83d\udcce Action Step \u2192 Steplab</div><div class="section-content">'+safe(o.action)+'</div></div>':'';
+  const confLine=o.conf?'<div class="section"><div class="section-title">\ud83d\udca1 Teacher Confidence</div><div class="section-content">'+('\u2605'.repeat(o.conf)+'\u2606'.repeat(5-o.conf))+' ('+o.conf+'/5)</div></div>':'';
   const w=window.open('','_blank','width=850,height=1100');
   w.document.write('<!DOCTYPE html><html><head><title>Observation \u2014 '+tName+'</title>'
   +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:780px;margin:0 auto}'
@@ -1030,11 +1124,9 @@ function printObs(id){
   +'</div>'
   +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">&#128424; Print / Save PDF</button>'
   +'</div>'
-  +periodLine
-  +techLine
+  +periodLine+techLine
   +'<h3 style="color:#1F4E79;font-size:14px;margin-bottom:12px">&#128202; 5-Domain Observation Scores</h3>'
-  +domTable
-  +wwwLine+ebiLine+actLine+confLine
+  +domTable+wwwLine+ebiLine+actLine+confLine
   +'<div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">'
   +'Waad Academy School Improvement Platform &middot; Printed '+new Date().toLocaleDateString()+' &middot; Observation ID: '+safe(o.id)
   +'</div></body></html>');
@@ -1644,12 +1736,12 @@ function renderModal(type, data={}){
     const techVal=data.customTech?'Other':(data.bio||'');
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       `<div class="form-group"><label class="form-label">Teacher</label>
-       <input class="form-control" id="obs-tid-search" list="obs-tid-list" placeholder="Type to search teacher…" value="${preT?((scopedTeachers().find(t=>t.id===preT)||{}).name||''):''}">
+       <input class="form-control" id="obs-tid-search" list="obs-tid-list" placeholder="Type to search teacher…" value="${preT?esc((scopedTeachers().find(t=>t.id===preT)||{}).name||''):''}">
        <datalist id="obs-tid-list">
          <option value="">— Whole School / Dept —</option>
-         ${scopedTeachers().map(t=>`<option value="${t.name} (${t.dept})" data-id="${t.id}">${t.name} (${t.dept})</option>`).join('')}
+         ${scopedTeachers().map(t=>`<option value="${esc(t.name+' ('+t.dept+')')}">${esc(t.name+' ('+t.dept+')')}</option>`).join('')}
        </datalist>
-       <input type="hidden" id="obs-tid" value="${preT}">
+       <input type="hidden" id="obs-tid" value="${esc(preT)}">
        </div>`+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
       G2(FI('obs-period','Time / Period',data.period||'','text','e.g. Period 3 · 10:00–10:45'),FS('obs-grade','Grade / Class',['— Select —',...GRADES],data.gradeClass||''))+
@@ -1717,15 +1809,17 @@ function renderModal(type, data={}){
   }
 
   if(type==='sched'){
-    return M('🗓 Add Schedule Entry',
-      FS('sch-cat','Category',SCHED_CATS,SCHED_CATS[0])+
-      FI('sch-prog','Programme Name','','text','e.g. Cambridge PDQ Teaching & Learning')+
-      G2(FI('sch-fac','Facilitator',''),FI('sch-target','Target Audience',''))+
-      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],'Internal'),
-         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],'Workshop'))+
-      G2(FI('sch-dur','Duration','','text','e.g. 60 min'),FS('sch-month','Month',MONTHS,MONTHS[0]))+
-      G2(FI('sch-start','Start Date','','date'),FI('sch-end','End Date','','date')),
-      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>Save</button>'
+    const isSchedEdit=!!(data.id);
+    return M((isSchedEdit?'✏ Edit':'🗓 Add')+' Schedule Entry',
+      FS('sch-cat','Category',SCHED_CATS,data.category||SCHED_CATS[0])+
+      FI('sch-prog','Programme Name',data.program||'','text','e.g. Cambridge PDQ Teaching & Learning')+
+      G2(FI('sch-fac','Facilitator',data.facilitator||''),FI('sch-target','Target Audience',data.target||''))+
+      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],data.type||'Internal'),
+         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],data.delivery||'Workshop'))+
+      G2(FI('sch-dur','Duration',data.duration||'','text','e.g. 60 min'),FS('sch-month','Month',MONTHS,data.month||MONTHS[0]))+
+      G2(FI('sch-start','Start Date',data.startDate||'','date'),FI('sch-end','End Date',data.endDate||'','date'))+
+      FI('sch-venue','Venue',data.venue||'','text','e.g. Auditorium, Online, TBC'),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>${isSchedEdit?'Update Entry':'Save Entry'}</button>`
     );
   }
 
@@ -1955,17 +2049,6 @@ function bindEvents(){
     el.onclick=()=>{S.cpdTab=el.dataset.cpdTab;render();};
   });
 
-  // ── Observation (Fieldwork) 3-row dept/section/stage filter ──────────────
-  document.querySelectorAll('[data-fw-dept]').forEach(el=>{
-    el.onclick=()=>{const d=el.dataset.fwDept;if(d===''){S.fwDepts=[];}else{if(!S.fwDepts)S.fwDepts=[];const i=S.fwDepts.indexOf(d);if(i>=0)S.fwDepts.splice(i,1);else S.fwDepts.push(d);}render();};
-  });
-  document.querySelectorAll('[data-fw-sect]').forEach(el=>{
-    el.onclick=()=>{const s=el.dataset.fwSect;if(s===''){S.fwSects=[];}else{if(!S.fwSects)S.fwSects=[];const i=S.fwSects.indexOf(s);if(i>=0)S.fwSects.splice(i,1);else S.fwSects.push(s);}render();};
-  });
-  document.querySelectorAll('[data-fw-stage]').forEach(el=>{
-    el.onclick=()=>{const s=el.dataset.fwStage;if(s===''){S.fwStages=[];}else{if(!S.fwStages)S.fwStages=[];const i=S.fwStages.indexOf(s);if(i>=0)S.fwStages.splice(i,1);else S.fwStages.push(s);}render();};
-  });
-
   // ── Dashboard 3-row multi-filter ─────────────────────────────────────
   document.querySelectorAll('[data-dash-dept]').forEach(el=>{
     el.onclick=()=>{const d=el.dataset.dashDept;if(d===''){S.dashDepts=[];}else{if(!S.dashDepts)S.dashDepts=[];const i=S.dashDepts.indexOf(d);if(i>=0)S.dashDepts.splice(i,1);else S.dashDepts.push(d);}render();};
@@ -2077,7 +2160,18 @@ function bindEvents(){
     };
   });
 
-  // ── Obs teacher search: sync datalist to hidden id field ──────────────
+  // ── Observation (Fieldwork) 3-row dept/section/stage filter ──────────────
+  document.querySelectorAll('[data-fw-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.fwDept;if(d===''){S.fwDepts=[];}else{if(!S.fwDepts)S.fwDepts=[];const i=S.fwDepts.indexOf(d);if(i>=0)S.fwDepts.splice(i,1);else S.fwDepts.push(d);}render();};
+  });
+  document.querySelectorAll('[data-fw-sect]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.fwSect;if(s===''){S.fwSects=[];}else{if(!S.fwSects)S.fwSects=[];const i=S.fwSects.indexOf(s);if(i>=0)S.fwSects.splice(i,1);else S.fwSects.push(s);}render();};
+  });
+  document.querySelectorAll('[data-fw-stage]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.fwStage;if(s===''){S.fwStages=[];}else{if(!S.fwStages)S.fwStages=[];const i=S.fwStages.indexOf(s);if(i>=0)S.fwStages.splice(i,1);else S.fwStages.push(s);}render();};
+  });
+
+  // ── Obs teacher datalist sync ─────────────────────────────────────────────
   const obsTidSearch=document.getElementById('obs-tid-search');
   if(obsTidSearch){
     const syncObsTid=()=>{
@@ -2130,10 +2224,11 @@ function bindEvents(){
     });
     const editId=S.editingId?.type==='obs'?S.editingId.id:null;
     const existing=editId?S.observations.find(o=>o.id===editId):{};
+    const gradeRaw=gv('obs-grade')||'';
     const obs={
       ...(existing||{}),
       id:editId||uid(),tid:tid||null,date:gv('obs-date'),observer:gv('obs-obs'),
-      period:gv('obs-period')||'',gradeClass:(gv('obs-grade')||'')==='— Select —'?'':(gv('obs-grade')||''),
+      period:gv('obs-period')||'',gradeClass:gradeRaw==='— Select —'?'':gradeRaw,
       scope:gv('obs-scope'),bio:bio==='— None —'||bio===''?'':bio,customTech:customTech||'',
       scores,conf:parseInt(gv('obs-conf'))||0,
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
@@ -2207,14 +2302,23 @@ function bindEvents(){
   if(saveSched)saveSched.onclick=()=>{
     const prog=gv('sch-prog');
     if(!prog.trim()){showToast('Please enter a programme name','error');return;}
-    const row={id:uid(),category:gv('sch-cat'),program:prog,facilitator:gv('sch-fac'),
+    const editId=S.editingId?.type==='sched'?S.editingId.id:null;
+    const existing=editId?S.schedule.find(r=>r.id===editId):null;
+    const row={
+      ...(existing||{}),
+      id:editId||uid(),
+      category:gv('sch-cat'),program:prog,facilitator:gv('sch-fac'),
       delivery:gv('sch-del'),type:gv('sch-type'),duration:gv('sch-dur'),
       month:gv('sch-month'),startDate:gv('sch-start'),endDate:gv('sch-end'),
-      venue:'TBC',target:gv('sch-target'),status:'planned',cpdId:null};
-    S.schedule=[...S.schedule,row];
+      venue:gv('sch-venue')||existing?.venue||'TBC',
+      target:gv('sch-target'),
+      status:existing?.status||'planned',
+      cpdId:existing?.cpdId||null
+    };
+    S.schedule=editId?S.schedule.map(r=>r.id===editId?row:r):[...S.schedule,row];
     save('sched',S.schedule);
-    S.modal=null;
-    showToast('Schedule entry saved ✓');
+    S.modal=null;S.editingId=null;
+    showToast(editId?'Schedule entry updated ✓':'Schedule entry saved ✓');
   };
 
   const saveTch=document.querySelector('[data-save-teacher]');
@@ -2395,6 +2499,23 @@ function bindEvents(){
   // Schedule CSV export
   document.querySelectorAll('[data-export-sched]').forEach(el=>{
     el.onclick=()=>exportCSV('annual-schedule.csv',S.schedule.map(r=>({category:r.category,program:r.program,facilitator:r.facilitator,type:r.type,month:r.month,startDate:r.startDate,endDate:r.endDate,status:r.status})));
+  });
+  // Schedule month filter pills
+  document.querySelectorAll('[data-sched-month]').forEach(el=>{
+    el.onclick=()=>{S.schedMonthFilter=el.dataset.schedMonth;render();};
+  });
+  // Schedule print button
+  const printSchedBtn=document.getElementById('print-sched-btn');
+  if(printSchedBtn)printSchedBtn.onclick=()=>printSchedule();
+  // Schedule Excel export button
+  const excelSchedBtn=document.getElementById('excel-sched-btn');
+  if(excelSchedBtn)excelSchedBtn.onclick=()=>exportScheduleExcel();
+  // Edit schedule row
+  document.querySelectorAll('[data-edit-sched]').forEach(el=>{
+    el.onclick=()=>{
+      const r=S.schedule.find(s=>s.id===el.dataset.editSched);
+      if(r){S.editingId={type:'sched',id:r.id};S.modal=renderModal('sched',r);render();}
+    };
   });
   const saveBrand=document.querySelector('[data-save-brand]');
   if(saveBrand)saveBrand.onclick=()=>{
