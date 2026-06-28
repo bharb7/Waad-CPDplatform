@@ -146,9 +146,9 @@ const MECHS=[{id:1,g:'A',l:'Prior knowledge activation'},{id:2,g:'A',l:'Explicit
 const DH_PILLARS=[{id:1,l:'Content Focused',c:'#1F4E79'},{id:2,l:'Active Learning',c:'#0F6E56'},{id:3,l:'Collaboration ★',c:'#3C3489'},{id:4,l:'Models of Practice',c:'#7B4F0C'},{id:5,l:'Coaching ★',c:'#993C1D'},{id:6,l:'Feedback & Reflection ★',c:'#375C15'}];
 const DEFAULT_DOMAINS=[{id:'d1',n:'Planning',criteria:['Engaging starter','Real-life connection','Learning objectives','Plenary & mastery']},{id:'d2',n:'Environment',criteria:['Cultural identity','Engagement & motivation','Classroom management']},{id:'d3',n:'AFL',criteria:['Level descriptors','Questioning (CFU)','Peer & self-evaluation','Verbal & written feedback','Performance target']},{id:'d4',n:'Active Learning',criteria:['Inquiry-based','Peer collaboration','Hands-on activities','Reflection & metacognition']},{id:'d5',n:'Adaptive',criteria:['Inclusion/SEN','Independence','Digital learning','Scaffolding & differentiation']}];
 function getDomains(){return S.customDomains&&S.customDomains.length===5?S.customDomains:DEFAULT_DOMAINS;}
-const DEFAULT_ROLES={admin:{label:'Administrator',views:['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'],canEdit:true,scoped:false,sections:[]},obsLead:{label:'Observation Lead',views:['dashboard','schedule','teachers','fieldwork','impact'],canEdit:true,scoped:false,sections:[]},coachLead:{label:'Coaching Lead',views:['dashboard','cpd','impact'],canEdit:true,scoped:false,sections:[]},cpdLead:{label:'CPD Lead',views:['dashboard','schedule','cpd','impact'],canEdit:true,scoped:false,sections:[]},deptHead:{label:'Department Coordinator',views:['dashboard','fieldwork','cpd'],canEdit:true,scoped:true,sections:[]},viewer:{label:'Viewer',views:['dashboard','fieldwork','impact','resources'],canEdit:false,scoped:false,sections:[]}};
+const DEFAULT_ROLES={admin:{label:'Administrator',views:['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'],canEdit:true,scoped:false,sections:[]},obsLead:{label:'Observation Lead',views:['dashboard','schedule','teachers','fieldwork','impact'],canEdit:true,scoped:false,sections:[]},coachLead:{label:'Coaching Lead',views:['dashboard','cpd','impact'],canEdit:true,scoped:false,sections:[]},cpdLead:{label:'CPD Lead',views:['dashboard','schedule','cpd','impact'],canEdit:true,scoped:false,sections:[]},deptHead:{label:'Department Coordinator',views:['dashboard','fieldwork','cpd'],canEdit:true,scoped:true,sections:[]},viewer:{label:'Viewer',views:['dashboard','fieldwork','impact','resources'],canEdit:false,scoped:false,sections:[]},teacher:{label:'Teacher',views:['myportal'],canEdit:false,scoped:false,sections:[]}};
 const ALL_VIEWS=['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'];
-const VIEW_META={dashboard:{label:'Dashboard',icon:'📊'},schedule:{label:'Annual Schedule',icon:'🗓'},teachers:{label:'Teachers',icon:'👩‍🏫'},fieldwork:{label:'Observations & Learning Walks',icon:'📋'},cpd:{label:'CPD & Coaching',icon:'📚'},impact:{label:'Impact',icon:'📈'},process:{label:'Process Audit',icon:'✅'},resources:{label:'Resources',icon:'📂'},steplab:{label:'Steplab',icon:'🔗'},settings:{label:'Settings',icon:'⚙️'}};
+const VIEW_META={dashboard:{label:'Dashboard',icon:'📊'},schedule:{label:'Annual Schedule',icon:'🗓'},teachers:{label:'Teachers',icon:'👩‍🏫'},fieldwork:{label:'Observations',icon:'📋'},cpd:{label:'CPD & Coaching',icon:'📚'},impact:{label:'Impact',icon:'📈'},process:{label:'Process Audit',icon:'✅'},resources:{label:'Resources',icon:'📂'},steplab:{label:'Steplab',icon:'🔗'},settings:{label:'Settings',icon:'⚙️'},myportal:{label:'My Portal',icon:'👤'}};
 const DEFAULT_RESOURCES=[{id:'r1',title:'Darling-Hammond (2017) — Effective Teacher PD',url:'https://learningpolicyinstitute.org/product/effective-teacher-professional-development-report',desc:'Six pillars of effective CPD'},{id:'r2',title:'EEF (2021) — Effective Professional Development',url:'https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF-Effective-Professional-Development-Guidance-Report.pdf',desc:'14 CPD mechanisms'},{id:'r3',title:'EEF — Balanced Design Worksheet',url:'https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF_PD_Planning_resource.pdf',desc:'A·B·C·D balanced design'},{id:'r4',title:'DfE — NPQ Senior Leadership Framework',url:'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1018004/NPQ_Senior_Leadership.pdf',desc:'Section 6: Professional Development'},{id:'r5',title:'Best Practice Network — NPQSL',url:'https://www.bestpracticenet.co.uk/national-professional-qualification-for-senior-leadership',desc:'CARE and GROW frameworks'},{id:'r6',title:'Biol-Og CPD Booklets (Kerensa Ogbe)',url:'https://biol-og.com/cpd-booklets/',desc:'Evidence-informed CPD booklets'},{id:'r7',title:'NEASC — Accreditation & Learning Principles',url:'https://www.neasc.org/schools/accreditation-process',desc:'10 Learning Principles'},{id:'r8',title:'Steplab — Micro-Practice Platform',url:'https://steplab.co',desc:'Action steps and practice tracking'},{id:'r9',title:'Cambridge PDQ Teaching & Learning',url:'https://www.cambridgeinternational.org/professional-development/cambridge-pdq/',desc:'In-school Cambridge programme'}];
 const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},{id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},{id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},{id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null}];
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
@@ -228,7 +228,7 @@ async function saveSchoolSettings(){
 
 function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||''}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||''}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:'',fid:'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false}}
 function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
 function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
@@ -256,8 +256,22 @@ async function save(k,v){
     else if(k==='resources') await sbUpsert('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0})));
   }catch(e){console.warn('Supabase save failed for',k,e);}
 }
-async function sbRemove(table,id){if(!SCHOOL_ID)return;await sbDelete(table,id);}
-function getAllUsers(){const local=S.users||[];const merged=[...SEED_USERS];local.forEach(lu=>{if(!merged.find(su=>su.username===lu.username))merged.push(lu);});return merged;}
+async function sbRemove(table,id){
+  if(!SCHOOL_ID)return;
+  // Skip DB delete for seed IDs that are not valid UUIDs (e.g. 'sc1','sc2')
+  const uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if(!uuidRe.test(id))return;
+  await sbDelete(table,id);
+}
+function getAllUsers(){
+  const local=S.users||[];
+  const merged=SEED_USERS.map(su=>{
+    const override=local.find(lu=>lu.id===su.id);
+    return override?{...su,...override}:su;
+  });
+  local.forEach(lu=>{if(!merged.find(m=>m.id===lu.id))merged.push(lu);});
+  return merged;
+}
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function avg(arr){const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0}
@@ -337,7 +351,6 @@ function render(){
 function showToast(msg,type='success'){
   clearTimeout(S.toastTimer);
   S.toast={msg,type};
-  // Log successful actions
   if(type==='success'&&S.session) logActivity(msg);
   render();
   S.toastTimer=setTimeout(()=>{S.toast=null;render();},3000);
@@ -368,7 +381,8 @@ function renderLogin(){return `
 
 function renderApp(){
   const role=myRole();
-  const views=isAdmin()?ALL_VIEWS:(role.views||[]);
+  const isTeacherRole=S.session?.role==='teacher';
+  const views=isAdmin()?ALL_VIEWS:isTeacherRole?['myportal','resources']:(role.views||[]);
   return `
 ${S.toast?renderToast():''}
 ${S.modal?S.modal:''}
@@ -422,13 +436,14 @@ function renderView(){
     case 'schedule': return renderSchedule();
     case 'teachers': return renderTeachers();
     case 'fieldwork': return renderFieldwork();
-    case 'triplets': return renderCPD(); // triplets now embedded in CPD & Coaching tab
+    case 'triplets': return renderCPD();
     case 'cpd': return renderCPD();
     case 'impact': return renderImpact();
     case 'process': return renderProcess();
     case 'resources': return renderResources();
     case 'steplab': return renderSteplab();
     case 'settings': return renderSettings();
+    case 'myportal': return renderMyPortal();
     default: return '<p>Coming soon</p>';
   }
 }
@@ -582,23 +597,17 @@ function renderSchedule(){
   const df=S.schedDateFrom||'';
   const dt=S.schedDateTo||'';
   const curMonthName=new Date().toLocaleString('en',{month:'long'});
-  // Apply filters
   let filteredSched=S.schedule.slice();
   if(mf) filteredSched=filteredSched.filter(r=>r.month===mf);
   if(df) filteredSched=filteredSched.filter(r=>(r.startDate||r.endDate||'')>=df);
   if(dt) filteredSched=filteredSched.filter(r=>(r.startDate||r.endDate||'')<=(dt+'Z'));
-  // Detect scheduling conflicts (same date, same target/venue)
+  // Conflict detection
   const conflicts=new Set();
-  filteredSched.forEach((r,i)=>{
-    filteredSched.forEach((r2,j)=>{
-      if(i>=j)return;
-      if(!r.startDate||!r2.startDate)return;
-      const overlap=r.startDate<=( r2.endDate||r2.startDate)&&(r.endDate||r.startDate)>=r2.startDate;
-      if(overlap&&(r.target===r2.target||r.venue===r2.venue)&&r.target&&r.target!=='—'){
-        conflicts.add(r.id);conflicts.add(r2.id);
-      }
-    });
-  });
+  filteredSched.forEach((r,i)=>{filteredSched.forEach((r2,j)=>{
+    if(i>=j)return;if(!r.startDate||!r2.startDate)return;
+    const overlap=r.startDate<=(r2.endDate||r2.startDate)&&(r.endDate||r.startDate)>=r2.startDate;
+    if(overlap&&(r.target===r2.target||r.venue===r2.venue)&&r.target&&r.target!=='—'){conflicts.add(r.id);conflicts.add(r2.id);}
+  });});
   const statusBadge=s=>s==='done'?'badge-green':s==='active'?'badge-amber':'badge-gray';
   const hasFilter=mf||df||dt;
   return `
@@ -618,7 +627,7 @@ function renderSchedule(){
     ${(df||dt)?`<button class="btn btn-ghost btn-sm" onclick="S.schedDateFrom='';S.schedDateTo='';render()">✕ Clear dates</button>`:''}
   </div>
 </div>
-${conflicts.size?`<div class="alert alert-warn mb-3">⚠️ <strong>Schedule conflicts detected</strong> — ${conflicts.size/2} overlap(s) found between programmes targeting the same audience/venue on overlapping dates. Rows are highlighted below.</div>`:''}
+${conflicts.size?`<div class="alert alert-warn mb-3">⚠️ <strong>Schedule conflicts detected</strong> — rows highlighted below overlap in audience/venue and dates.</div>`:''}
 <div class="flex justify-between items-center mb-3">
   <div class="flex gap-2" style="flex-wrap:wrap">
     ${canEdit()?'<button class="btn btn-primary" data-modal="sched">+ Add Programme</button>':''}
@@ -631,7 +640,6 @@ ${conflicts.size?`<div class="alert alert-warn mb-3">⚠️ <strong>Schedule con
 ${cats.map(cat=>{
   let rows=filteredSched.filter(r=>r.category===cat);
   if(!rows.length) return'';
-  // Sort by start date within each category
   rows=rows.slice().sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   return `<div class="card">
     <div class="flex justify-between items-center mb-2">
@@ -640,7 +648,7 @@ ${cats.map(cat=>{
     </div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Venue</th><th>Target</th><th>Cost</th><th>Status</th>${canEdit()?'<th style="min-width:80px"></th>':''}</tr></thead>
-      <tbody>${rows.map(r=>`<tr style="${conflicts.has(r.id)?'background:#fff7ed;border-left:3px solid #f59e0b':''}" title="${conflicts.has(r.id)?'⚠ Conflict: overlaps with another programme for same audience/venue':''}">
+      <tbody>${rows.map(r=>`<tr style="${conflicts.has(r.id)?'background:#fff7ed;border-left:3px solid #f59e0b':''}">
         <td style="font-weight:600;direction:auto">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}${conflicts.has(r.id)?'<span class="badge badge-amber ml-1" style="font-size:10px">⚠ conflict</span>':''}</td>
         <td class="text-xs">${esc(r.facilitator||'—')}</td>
         <td><span class="badge badge-${r.type==='Cambridge'?'purple':r.type==='External'?'amber':r.type==='COBIS'?'green':'blue'}">${esc(r.type||'—')}</span></td>
@@ -666,46 +674,6 @@ ${cats.map(cat=>{
 }).join('')}
 ${filteredSched.length===0?`<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No programmes match the current filters. <button class="btn btn-ghost btn-sm ml-2" onclick="S.schedMonthFilter='';S.schedDateFrom='';S.schedDateTo='';render()">Clear filters</button></div>`:''}
 `}
-
-function printSchedule(){
-  const mf=S.schedMonthFilter||'';const df=S.schedDateFrom||'';const dt=S.schedDateTo||'';
-  let rows=S.schedule.slice();
-  if(mf)rows=rows.filter(r=>r.month===mf);
-  if(df)rows=rows.filter(r=>(r.startDate||'')>=df);
-  if(dt)rows=rows.filter(r=>(r.startDate||'')<=dt);
-  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const scColor=s=>s==='done'?'#065f46':s==='active'?'#92400e':'#374151';
-  const scBg=s=>s==='done'?'#d1fae5':s==='active'?'#fef3c7':'#f3f4f6';
-  let html='<!DOCTYPE html><html><head><title>Waad Academy — CPD Schedule</title><style>body{font-family:"Segoe UI",sans-serif;padding:24px;font-size:11px;color:#1a1a2e;max-width:1200px;margin:0 auto}h1{color:#1F4E79;font-size:17px;margin:0}.meta{color:#6b7280;font-size:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #1F4E79;margin-top:4px}.cat{background:#1F4E79;color:#fff;padding:5px 10px;font-weight:700;font-size:11px;border-radius:4px 4px 0 0;margin-top:14px}table{width:100%;border-collapse:collapse;margin-bottom:4px}th{padding:4px 6px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;background:#f9fafb;border-bottom:2px solid #e5e7eb}td{padding:4px 6px;border-bottom:1px solid #f3f4f6;font-size:10px;vertical-align:top}.pill{display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600}@media print{button{display:none!important}}</style></head><body>';
-  html+='<div style="display:flex;justify-content:space-between;align-items:start"><div><h1>&#127983; Waad Academy — Annual CPD & Training Schedule</h1><div class="meta"><span>'+(mf?'Month: <strong>'+safe(mf)+'</strong> · ':'')+( df||dt?(df?'From '+df:'')+(dt?' → '+dt:'') +' · ':'' )+'<strong>'+rows.length+'</strong> programmes</span><span>Printed: '+new Date().toLocaleDateString()+'</span></div></div><button onclick="window.print()" style="padding:5px 12px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-top:4px">&#128424; Print</button></div>';
-  getSchedCats().forEach(cat=>{
-    const catRows=rows.filter(r=>r.category===cat).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
-    if(!catRows.length)return;
-    html+='<div class="cat">'+safe(cat)+' ('+catRows.length+')</div><table><thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Venue</th><th>Target</th><th>Cost</th><th>Status</th></tr></thead><tbody>';
-    catRows.forEach(r=>{const sc=scColor(r.status);const sb=scBg(r.status);html+='<tr><td style="font-weight:600">'+safe(r.program)+'</td><td>'+safe(r.facilitator||'—')+'</td><td>'+safe(r.type||'—')+'</td><td>'+safe(r.time||'—')+'</td><td>'+safe(r.duration||'—')+'</td><td>'+safe(r.startDate||'—')+'</td><td>'+safe(r.endDate||'—')+'</td><td>'+safe(r.venue||'—')+'</td><td>'+safe(r.target||'—')+'</td><td>'+safe(r.cost||'—')+'</td><td><span class="pill" style="background:'+sb+';color:'+sc+'">'+safe(r.status)+'</span></td></tr>';});
-    html+='</tbody></table>';
-  });
-  html+='<div style="margin-top:14px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy School Improvement Platform · Annual Schedule · '+new Date().toLocaleDateString()+'</div></body></html>';
-  const w=window.open('','_blank','width=1200,height=900');w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);
-}
-
-function exportScheduleExcel(){
-  const mf=S.schedMonthFilter||'';const df=S.schedDateFrom||'';const dt=S.schedDateTo||'';
-  let rows=S.schedule.slice();
-  if(mf)rows=rows.filter(r=>r.month===mf);
-  if(df)rows=rows.filter(r=>(r.startDate||'')>=df);
-  if(dt)rows=rows.filter(r=>(r.startDate||'')<=dt);
-  rows.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
-  const header=['Category','Programme','Facilitator','Type','Delivery','Time','Duration','Start Date','End Date','Month','Venue','Target Audience','Cost','Status'];
-  const data=rows.map(r=>[r.category||'',r.program||'',r.facilitator||'',r.type||'',r.delivery||'',r.time||'',r.duration||'',r.startDate||'',r.endDate||'',r.month||'',r.venue||'',r.target||'',r.cost||'',r.status||'']);
-  const filterLabel=[mf?'Month: '+mf:'',df?'From: '+df:'',dt?'To: '+dt:''].filter(Boolean).join(' | ')||'All Programmes';
-  const summaryRows=[['Waad Academy — Annual CPD & Training Schedule','','','','','','','','','','','','',''],[ filterLabel,'','Total: '+rows.length,'','','','','','','','','','',''],['Printed: '+new Date().toLocaleDateString(),'','','','','','','','','','','','',''],['','','','','','','','','','','','','',''],header];
-  const allRows=[...summaryRows,...data];
-  const csv=allRows.map(r=>r.map(v=>{const s=String(v||'').replace(/"/g,'""');return '"'+s+'"';}).join(',')).join('\r\n');
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Waad-Schedule-'+new Date().toISOString().split('T')[0]+'.csv';a.click();URL.revokeObjectURL(url);
-  showToast('Excel file downloaded ✓');
-}
 
 function renderTeachers(){
   const q=(S.teacherSearch||'').toLowerCase();
@@ -826,40 +794,22 @@ function renderFieldwork(){
 </div>
 
 ${tab==='obs'?`
-  <div class="card mb-3" style="padding:10px 14px">
-    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Department:</span>
-      <div class="pill-opt ${(S.fwDepts||[]).length===0?'sel':''}" data-fw-dept="">All Depts</div>
-      ${DEPTS.map(d=>`<div class="pill-opt ${(S.fwDepts||[]).includes(d)?'sel':''}" data-fw-dept="${d}">${d}</div>`).join('')}
-    </div>
-    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Section:</span>
-      <div class="pill-opt ${(S.fwSects||[]).length===0?'sel':''}" data-fw-sect="">All</div>
-      ${SECTIONS.map(s=>`<div class="pill-opt ${(S.fwSects||[]).includes(s)?'sel':''}" data-fw-sect="${s}">${s}</div>`).join('')}
-    </div>
-    <div class="flex items-center gap-2" style="flex-wrap:wrap">
-      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Stage:</span>
-      <div class="pill-opt ${(S.fwStages||[]).length===0?'sel':''}" data-fw-stage="">All Stages</div>
-      ${STAGES.map(s=>`<div class="pill-opt ${(S.fwStages||[]).includes(s)?'sel':''}" data-fw-stage="${s}">${s}</div>`).join('')}
-    </div>
-    ${((S.fwDepts||[]).length||(S.fwSects||[]).length||(S.fwStages||[]).length)?`<div class="mt-2"><button class="btn btn-ghost btn-sm" onclick="S.fwDepts=[];S.fwSects=[];S.fwStages=[];render()">✕ Clear filters</button></div>`:''}
-  </div>
   <div class="flex justify-between items-center mb-3">
     ${canEdit()?'<button class="btn btn-primary" data-modal="obs">+ New Observation</button>':'<div></div>'}
-    <span class="text-xs text-muted">${fwFilteredObs().length} of ${obs.length} shown</span>
+    <span class="text-xs text-muted">${obs.length} observations recorded</span>
   </div>
-  ${fwFilteredObs().slice().reverse().map(o=>{
+  ${obs.slice().reverse().slice(0,20).map(o=>{
     const t=S.teachers.find(t=>t.id===o.tid);
     const da=domAvg(o.scores);
     const lps=[...(o.autoLPs||[]),(o.neasc||[])].flat().filter((v,i,a)=>a.indexOf(v)===i);
     return `<div class="card" style="border-left:3px solid var(--navy)">
       <div class="flex justify-between items-center mb-2">
         <div>
-          <span style="font-weight:700;direction:auto">${t?esc(t.name):'Whole School/Dept'}</span>
-          <span class="text-xs text-muted ml-2">${o.date} · ${o.observer||'—'}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
+          <span style="font-weight:700;direction:auto">${t?t.name:'Whole School/Dept'}</span>
+          <span class="text-xs text-muted ml-2">${o.date} · ${o.observer||'—'}</span>
         </div>
         <div class="flex gap-1 items-center">
-          ${o.bio?'<span class="badge badge-purple">'+esc(o.bio)+'</span>':''}
+          ${o.bio?'<span class="badge badge-purple">'+o.bio+'</span>':''}
           ${da?'<span class="badge badge-blue">'+da.toFixed(1)+'/5</span>':''}
           ${o.slLinked?'<span class="badge badge-green" style="font-size:10px">📎 Steplab</span>':''}
           ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-obs="${o.id}">✏</button><button class="btn btn-sm btn-ghost" onclick="printObs('${o.id}')" title="Print">🖨</button><button class="btn btn-sm btn-danger" data-del-obs="${o.id}">✕</button>`:''}
@@ -869,10 +819,10 @@ ${tab==='obs'?`
         ${getDomains().map(d=>{const s=avg(o.scores?.[d.id]||[]);return s?'<span class="badge badge-gray" style="font-size:10px">'+d.n+': '+s.toFixed(1)+'</span>':''}).join('')}
       </div>
       ${lps.length?'<div class="flex gap-1 mb-1">'+lps.map(l=>'<span class="badge badge-blue">'+l+'</span>').join('')+'</div>':''}
-      ${(o.period||o.gradeClass)?`<div class="flex gap-2 mb-1">${o.period?'<span class="badge badge-gray" style="font-size:10px">🕐 '+esc(o.period)+'</span>':''}${o.gradeClass?'<span class="badge badge-gray" style="font-size:10px">🏫 '+esc(o.gradeClass)+'</span>':''}</div>`:''}
-      ${o.www?'<div class="text-xs mb-1"><strong>WWW:</strong> '+esc(o.www)+'</div>':''}
-      ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+esc(o.ebi)+'</div>':''}
-      ${o.action?'<div class="text-xs mb-1"><strong>Action:</strong> '+esc(o.action)+'</div>':''}
+      ${o.www?'<div class="text-xs mb-1"><strong>WWW:</strong> '+o.www+'</div>':''}
+      ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+o.ebi+'</div>':''}
+      ${o.action?'<div class="text-xs mb-1"><strong>Action:</strong> '+o.action+'</div>':''}
+      ${o.teacherResponse?'<div class="text-xs mb-1" style="background:#f0fdf4;padding:4px 8px;border-radius:4px;border-left:3px solid #0F6E56"><strong>👤 Teacher Response:</strong> '+esc(o.teacherResponse)+'</div>':''}
       ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6">
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${o.slLinked?'var(--teal)':'var(--muted)'}">
           <input type="checkbox" data-sl-obs="${o.id}" ${o.slLinked?'checked':''}> 📎 Logged in Steplab
@@ -880,7 +830,7 @@ ${tab==='obs'?`
       </div>`:''}
     </div>`;
   }).join('')}
-  ${!fwFilteredObs().length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(obs.length?'No observations match the current filters.':'No observations yet. Click + New Observation to start.')+'</div>':''}
+  ${!obs.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No observations yet. Click + New Observation to start.</div>':''}
 `:''}
 
 ${tab==='lw'?`
@@ -952,6 +902,187 @@ ${tab==='cpd'?`
     </div>`;
   }).join('')}
   ${!cpds.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No CPD sessions yet.</div>':''}
+`:''}
+`}
+
+function renderMyPortal(){
+  // Find the teacher record linked to this session by name match
+  const myName=(S.session?.name||'').toLowerCase();
+  const me=S.teachers.find(t=>t.name.toLowerCase()===myName||t.name.toLowerCase().includes(myName.split(' ')[0]));
+  const myObs=me?S.observations.filter(o=>o.tid===me.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')):[];
+  const myTrips=me?S.triplets.filter(t=>t.oid===me.id||t.cid===me.id||t.fid===me.id):[];
+  const dept=me?.dept||'';
+  // Schedule: show entries where target includes dept, whole school, or boys/girls
+  const mySchedule=S.schedule.filter(r=>{
+    if(!r.target)return false;
+    const tgt=(r.target||'').toLowerCase();
+    return tgt.includes('all')||tgt.includes(dept.toLowerCase())||tgt.includes('whole')||
+           (me?.section&&tgt.includes(me.section.toLowerCase()));
+  }).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const tab=S.myPortalTab||'overview';
+
+  return `
+<div class="card mb-3" style="background:linear-gradient(135deg,#1F4E79,#0F6E56);color:#fff;border:none;padding:20px 22px">
+  <div class="flex justify-between items-center">
+    <div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">👤 ${esc(S.session?.name||'')}</div>
+      <div style="font-size:13px;opacity:.85">${me?esc(me.dept)+' · '+esc(me.section)+' · '+esc(me.stage):'Connect your teacher record in Settings'}</div>
+      ${me?`<div style="font-size:11px;opacity:.7;margin-top:4px">${esc(me.groupId?S.groups.find(g=>g.id===me.groupId)?.name||'':'')} · ${myObs.length} observations · ${myTrips.length} coaching sessions</div>`:''}
+    </div>
+    <div style="text-align:right">
+      ${myObs.length>0?`<div style="font-size:28px;font-weight:800">${avg(myObs.map(o=>domAvg(o.scores)).filter(x=>x>0))>0?avg(myObs.map(o=>domAvg(o.scores)).filter(x=>x>0)).toFixed(1)+'/5':'—'}</div><div style="font-size:11px;opacity:.7">Overall average</div>`:''}
+    </div>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab ${tab==='overview'?'active':''}" data-myportal-tab="overview">📊 Overview</button>
+  <button class="tab ${tab==='obs'?'active':''}" data-myportal-tab="obs">📋 My Observations (${myObs.length})</button>
+  <button class="tab ${tab==='coaching'?'active':''}" data-myportal-tab="coaching">🎯 My Coaching (${myTrips.length})</button>
+  <button class="tab ${tab==='schedule'?'active':''}" data-myportal-tab="schedule">🗓 My Schedule (${mySchedule.length})</button>
+  <button class="tab ${tab==='resources'?'active':''}" data-myportal-tab="resources">📂 Resources</button>
+</div>
+
+${tab==='overview'?`
+  ${!me?'<div class="alert alert-warn mb-3">Your name was not matched to a teacher record. Ask your administrator to ensure your user name matches your teacher profile.</div>':''}
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+    <div class="kpi" style="border-top:3px solid #1F4E79">
+      <div class="kpi-val">${myObs.length}</div><div class="kpi-label">Observations</div>
+    </div>
+    <div class="kpi" style="border-top:3px solid #0F6E56">
+      <div class="kpi-val">${myTrips.filter(t=>t.status==='complete').length}</div><div class="kpi-label">Coaching cycles complete</div>
+    </div>
+    <div class="kpi" style="border-top:3px solid #7B4F0C">
+      <div class="kpi-val">${myObs.filter(o=>o.slLinked).length}</div><div class="kpi-label">Steplab linked</div>
+    </div>
+    <div class="kpi" style="border-top:3px solid #3C3489">
+      <div class="kpi-val">${myObs.filter(o=>o.teacherResponse).length}</div><div class="kpi-label">Responses submitted</div>
+    </div>
+  </div>
+  ${myObs.length>=2?`
+  <div class="card mb-3">
+    <div class="card-title">📈 My Progress Trend</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      ${myObs.slice().reverse().map((o,i)=>{
+        const da=domAvg(o.scores);
+        const pct=Math.round(da/5*100);
+        const col=da>=4?'#0F6E56':da>=3?'#7B4F0C':da>0?'#993C1D':'#9ca3af';
+        return '<div style="text-align:center;min-width:52px"><div style="height:'+(pct||4)+'px;background:'+col+';border-radius:3px 3px 0 0;margin:0 auto;width:32px;transition:height .3s"></div><div style="font-size:10px;color:'+col+';font-weight:700;margin-top:2px">'+(da>0?da.toFixed(1):'—')+'</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">'+esc((o.date||'').slice(5))+'</div></div>';
+      }).join('')}
+    </div>
+    ${(()=>{const avgs=myObs.slice().reverse().map(o=>domAvg(o.scores)).filter(x=>x>0);const trend=avgs.length>=2?avgs[avgs.length-1]-avgs[0]:null;if(trend===null)return'';const col=trend>0?'#0F6E56':trend<0?'#993C1D':'#6b7280';const icon=trend>0?'📈 Improving':trend<0?'📉 Needs attention':'➡ Stable';return '<div class="mt-2 text-xs" style="color:'+col+';font-weight:600">'+icon+' — '+(trend>0?'+':'')+trend.toFixed(2)+' pts from first to latest</div>';})()}
+  </div>`:''}
+  ${myObs.length>0?`
+  <div class="card mb-3">
+    <div class="card-title">📊 Domain Breakdown (latest observation)</div>
+    ${getDomains().map(d=>{const scores=myObs[0]?.scores?.[d.id]||[];const da=avg(scores.filter(x=>x>0));const col=da>=4?'#0F6E56':da>=3?'#7B4F0C':da>0?'#993C1D':'#9ca3af';return da>0?'<div class="mb-2"><div class="flex justify-between text-xs mb-1"><span style="font-weight:600">'+d.n+'</span><span style="color:'+col+';font-weight:700">'+da.toFixed(1)+'/5</span></div><div class="pbar"><div class="pbar-fill" style="width:'+Math.round(da/5*100)+'%;background:'+col+'"></div></div></div>':'';}).join('')}
+  </div>`:''}
+  ${myObs.filter(o=>o.action&&!o.slLinked).length>0?`
+  <div class="alert alert-warn mb-3">
+    <strong>📎 ${myObs.filter(o=>o.action&&!o.slLinked).length} action step(s) not yet linked to Steplab.</strong> Log them at <a href="https://steplab.co" target="_blank" style="color:inherit;font-weight:700">steplab.co ↗</a>
+  </div>`:''}
+`:''}
+
+${tab==='obs'?`
+  ${myObs.length===0?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No observations recorded yet.</div>':''}
+  ${myObs.map(o=>{
+    const da=domAvg(o.scores);
+    const col=da>=4?'#0F6E56':da>=3?'#7B4F0C':da>0?'#993C1D':'#9ca3af';
+    return `<div class="card" style="border-left:4px solid ${col}">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span style="font-weight:700;font-size:14px">${o.date||'—'}</span>
+          <span class="text-xs text-muted ml-2">Observed by: ${esc(o.observer||'—')}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
+        </div>
+        <div class="flex gap-2 items-center">
+          ${da?'<span class="badge badge-blue" style="font-size:13px;font-weight:800">'+da.toFixed(1)+'/5</span>':''}
+          ${o.slLinked?'<span class="badge badge-green" style="font-size:10px">📎 Steplab</span>':''}
+          <button class="btn btn-ghost btn-sm" onclick="printObs('${o.id}')">🖨 Print</button>
+        </div>
+      </div>
+      <div class="flex gap-1 mb-2 flex-wrap">
+        ${getDomains().map(d=>{const s=avg(o.scores?.[d.id]||[]);return s?'<span class="badge badge-gray" style="font-size:10px">'+d.n+': '+s.toFixed(1)+'</span>':''}).join('')}
+      </div>
+      ${o.bio?'<span class="badge badge-purple mb-2">'+esc(o.bio)+'</span>':''}
+      ${o.www?'<div class="text-xs mb-2 p-2" style="background:#f0fdf4;border-radius:4px;border-left:3px solid #0F6E56"><strong>✅ Strengths (WWW):</strong><br>'+esc(o.www)+'</div>':''}
+      ${o.ebi?'<div class="text-xs mb-2 p-2" style="background:#fffbeb;border-radius:4px;border-left:3px solid #d97706"><strong>🎯 Development (EBI):</strong><br>'+esc(o.ebi)+'</div>':''}
+      ${o.action?'<div class="text-xs mb-2 p-2" style="background:#eff6ff;border-radius:4px;border-left:3px solid #3b82f6"><strong>📎 Action Step:</strong><br>'+esc(o.action)+'</div>':''}
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px">
+        <div style="font-size:11px;font-weight:700;color:#0F6E56;margin-bottom:4px">👤 Your Response</div>
+        ${o.teacherResponse?
+          '<div class="text-xs p-2" style="background:#f0fdf4;border-radius:4px;border:1px solid #a7f3d0;margin-bottom:6px">'+esc(o.teacherResponse)+'</div>':
+          '<div class="text-xs text-muted mb-2" style="font-style:italic">No response submitted yet. Share your thoughts on this observation below.</div>'
+        }
+        <textarea class="form-control" id="tr-resp-${o.id}" placeholder="Add your response, reflection, or any comments about this observation..." style="min-height:60px;font-size:12px">${esc(o.teacherResponse||'')}</textarea>
+        <button class="btn btn-success btn-sm mt-2" data-save-teacher-response="${o.id}">💾 Save Response</button>
+      </div>
+    </div>`;
+  }).join('')}
+`:''}
+
+${tab==='coaching'?`
+  ${myTrips.length===0?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No coaching triplets assigned yet.</div>':''}
+  ${myTrips.map(t=>{
+    const ob=S.teachers.find(tc=>tc.id===t.oid);
+    const coach=S.teachers.find(tc=>tc.id===t.cid);
+    const fac=S.teachers.find(tc=>tc.id===t.fid);
+    const isObserver=t.oid===me?.id;
+    const isCoach=t.cid===me?.id;
+    const isFacilitator=t.fid===me?.id;
+    const myRole=isObserver?'Being Observed':isCoach?'Coach':'Facilitator';
+    const roleColor=isObserver?'#1F4E79':isCoach?'#0F6E56':'#7B4F0C';
+    const statusCls=t.status==='complete'?'badge-green':t.status==='active'?'badge-amber':'badge-gray';
+    return `<div class="card" style="border-left:4px solid ${roleColor}">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span style="font-weight:700;font-size:14px;direction:auto">${t.name||'Coaching Session'}</span>
+          <span class="badge" style="background:${roleColor}22;color:${roleColor};margin-left:8px;font-size:10px">${myRole}</span>
+        </div>
+        <div class="flex gap-2">
+          <span class="badge ${statusCls}">${t.status}</span>
+          <span class="badge badge-blue">Cycle ${t.cycle}</span>
+        </div>
+      </div>
+      <div class="text-xs text-muted mb-2">
+        👁 ${ob?.name||'—'} · 🎓 ${coach?.name||'—'} · 🎙 ${fac?.name||'—'}
+      </div>
+      ${t.od?'<div class="text-xs mb-1"><strong>Observe date:</strong> '+t.od+'</div>':''}
+      ${t.dd?'<div class="text-xs mb-1"><strong>Debrief date:</strong> '+t.dd+'</div>':''}
+      ${t.bio?'<span class="badge badge-purple mb-2">Technique: '+esc(t.bio)+'</span>':''}
+      ${t.wwwNotes?'<div class="text-xs mb-1 p-2" style="background:#f0fdf4;border-radius:4px;border-left:3px solid #0F6E56"><strong>✅ WWW:</strong> '+esc(t.wwwNotes)+'</div>':''}
+      ${t.ebiNotes?'<div class="text-xs mb-1 p-2" style="background:#fffbeb;border-radius:4px;border-left:3px solid #d97706"><strong>🎯 EBI:</strong> '+esc(t.ebiNotes)+'</div>':''}
+      ${t.action?'<div class="text-xs p-2" style="background:#eff6ff;border-radius:4px;border-left:3px solid #3b82f6"><strong>📎 Action Step → Steplab:</strong> '+esc(t.action)+'</div>':''}
+    </div>`;
+  }).join('')}
+`:''}
+
+${tab==='schedule'?`
+  ${mySchedule.length===0?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No scheduled CPD events found for your department or section.</div>':''}
+  ${mySchedule.map(r=>{
+    const statusColor=r.status==='done'?'#0F6E56':r.status==='active'?'#7B4F0C':'#6b7280';
+    const statusBg=r.status==='done'?'#d1fae5':r.status==='active'?'#fef3c7':'#f3f4f6';
+    return `<div class="card" style="border-left:3px solid ${statusColor}">
+      <div class="flex justify-between items-center mb-1">
+        <div>
+          <span style="font-weight:700;direction:auto">${esc(r.program)}</span>
+          <span class="badge badge-${r.type==='Cambridge'?'purple':r.type==='External'?'amber':'blue'} ml-1">${esc(r.type||r.delivery||'—')}</span>
+        </div>
+        <span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${r.status}</span>
+      </div>
+      <div class="text-xs text-muted">${r.startDate||'—'}${r.endDate&&r.endDate!==r.startDate?' → '+r.endDate:''} · ${esc(r.month||'')} · ${esc(r.venue||'TBC')}</div>
+      ${r.time?'<div class="text-xs text-muted">🕐 '+esc(r.time)+'</div>':''}
+      ${r.facilitator?'<div class="text-xs text-muted mt-1">Facilitator: '+esc(r.facilitator)+'</div>':''}
+      ${r.duration?'<div class="text-xs text-muted">Duration: '+esc(r.duration)+'</div>':''}
+    </div>`;
+  }).join('')}
+`:''}
+
+${tab==='resources'?`
+  <div class="grid-2">
+    ${S.resources.map(r=>`<div class="card" style="border-left:3px solid #1F4E79">
+      <div class="mb-1"><a href="${r.url||'#'}" target="_blank" style="font-weight:600;font-size:13px;color:#1F4E79;text-decoration:none">${esc(r.title)} ↗</a></div>
+      <div class="text-xs text-muted">${esc(r.desc||'')}</div>
+    </div>`).join('')}
+  </div>
 `:''}
 `}
 
@@ -1082,83 +1213,88 @@ function printSnapshot(snap){
   setTimeout(()=>w.print(),400);
 }
 
-function printCPD(id){
-  const c=S.cpd.find(x=>x.id===id);if(!c)return;
-  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  const w=window.open('','_blank','width=800,height=1000');
-  w.document.write('<!DOCTYPE html><html><head><title>CPD Session — '+safe(c.title)+'</title>'
-  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:740px;margin:0 auto}'
-  +'h1{color:#1F4E79;font-size:19px;margin-bottom:4px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #1F4E79}'
-  +'.section{margin-bottom:16px;padding:12px 14px;border-radius:6px;white-space:pre-wrap}'
-  +'.section-title{font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:6px}'
-  +'.before{background:#dbeafe;border-left:4px solid #1e40af}.during{background:#fef3c7;border-left:4px solid #d97706}.after{background:#d1fae5;border-left:4px solid #059669}'
-  +'@media print{button{display:none!important}}</style></head><body>'
-  +'<div style="display:flex;justify-content:space-between;align-items:start">'
-  +'<div><h1>&#128218; '+safe(c.title)+'</h1>'
-  +'<div class="meta">Date: <strong>'+safe(c.date||'—')+'</strong> &nbsp;|&nbsp; Facilitator: <strong>'+safe(c.facilitator||'—')+'</strong> &nbsp;|&nbsp; Audience: <strong>'+safe(c.audience||'All')+'</strong>'
-  +(c.type?' &nbsp;|&nbsp; Type: <strong>'+safe(c.type)+'</strong>':'')
-  +(c.delivery?' &nbsp;|&nbsp; Delivery: <strong>'+safe(c.delivery)+'</strong>':'')+'</div></div>'
-  +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">&#128424; Print</button></div>'
-  +(c.bio?'<div style="margin-bottom:14px"><span style="background:#ede9fe;color:#5b21b6;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">Technique: '+safe(c.bio||c.customTech)+'</span></div>':'')
-  +(c.before?'<div class="section before"><div class="section-title" style="color:#1e40af">📋 Before — Planned Outcomes</div>'+safe(c.before)+'</div>':'')
-  +(c.during?'<div class="section during"><div class="section-title" style="color:#d97706">⚡ During — Activities</div>'+safe(c.during)+'</div>':'')
-  +(c.after?'<div class="section after"><div class="section-title" style="color:#059669">✅ After — Implementation & Monitoring</div>'+safe(c.after)+'</div>':'')
-  +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">'
-  +'Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+' &middot; Session ID: '+safe(id)+'</div>'
-  +'</body></html>');
-  w.document.close();setTimeout(()=>w.print(),400);
-}
-
 function printObs(id){
   const o=S.observations.find(x=>x.id===id);if(!o)return;
-  const t=o.tid?S.teachers.find(t=>t.id===o.tid):null;
+  const t=o.tid?S.teachers.find(tc=>tc.id===o.tid):null;
+  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>');
   const doms=getDomains();
-  let domTable='';
+  let domHtml='';
   doms.forEach(d=>{
     const scores=o.scores?.[d.id]||[];
-    domTable+='<div style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
-    domTable+='<div style="background:#1F4E79;color:#fff;padding:6px 12px;font-weight:700;font-size:13px">'+d.n+'</div>';
-    domTable+='<table style="width:100%;border-collapse:collapse">';
-    domTable+='<tr style="background:#f9fafb"><th style="padding:6px 10px;text-align:left;font-size:11px;color:#6b7280">Criterion</th><th style="padding:6px 10px;text-align:center;width:120px;font-size:11px;color:#6b7280">Score (1–5)</th></tr>';
+    const dAvg=avg(scores.filter(x=>x>0));
+    const dColor=dAvg>=4?'#065f46':dAvg>=3?'#92400e':dAvg>0?'#991b1b':'#9ca3af';
+    domHtml+='<div style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">';
+    domHtml+='<div style="background:#1F4E79;color:#fff;padding:7px 12px;font-weight:700;font-size:12px;display:flex;justify-content:space-between;align-items:center">';
+    domHtml+='<span>'+safe(d.n)+'</span>';
+    if(dAvg>0)domHtml+='<span style="background:rgba(255,255,255,.2);border-radius:10px;padding:1px 8px;font-size:11px">Avg: '+dAvg.toFixed(1)+'/5</span>';
+    domHtml+='</div><table style="width:100%;border-collapse:collapse">';
+    domHtml+='<tr style="background:#f9fafb"><th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:600">Criterion</th><th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:600;width:150px">Score</th></tr>';
     d.criteria.forEach((c,i)=>{
       const sc=scores[i]||0;
-      const bc=sc>=4?'#065f46':sc>=3?'#92400e':sc>0?'#991b1b':'#374151';
-      domTable+='<tr style="border-top:1px solid #f3f4f6"><td style="padding:7px 10px;font-size:12px">'+c+'</td><td style="padding:7px 10px;text-align:center">';
-      for(let n=1;n<=5;n++){domTable+='<span style="display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid '+(sc>=n?bc:'#e5e7eb')+';background:'+(n===sc?bc:'transparent')+';color:'+(n===sc?'#fff':'#6b7280')+';font-size:10px;font-weight:700;line-height:20px;text-align:center;margin:1px">'+n+'</span>';}
-      domTable+='</td></tr>';
+      const bc=sc>=4?'#065f46':sc>=3?'#92400e':sc>0?'#991b1b':'#9ca3af';
+      domHtml+='<tr style="border-top:1px solid #f3f4f6"><td style="padding:6px 10px;font-size:11px">'+safe(c)+'</td><td style="padding:6px 10px;text-align:center">';
+      for(let n=1;n<=5;n++){
+        const filled=n<=sc;
+        domHtml+='<span style="display:inline-block;width:20px;height:20px;border-radius:50%;border:2px solid '+(filled?bc:'#e5e7eb')+';background:'+(n===sc?bc:'transparent')+';color:'+(n===sc?'#fff':'#9ca3af')+';font-size:10px;font-weight:700;line-height:18px;text-align:center;margin:1px">'+n+'</span>';
+      }
+      if(sc>0)domHtml+='<span style="font-size:11px;font-weight:700;color:'+bc+';margin-left:4px">'+sc+'</span>';
+      domHtml+='</td></tr>';
     });
-    domTable+='</table></div>';
+    domHtml+='</table></div>';
   });
-  const w=window.open('','_blank','width=850,height=1100');
-  w.document.write(`<!DOCTYPE html><html><head><title>Observation — ${t?t.name:'Whole School'}</title>
-  <style>body{font-family:'Segoe UI',sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:780px;margin:0 auto}
-  h1{color:#1F4E79;font-size:20px;margin-bottom:4px}
-  .meta{color:#6b7280;font-size:12px;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1F4E79}
-  .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}
-  .blue{background:#dbeafe;color:#1e40af}.purple{background:#ede9fe;color:#5b21b6}.green{background:#d1fae5;color:#065f46}
-  .section{margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-left:4px solid #1F4E79;border-radius:4px}
-  .section-title{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:4px}
-  .section-content{font-size:13px;line-height:1.6}
-  @media print{button{display:none!important}}
-  </style></head><body>
-  <div style="display:flex;justify-content:space-between;align-items:start">
-    <div><h1>🏫 Waad Academy — Observation Record</h1>
-    <div class="meta">Teacher: <strong>${t?t.name:'Whole School/Dept'}</strong>${t?' · '+t.dept+' · '+t.section+' · '+t.stage:''} &nbsp;|&nbsp; Observer: <strong>${o.observer||'—'}</strong> &nbsp;|&nbsp; Date: <strong>${o.date||'—'}</strong></div>
-    </div>
-    <button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print / Save PDF</button>
-  </div>
-  ${o.bio||o.customTech?'<div style="margin-bottom:12px"><span class="pill purple">Technique: '+(o.customTech||o.bio)+'</span></div>':''}
-  <h3 style="color:#1F4E79;font-size:14px;margin-bottom:12px">📊 5-Domain Observation Scores</h3>
-  ${domTable}
-  ${o.www?'<div class="section"><div class="section-title">✅ Key Strengths (WWW)</div><div class="section-content">${o.www}</div></div>':''}
-  ${o.ebi?'<div class="section"><div class="section-title">🎯 Areas for Development (EBI)</div><div class="section-content">${o.ebi}</div></div>':''}
-  ${o.action?'<div class="section"><div class="section-title">📎 Action Step → Steplab</div><div class="section-content">${o.action}</div></div>':''}
-  ${o.conf?'<div class="section"><div class="section-title">💡 Teacher Confidence</div><div class="section-content">'+('★'.repeat(o.conf)+'☆'.repeat(5-o.conf))+' ('+o.conf+'/5)</div></div>':''}
-  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">
-    Waad Academy School Improvement Platform · Printed ${new Date().toLocaleDateString()} · Observation ID: ${o.id}
-  </div>
-  </body></html>`);
-  w.document.close();setTimeout(()=>w.print(),400);
+  const overallAvg=avg(Object.values(o.scores||{}).flat().filter(x=>x>0));
+  const scAvg=avg([...(o.scores?.d3||[]),(o.scores?.d4||[])].filter(x=>x>0));
+  const avgColor=overallAvg>=4?'#065f46':overallAvg>=3?'#92400e':overallAvg>0?'#991b1b':'#374151';
+  const tName=t?safe(t.name):'Whole School / Dept';
+  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Observation — '+tName+'</title><style>';
+  html+='*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;padding:24px 28px;font-size:12px;color:#1a1a2e;max-width:820px;margin:0 auto;line-height:1.5}';
+  html+='.hdr{display:flex;justify-content:space-between;align-items:start;margin-bottom:14px;padding-bottom:12px;border-bottom:3px solid #1F4E79}';
+  html+='.hdr h1{color:#1F4E79;font-size:17px;font-weight:800;margin-bottom:4px}.meta{font-size:11px;color:#6b7280;margin-top:3px}.meta strong{color:#1a1a2e}';
+  html+='.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}';
+  html+='.kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;text-align:center}.kv{font-size:20px;font-weight:800}.kl{font-size:10px;color:#6b7280;margin-top:2px}';
+  html+='.sec{margin-bottom:12px;border-radius:8px;overflow:hidden}.sh{padding:7px 12px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px}.sb{padding:11px 14px;font-size:12px;line-height:1.7;direction:auto}';
+  html+='.www .sh{background:#d1fae5;color:#065f46}.www .sb{background:#f0fdf4;border:1px solid #a7f3d0;border-top:none;border-radius:0 0 8px 8px}';
+  html+='.ebi .sh{background:#fef3c7;color:#92400e}.ebi .sb{background:#fffbeb;border:1px solid #fde68a;border-top:none;border-radius:0 0 8px 8px}';
+  html+='.act .sh{background:#dbeafe;color:#1e40af}.act .sb{background:#eff6ff;border:1px solid #bfdbfe;border-top:none;border-radius:0 0 8px 8px}';
+  html+='.cnf .sh{background:#ede9fe;color:#5b21b6}.cnf .sb{background:#faf5ff;border:1px solid #ddd6fe;border-top:none;border-radius:0 0 8px 8px}';
+  html+='.ftr{margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}';
+  html+='@media print{.noprint{display:none!important}}</style></head><body>';
+  html+='<div class="hdr"><div>';
+  html+='<h1>&#127983; Waad Academy &mdash; Observation Record</h1>';
+  html+='<div class="meta">Teacher: <strong>'+tName+'</strong>'+(t?' &nbsp;&middot;&nbsp; <strong>'+safe(t.dept)+'</strong> &nbsp;&middot;&nbsp; '+safe(t.section)+' &nbsp;&middot;&nbsp; '+safe(t.stage):'')+'</div>';
+  html+='<div class="meta">Observer: <strong>'+safe(o.observer||'&mdash;')+'</strong> &nbsp; Date: <strong>'+safe(o.date||'&mdash;')+'</strong>';
+  if(o.period)html+=' &nbsp; Period: <strong>'+safe(o.period)+'</strong>';
+  if(o.gradeClass)html+=' &nbsp; Class: <strong>'+safe(o.gradeClass)+'</strong>';
+  html+='</div>';
+  if(o.bio||o.customTech)html+='<div style="margin-top:6px"><span style="background:#ede9fe;color:#5b21b6;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">&#128218; Technique: '+safe(o.customTech||o.bio)+'</span></div>';
+  html+='</div>';
+  html+='<div style="text-align:right;flex-shrink:0;margin-left:16px">';
+  html+='<button class="noprint" onclick="window.print()" style="padding:7px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">&#128424; Print / Save PDF</button>';
+  if(overallAvg>0)html+='<div style="margin-top:8px;font-size:24px;font-weight:800;color:'+avgColor+'">'+overallAvg.toFixed(1)+'/5</div><div style="font-size:10px;color:#6b7280">Overall Avg</div>';
+  html+='</div></div>';
+  html+='<div class="kpis">';
+  html+='<div class="kpi"><div class="kv" style="color:'+avgColor+'">'+(overallAvg>0?overallAvg.toFixed(1):'&mdash;')+'</div><div class="kl">Overall Score</div></div>';
+  html+='<div class="kpi"><div class="kv" style="color:#1F4E79">'+(scAvg>0?scAvg.toFixed(1):'&mdash;')+'</div><div class="kl">Student-Centred</div></div>';
+  html+='<div class="kpi"><div class="kv" style="color:#5b21b6">'+(o.conf>0?o.conf+'/5':'&mdash;')+'</div><div class="kl">Confidence</div></div>';
+  html+='<div class="kpi"><div class="kv" style="color:#0F6E56">'+(o.slLinked?'&#10003;':'&mdash;')+'</div><div class="kl">Steplab</div></div>';
+  html+='</div>';
+  html+='<div style="font-weight:700;color:#1F4E79;font-size:13px;margin-bottom:10px">&#128202; Domain Scores</div>';
+  html+=domHtml;
+  if(o.www||o.ebi||o.action||o.conf){
+    html+='<div style="font-weight:700;color:#1F4E79;font-size:13px;margin-bottom:10px;margin-top:4px">&#128172; Feedback &amp; Next Steps</div>';
+    if(o.www)html+='<div class="sec www"><div class="sh">&#9989; Key Strengths (WWW)</div><div class="sb">'+safe(o.www)+'</div></div>';
+    if(o.ebi)html+='<div class="sec ebi"><div class="sh">&#127919; Areas for Development (EBI)</div><div class="sb">'+safe(o.ebi)+'</div></div>';
+    if(o.action)html+='<div class="sec act"><div class="sh">&#128204; Action Step &#8594; Steplab</div><div class="sb">'+safe(o.action)+'</div></div>';
+    if(o.conf)html+='<div class="sec cnf"><div class="sh">&#128161; Teacher Confidence</div><div class="sb">'+'&#9733;'.repeat(o.conf)+'&#9734;'.repeat(5-o.conf)+' &nbsp; ('+o.conf+'/5)</div></div>';
+  }
+  // Teacher response section
+  if(o.teacherResponse)html+='<div class="sec" style="border-radius:8px;overflow:hidden"><div class="sh" style="background:#f0fdf4;color:#065f46">&#128100; Teacher Response</div><div class="sb" style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px">'+safe(o.teacherResponse)+'</div></div>';
+  html+='<div class="ftr">Waad Academy School Improvement Platform &middot; Printed '+new Date().toLocaleDateString()+' &middot; ID: '+safe(o.id)+'</div>';
+  html+='</body></html>';
+  const w=window.open('','_blank','width=880,height=1100');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
 }
 function renderCPD(){
   const tab=S.cpdTab||'cpd';
@@ -1596,11 +1732,10 @@ ${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="resou
 ${S.resources.map(r=>`
   <div class="card" style="border-left:3px solid var(--navy)">
     <div class="flex justify-between items-start mb-1">
-      <a href="${r.url||'#'}" target="_blank" style="font-weight:600;font-size:13px;color:var(--navy);text-decoration:none">${esc(r.title)} ↗</a>
+      <a href="${r.url||'#'}" target="_blank" style="font-weight:600;font-size:13px;color:var(--navy);text-decoration:none">${r.title} ↗</a>
       ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-res="${r.id}" title="Edit">✏</button><button class="btn btn-sm btn-danger" data-del-res="${r.id}">✕</button></div>`:''}
     </div>
-    <div class="text-xs text-muted">${esc(r.desc||'')}</div>
-    ${r.url&&r.url!=='#'?`<div class="text-xs text-muted mt-1" style="word-break:break-all">${esc(r.url)}</div>`:''}
+    <div class="text-xs text-muted">${r.desc||''}</div>
   </div>
 `).join('')}
 </div>`}
@@ -1661,9 +1796,12 @@ function renderSettings(){
       ${canEdit()?`<button class="btn btn-ghost btn-sm" onclick="exportUsersForGitHub()">⬆ GitHub Export</button>`:''}
     </div>
     ${users.map(u=>`<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
-      <div><div style="font-weight:600;font-size:13px">${esc(u.name)}</div><div class="text-xs text-muted">${esc(u.username)} · ${S.roleCfg[u.role]?.label||u.role}${(u.depts||[]).length?' · '+u.depts.join(', '):''}${(u.sections||[]).length?' · '+u.sections.join('/'):''}${u.password?` <span style="font-size:10px;color:var(--muted);font-family:monospace">••••</span>`:''}</div></div>
-      <div class="flex gap-1">
-        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-user="${u.id}" title="Edit password/role">✏</button>`:''}
+      <div>
+        <div style="font-weight:600;font-size:13px">${esc(u.name)}</div>
+        <div class="text-xs text-muted">${esc(u.username)} · ${S.roleCfg[u.role]?.label||u.role}${(u.depts||[]).length?' · '+u.depts.join(', '):''}${(u.sections||[]).length?' · '+u.sections.join('/'):''}${u.password?` <span style="font-size:10px;color:var(--muted);font-family:monospace">••••</span>`:''}</div>
+      </div>
+      <div class="flex gap-1 items-center">
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-user="${u.id}" title="Edit">✏</button>`:''}
         ${S.users.find(x=>x.id===u.id)?canEdit()?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:'':'<span style="font-size:10px;color:var(--muted)">seed</span>'}
       </div>
     </div>`).join('')}
@@ -1673,13 +1811,12 @@ function renderSettings(){
 <div class="card">
   <div class="card-title">🔑 Role Permissions</div>
   <div style="overflow-x:auto"><table>
-    <thead><tr><th>Role</th>${ALL_VIEWS.map(v=>'<th style="font-size:10px">'+VIEW_META[v].icon+'</th>').join('')}<th>Edit</th><th>Scoped</th><th>Sections</th>${canEdit()?'<th></th>':''}</tr></thead>
+    <thead><tr><th>Role</th>${ALL_VIEWS.map(v=>'<th style="font-size:10px">'+VIEW_META[v].icon+'</th>').join('')}<th>Edit</th><th>Scoped</th>${canEdit()?'<th></th>':''}</tr></thead>
     <tbody>${roles.map(([key,r])=>`<tr>
       <td style="font-weight:600">${r.label||key} <span style="font-size:10px;color:var(--muted)">(${key})</span></td>
       ${ALL_VIEWS.map(v=>'<td style="text-align:center;font-size:12px">'+(r.views?.includes(v)?'<span style="color:var(--teal);font-weight:700">✓</span>':'<span style="color:#d1d5db">·</span>')+'</td>').join('')}
       <td style="text-align:center">${r.canEdit?'<span style="color:var(--teal);font-weight:700">✓</span>':'<span style="color:#d1d5db">·</span>'}</td>
       <td style="text-align:center">${r.scoped?'<span style="color:var(--amber);font-weight:700">⚠</span>':'<span style="color:#d1d5db">·</span>'}</td>
-      <td style="font-size:10px;color:var(--muted)">${(r.sections||[]).length?(r.sections.join('/')):'All'}</td>
       ${canEdit()?`<td><div class="flex gap-1">${key!=='admin'?'<button class="btn btn-sm btn-ghost" data-edit-role="'+key+'" style="font-size:11px">✏</button>':''}<button class="btn btn-sm btn-danger" data-del-role="'+key+'"${key==='admin'?' disabled style="opacity:.4;cursor:not-allowed"':''}>✕</button></div></td>`:'<td></td>'}
     </tr>`).join('')}</tbody>
   </table></div>
@@ -1717,27 +1854,6 @@ ${isAdmin()?`
   </div>
 </div>
 `:''}
-${isAdmin()?`
-<div class="card">
-  <div class="flex justify-between items-center mb-3">
-    <div class="card-title" style="margin:0">🗓 Schedule Categories</div>
-    <div class="flex gap-2">
-      <button class="btn btn-ghost btn-sm" data-reset-sched-cats>↺ Reset</button>
-      <button class="btn btn-success btn-sm" data-save-sched-cats>✓ Save Categories</button>
-    </div>
-  </div>
-  <p class="text-xs text-muted mb-3">Rename, reorder, add or remove the category headings in the Annual Schedule. Add Board workshops, IT training, or any custom category.</p>
-  <div id="sched-cats-editor">
-    ${getSchedCats().map((cat,ci)=>`
-      <div class="flex items-center gap-2 mb-2">
-        <span style="width:22px;text-align:right;font-size:11px;color:var(--muted);flex-shrink:0">${ci+1}.</span>
-        <input class="form-control sched-cat-input" data-ci="${ci}" value="${esc(cat)}" style="font-size:12px">
-        <button class="btn btn-sm btn-danger" data-del-sched-cat="${ci}" style="flex-shrink:0" ${getSchedCats().length<=1?'disabled':''}>✕</button>
-      </div>`).join('')}
-    <button class="btn btn-ghost btn-sm mt-2" id="add-sched-cat-btn">+ Add Category</button>
-  </div>
-</div>
-`:''}
 <div class="card">
   <div class="card-title">📊 Quick Resources</div>
   <div style="display:flex;flex-direction:column;gap:6px">
@@ -1746,8 +1862,7 @@ ${isAdmin()?`
     `).join('')}
     <button class="btn btn-ghost btn-sm mt-1" data-nav="resources">View all resources →</button>
   </div>
-</div>
-${isAdmin()?renderActivityLog():''}`}
+</div>`}
 
 // ═══ MODALS ═══════════════════════════════════════════════════════════════════
 
@@ -1859,28 +1974,27 @@ function renderModal(type, data={}){
   }
 
   if(type==='sched'){
-    const isSchedEdit=!!(data.id);
-    return M((isSchedEdit?'✏ Edit':'🗓 Add')+' Schedule Entry',
-      FS('sch-cat','Category',getSchedCats(),data.category||getSchedCats()[0])+
-      FI('sch-prog','Programme Name',data.program||'','text','e.g. Cambridge PDQ Teaching & Learning')+
-      G2(FI('sch-fac','Facilitator',data.facilitator||''),FI('sch-target','Target Audience',data.target||''))+
-      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],data.type||'Internal'),
-         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],data.delivery||'Workshop'))+
-      G2(FI('sch-time','Time',data.time||'','text','e.g. 08:00–10:00 · Auditorium'),FI('sch-dur','Duration',data.duration||'','text','e.g. 60 min'))+
-      G2(FS('sch-month','Month',MONTHS,data.month||MONTHS[0]),FI('sch-venue','Venue',data.venue||'','text','e.g. Auditorium, Online, TBC'))+
-      G2(FI('sch-start','Start Date',data.startDate||'','date'),FI('sch-end','End Date',data.endDate||'','date'))+
-      G2(FI('sch-cost','Cost (optional)',data.cost||'','text','e.g. SAR 5,000 / Free'),FS('sch-status','Status',['planned','active','done'],data.status||'planned')),
-      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>${isSchedEdit?'Update Entry':'Save Entry'}</button>`
+    return M('🗓 Add Schedule Entry',
+      FS('sch-cat','Category',SCHED_CATS,SCHED_CATS[0])+
+      FI('sch-prog','Programme Name','','text','e.g. Cambridge PDQ Teaching & Learning')+
+      G2(FI('sch-fac','Facilitator',''),FI('sch-target','Target Audience',''))+
+      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],'Internal'),
+         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],'Workshop'))+
+      G2(FI('sch-dur','Duration','','text','e.g. 60 min'),FS('sch-month','Month',MONTHS,MONTHS[0]))+
+      G2(FI('sch-start','Start Date','','date'),FI('sch-end','End Date','','date')),
+      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>Save</button>'
     );
   }
 
   if(type==='teacher'){
-    return M('👩‍🏫 Add Teacher',
-      FI('tch-name','Full Name (Arabic/English)','','text','Teacher name')+
-      G2(FS('tch-dept','Department',DEPTS,DEPTS[0]),FS('tch-sect','Section',SECTIONS,SECTIONS[0]))+
-      G2(FS('tch-stage','Stage',STAGES,STAGES[0]),
-         FS('tch-group','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))])),
-      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-teacher>Save Teacher</button>'
+    const isTchEdit=!!(data.id);
+    return M((isTchEdit?'✏ Edit Teacher':'👩‍🏫 Add Teacher'),
+      FI('tch-name','Full Name (Arabic/English)',data.name||'','text','Teacher name')+
+      G2(FS('tch-dept','Department',DEPTS,data.dept||DEPTS[0]),FS('tch-sect','Section',SECTIONS,data.section||SECTIONS[0]))+
+      G2(FS('tch-stage','Stage',STAGES,data.stage||STAGES[0]),
+         FS('tch-group','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],data.groupId||''))+
+      (isTchEdit?`<input type="hidden" id="tch-edit-id" value="${esc(data.id||'')}">` :''),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-teacher>${isTchEdit?'Update Teacher':'Save Teacher'}</button>`
     );
   }
 
@@ -1888,13 +2002,13 @@ function renderModal(type, data={}){
     const isUserEdit=!!(data.id);
     return M((isUserEdit?'✏ Edit User: '+esc(data.name||data.username):'👤 Add User'),
       G2(FI('u-name','Full Name',data.name||''),FI('u-user','Username',data.username||''))+
-      G2(FI('u-pass',isUserEdit?'New Password (leave blank to keep)':'Password',isUserEdit?'':( data.password||''),'password'),
+      G2(FI('u-pass',isUserEdit?'New Password (leave blank to keep)':'Password','','password'),
          FS('u-role','Role',[...Object.entries(S.roleCfg).map(([k,r])=>({v:k,l:r.label||k}))],data.role||'viewer'))+
-      `<div class="form-group"><label class="form-label">Departments (for scoped roles — hold Ctrl/Cmd to multi-select)</label>
-       <select class="form-control" id="u-depts" multiple style="height:80px">${DEPTS.map(d=>`<option value="${d}" ${(data.depts||[]).includes(d)?'selected':''}>${d}</option>`).join('')}</select></div>`+
+      `<div class="form-group"><label class="form-label">Departments (hold Ctrl/Cmd to multi-select)</label>
+       <select class="form-control" id="u-depts" multiple style="height:72px">${DEPTS.map(d=>`<option value="${d}" ${(data.depts||[]).includes(d)?'selected':''}>${d}</option>`).join('')}</select></div>`+
       `<div class="form-group"><label class="form-label">Sections (leave blank for all)</label>
        <div class="flex gap-3">${SECTIONS.map(s=>`<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="u-sect-cb" value="${s}" ${(data.sections||[]).includes(s)?'checked':''}> ${s}</label>`).join('')}</div></div>`+
-      (isUserEdit?`<input type="hidden" id="u-edit-id" value="${esc(data.id||'')}">`:'' ),
+      (isUserEdit?`<input type="hidden" id="u-edit-id" value="${esc(data.id||'')}">` :''),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-user>${isUserEdit?'Update User':'Save User'}</button>`
     );
   }
@@ -1988,8 +2102,6 @@ function renderModal(type, data={}){
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-canedit" ${existing?.canEdit!==false?'checked':''}> Can edit data</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="role-scoped" ${existing?.scoped?'checked':''}> Department scoped</label>
       </div>`+
-      `<div class="form-group mt-2"><label class="form-label">Section Restriction (leave both unchecked for all sections)</label>
-       <div class="flex gap-4">${SECTIONS.map(s=>`<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" class="role-sect-cb" value="${s}" ${(existing?.sections||[]).includes(s)?'checked':''}> ${s}</label>`).join('')}</div></div>`+
       (editKey?`<input type="hidden" id="role-editkey" value="${editKey}">`:''),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-role>${editKey?'Update Role':'Save Role'}</button>`
     );
@@ -2073,6 +2185,8 @@ function bindEvents(){
       const err=g('l-err');
       const found=getAllUsers().find(x=>x.username.toLowerCase()===u.toLowerCase()&&x.password===p);
       if(found){const sess={name:found.fullName||found.name||found.username,role:found.role||'viewer',depts:found.depts||[]};S.session=sess;sset('session',sess);
+        // Teacher role goes directly to their portal
+        if(found.role==='teacher')S.view='myportal';
         logActivity('Signed in');
         startHeartbeat();
         render();return;}
@@ -2115,15 +2229,21 @@ function bindEvents(){
     el.onclick=()=>{S.cpdTab=el.dataset.cpdTab;render();};
   });
 
-  // ── Observation (Fieldwork) filter pills ─────────────────────────────────
-  document.querySelectorAll('[data-fw-dept]').forEach(el=>{
-    el.onclick=()=>{const d=el.dataset.fwDept;if(d===''){S.fwDepts=[];}else{if(!S.fwDepts)S.fwDepts=[];const i=S.fwDepts.indexOf(d);if(i>=0)S.fwDepts.splice(i,1);else S.fwDepts.push(d);}render();};
+  // ── My Portal tab ─────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-myportal-tab]').forEach(el=>{
+    el.onclick=()=>{S.myPortalTab=el.dataset.myportalTab;render();};
   });
-  document.querySelectorAll('[data-fw-sect]').forEach(el=>{
-    el.onclick=()=>{const s=el.dataset.fwSect;if(s===''){S.fwSects=[];}else{if(!S.fwSects)S.fwSects=[];const i=S.fwSects.indexOf(s);if(i>=0)S.fwSects.splice(i,1);else S.fwSects.push(s);}render();};
-  });
-  document.querySelectorAll('[data-fw-stage]').forEach(el=>{
-    el.onclick=()=>{const s=el.dataset.fwStage;if(s===''){S.fwStages=[];}else{if(!S.fwStages)S.fwStages=[];const i=S.fwStages.indexOf(s);if(i>=0)S.fwStages.splice(i,1);else S.fwStages.push(s);}render();};
+  // ── Teacher response save ─────────────────────────────────────────────────
+  document.querySelectorAll('[data-save-teacher-response]').forEach(el=>{
+    el.onclick=()=>{
+      const oid=el.dataset.saveTeacherResponse;
+      const ta=document.getElementById('tr-resp-'+oid);
+      if(!ta)return;
+      const resp=ta.value.trim();
+      S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp}:o);
+      save('obs',S.observations);
+      showToast('Response saved ✓');
+    };
   });
 
   // ── Dashboard 3-row multi-filter ─────────────────────────────────────
@@ -2353,46 +2473,35 @@ function bindEvents(){
   if(saveSched)saveSched.onclick=()=>{
     const prog=gv('sch-prog');
     if(!prog.trim()){showToast('Please enter a programme name','error');return;}
-    const editId=S.editingId?.type==='sched'?S.editingId.id:null;
-    const existing=editId?S.schedule.find(r=>r.id===editId):null;
-    // Conflict detection
-    const sd=gv('sch-start');const ed=gv('sch-end')||sd;
-    const tgt=gv('sch-target');const ven=gv('sch-venue');
-    if(sd&&tgt){
-      const conflict=S.schedule.find(r=>{
-        if(r.id===(editId||'__none'))return false;
-        if(!r.startDate)return false;
-        const re=r.endDate||r.startDate;
-        const overlap=r.startDate<=ed&&re>=sd;
-        return overlap&&(r.target===tgt||r.venue===ven)&&r.target;
-      });
-      if(conflict&&!confirm('⚠ Scheduling conflict: "'+conflict.program+'" ('+conflict.startDate+(conflict.endDate&&conflict.endDate!==conflict.startDate?' → '+conflict.endDate:'')+') targets the same audience/venue on overlapping dates. Save anyway?'))return;
-    }
-    const row={
-      ...(existing||{}),
-      id:editId||uid(),
-      category:gv('sch-cat'),program:prog,facilitator:gv('sch-fac'),
+    const row={id:uid(),category:gv('sch-cat'),program:prog,facilitator:gv('sch-fac'),
       delivery:gv('sch-del'),type:gv('sch-type'),duration:gv('sch-dur'),
-      month:gv('sch-month'),startDate:sd,endDate:ed,
-      venue:gv('sch-venue')||existing?.venue||'',
-      target:gv('sch-target'),time:gv('sch-time')||'',cost:gv('sch-cost')||'',
-      status:gv('sch-status')||existing?.status||'planned',cpdId:existing?.cpdId||null
-    };
-    S.schedule=editId?S.schedule.map(r=>r.id===editId?row:r):[...S.schedule,row];
+      month:gv('sch-month'),startDate:gv('sch-start'),endDate:gv('sch-end'),
+      venue:'TBC',target:gv('sch-target'),status:'planned',cpdId:null};
+    S.schedule=[...S.schedule,row];
     save('sched',S.schedule);
-    S.modal=null;S.editingId=null;
-    showToast(editId?'Schedule entry updated ✓':'Schedule entry saved ✓');
+    S.modal=null;
+    showToast('Schedule entry saved ✓');
   };
 
   const saveTch=document.querySelector('[data-save-teacher]');
   if(saveTch)saveTch.onclick=()=>{
     const name=gv('tch-name');
     if(!name.trim()){showToast('Please enter a name','error');return;}
-    const t={id:uid(),name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:[],groupId:gv('tch-group')||S.groups[0]?.id};
-    S.teachers=[...S.teachers,t];
-    save('teachers',S.teachers);
-    S.modal=null;
-    showToast('Teacher added ✓');
+    const editId=(document.getElementById('tch-edit-id')||{}).value||'';
+    if(editId){
+      S.teachers=S.teachers.map(t=>t.id===editId
+        ?{...t,name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),groupId:gv('tch-group')||t.groupId}
+        :t);
+      save('teachers',S.teachers);
+      S.modal=null;S.editingId=null;
+      showToast('Teacher updated ✓');
+    }else{
+      const t={id:uid(),name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:[],groupId:gv('tch-group')||S.groups[0]?.id};
+      S.teachers=[...S.teachers,t];
+      save('teachers',S.teachers);
+      S.modal=null;
+      showToast('Teacher added ✓');
+    }
   };
 
   const saveUser=document.querySelector('[data-save-user]');
@@ -2404,23 +2513,20 @@ function bindEvents(){
     if(!name||!uname){showToast('Name and username are required','error');return;}
     if(!editId&&!pass){showToast('Password is required for new users','error');return;}
     if(editId){
-      // Edit seed or local user
       const allUsers=getAllUsers();
       const existing=allUsers.find(u=>u.id===editId);
       if(!existing){showToast('User not found','error');return;}
       const updated={...existing,name,fullName:name,username:uname,role,depts,sections:sections.length?sections:[]};
       if(pass)updated.password=pass;
-      // If seed user — store in S.users overriding
       const localIdx=S.users.findIndex(u=>u.id===editId);
       if(localIdx>=0){S.users[localIdx]=updated;}else{S.users=[...S.users,updated];}
       save('users',S.users);
-      S.modal=null;showToast('User updated ✓');
+      S.modal=null;showToast('User updated ✓ — use ⬆ GitHub Export to make permanent');
     }else{
-      if(S.users.find(u=>u.username===uname)||SEED_USERS.find(u=>u.username===uname)){showToast('Username already exists','error');return;}
+      if(getAllUsers().find(u=>u.username.toLowerCase()===uname.toLowerCase())){showToast('Username already exists','error');return;}
       const u={id:uid(),name,fullName:name,username:uname,password:pass,role,depts,sections:sections.length?sections:[]};
       S.users=[...S.users,u];
-      save('users',S.users);
-      S.modal=null;showToast('User created ✓');
+      save('users',S.users);S.modal=null;showToast('User created ✓');
     }
   };
 
@@ -2543,9 +2649,8 @@ function bindEvents(){
     const views=[...document.querySelectorAll('.role-view-cb:checked')].map(cb=>cb.value);
     const canEditR=document.getElementById('role-canedit')?.checked||false;
     const scoped=document.getElementById('role-scoped')?.checked||false;
-    const sections=[...document.querySelectorAll('.role-sect-cb:checked')].map(cb=>cb.value);
     const isNew=!editKey;
-    S.roleCfg[key]={...S.roleCfg[key],label,views,canEdit:canEditR,scoped,sections:sections.length?sections:[]};
+    S.roleCfg[key]={...S.roleCfg[key],label,views,canEdit:canEditR,scoped};
     save('roleCfg',S.roleCfg);
     S.modal=null;
     showToast('Role "'+label+'" '+(isNew?'created':'updated')+' ✓');
@@ -2687,6 +2792,12 @@ function bindEvents(){
     };
   });
   // ── Edit/Delete group ────────────────────────────────────────────────────
+  document.querySelectorAll('[data-edit-teacher]').forEach(el=>{
+    el.onclick=()=>{
+      const t=S.teachers.find(t=>t.id===el.dataset.editTeacher);
+      if(t){S.editingId={type:'teacher',id:t.id};S.modal=renderModal('teacher',t);render();}
+    };
+  });
   document.querySelectorAll('[data-edit-group]').forEach(el=>{
     el.onclick=()=>{
       const g=S.groups.find(g=>g.id===el.dataset.editGroup);
@@ -2753,110 +2864,44 @@ function bindEvents(){
   document.querySelectorAll('[data-del-res]').forEach(el=>{
     el.onclick=()=>{const id=el.dataset.delRes;S.resources=S.resources.filter(o=>o.id!==id);save('resources',S.resources);sbRemove('resources',id);showToast('Deleted');render();};
   });
-
-  // ── Resource edit ────────────────────────────────────────────────────────
+  // ── Resource edit ──────────────────────────────────────────────────────────
   document.querySelectorAll('[data-edit-res]').forEach(el=>{
     el.onclick=()=>{
       const r=S.resources.find(r=>r.id===el.dataset.editRes);
       if(r){S.editingId={type:'res',id:r.id};S.modal=renderModal('resource',r);render();}
     };
   });
-
-  // ── User edit ─────────────────────────────────────────────────────────────
+  // ── User edit ──────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-edit-user]').forEach(el=>{
     el.onclick=()=>{
       const u=getAllUsers().find(u=>u.id===el.dataset.editUser);
       if(u){S.modal=renderModal('user',u);render();}
     };
   });
-
-  // ── Schedule month filter pills ─────────────────────────────────────────
-  document.querySelectorAll('[data-sched-month]').forEach(el=>{
-    el.onclick=()=>{S.schedMonthFilter=el.dataset.schedMonth;render();};
-  });
-  // ── Schedule print + Excel ───────────────────────────────────────────────
-  const printSchedBtn=document.getElementById('print-sched-btn');
-  if(printSchedBtn)printSchedBtn.onclick=()=>printSchedule();
-  const excelSchedBtn=document.getElementById('excel-sched-btn');
-  if(excelSchedBtn)excelSchedBtn.onclick=()=>exportScheduleExcel();
-  // ── Schedule edit ────────────────────────────────────────────────────────
-  document.querySelectorAll('[data-edit-sched]').forEach(el=>{
-    el.onclick=()=>{
-      const r=S.schedule.find(s=>s.id===el.dataset.editSched);
-      if(r){S.editingId={type:'sched',id:r.id};S.modal=renderModal('sched',r);render();}
-    };
-  });
-
-  // ── Teacher search box ───────────────────────────────────────────────────
-  const teacherSearchBox=document.getElementById('teacher-search-box');
-  if(teacherSearchBox){
-    teacherSearchBox.oninput=()=>{S.teacherSearch=teacherSearchBox.value;render();};
-    teacherSearchBox.onkeydown=e=>{if(e.key==='Escape'){S.teacherSearch='';render();}};
-  }
-
-  // ── Schedule Categories editor (Settings) ─────────────────────────────────
-  const saveSchedCats=document.querySelector('[data-save-sched-cats]');
-  if(saveSchedCats)saveSchedCats.onclick=()=>{
-    const inputs=[...document.querySelectorAll('.sched-cat-input')];
-    const updated=inputs.map(el=>el.value.trim()).filter(Boolean);
-    if(!updated.length){showToast('Must have at least one category','error');return;}
-    S.schedCats=updated;save('schedCats',S.schedCats);showToast('Schedule categories saved ✓');render();
-  };
-  const resetSchedCats=document.querySelector('[data-reset-sched-cats]');
-  if(resetSchedCats)resetSchedCats.onclick=()=>{if(!confirm('Reset to default categories?'))return;S.schedCats=null;save('schedCats',null);showToast('Categories reset ✓');render();};
-  const addSchedCatBtn=document.getElementById('add-sched-cat-btn');
-  if(addSchedCatBtn)addSchedCatBtn.onclick=()=>{
-    S.schedCats=[...getSchedCats(),'New Category'];save('schedCats',S.schedCats);render();
-    setTimeout(()=>{const inp=[...document.querySelectorAll('.sched-cat-input')];if(inp.length)inp[inp.length-1].focus();},50);
-  };
-  document.querySelectorAll('[data-del-sched-cat]').forEach(el=>{
-    el.onclick=()=>{
-      const ci=parseInt(el.dataset.delSchedCat);const current=getSchedCats();
-      if(current.length<=1){showToast('Must keep at least one category','error');return;}
-      const catName=current[ci];
-      const inUse=S.schedule.filter(r=>r.category===catName).length;
-      if(inUse&&!confirm(inUse+' entries use "'+catName+'". Delete anyway?'))return;
-      S.schedCats=current.filter((_,i)=>i!==ci);save('schedCats',S.schedCats);showToast('Category removed ✓');render();
-    };
-  });
 }
 
 // ═══ ACTIVITY LOG & ONLINE PRESENCE ══════════════════════════════════════════
 const MAX_LOG=200;
-const HEARTBEAT_MS=30000; // 30s heartbeat
+const HEARTBEAT_MS=30000;
 let _heartbeatTimer=null;
 
 function logActivity(action,detail=''){
   if(!S.session)return;
-  const entry={
-    id:uid(),
-    user:S.session.name,
-    role:S.session.role,
-    action,
-    detail:String(detail||'').slice(0,120),
-    ts:new Date().toISOString()
-  };
+  const entry={id:uid(),user:S.session.name,role:S.session.role,action,detail:String(detail||'').slice(0,120),ts:new Date().toISOString()};
   const log=sget('activity_log')||[];
   log.unshift(entry);
   if(log.length>MAX_LOG)log.length=MAX_LOG;
   sset('activity_log',log);
-  // Also push to Supabase as a lightweight append (best-effort, no schema needed)
-  // We store in branding.activity_log — last 50 entries only to stay small
   if(SCHOOL_ID){
     const recent=log.slice(0,50);
-    fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{
-      method:'PATCH',
-      headers:{...SB_HEADERS,'Prefer':'return=minimal'},
-      body:JSON.stringify({branding:{...(S.branding||{}),activity_log:recent,online_users:getOnlineSnapshot()}})
-    }).catch(()=>{});
+    fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({branding:{...(S.branding||{}),activity_log:recent,online_users:getOnlineSnapshot()}})}).catch(()=>{});
   }
 }
 
 function getOnlineSnapshot(){
   const snap=sget('online_users')||{};
   snap[S.session?.name||'unknown']={ts:new Date().toISOString(),role:S.session?.role||''};
-  sset('online_users',snap);
-  return snap;
+  sset('online_users',snap);return snap;
 }
 
 function startHeartbeat(){
@@ -2864,36 +2909,22 @@ function startHeartbeat(){
   _heartbeatTimer=setInterval(()=>{
     if(!S.session||!SCHOOL_ID)return;
     const snap=getOnlineSnapshot();
-    fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{
-      method:'PATCH',
-      headers:{...SB_HEADERS,'Prefer':'return=minimal'},
-      body:JSON.stringify({branding:{...(S.branding||{}),online_users:snap}})
-    }).catch(()=>{});
+    fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({branding:{...(S.branding||{}),online_users:snap}})}).catch(()=>{});
   },HEARTBEAT_MS);
 }
 
 function stopHeartbeat(){
   if(_heartbeatTimer)clearInterval(_heartbeatTimer);
-  // Mark offline
   const snap=sget('online_users')||{};
   delete snap[S.session?.name||'unknown'];
   sset('online_users',snap);
-  if(SCHOOL_ID&&S.session){
-    fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{
-      method:'PATCH',
-      headers:{...SB_HEADERS,'Prefer':'return=minimal'},
-      body:JSON.stringify({branding:{...(S.branding||{}),online_users:snap}})
-    }).catch(()=>{});
-  }
+  if(SCHOOL_ID&&S.session){fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({branding:{...(S.branding||{}),online_users:snap}})}).catch(()=>{});}
 }
 
 function getOnlineUsers(){
-  // Users seen in last 90s are "online"
   const snap=S.branding?.online_users||sget('online_users')||{};
   const now=Date.now();
-  return Object.entries(snap)
-    .filter(([,v])=>now-new Date(v.ts||0).getTime()<90000)
-    .map(([name,v])=>({name,role:v.role,ts:v.ts}));
+  return Object.entries(snap).filter(([,v])=>now-new Date(v.ts||0).getTime()<90000).map(([name,v])=>({name,role:v.role,ts:v.ts}));
 }
 
 function renderActivityLog(){
@@ -2922,19 +2953,81 @@ function renderActivityLog(){
       ${log.length?`<button class="btn btn-ghost btn-sm" onclick="if(confirm('Clear activity log?')){sset('activity_log',[]);render();}">✕ Clear</button>`:''}
     </div>
   </div>
-  ${!log.length?'<div class="text-xs text-muted" style="font-style:italic">No activity recorded yet. Actions are logged as you use the platform.</div>':''}
+  ${!log.length?'<div class="text-xs text-muted" style="font-style:italic">No activity recorded yet.</div>':''}
   <div style="max-height:500px;overflow-y:auto">
     ${log.map(e=>`<div class="flex justify-between items-start mb-2 p-2" style="background:var(--light);border-radius:6px;border-left:3px solid ${actionColor(e.action)}">
-      <div>
-        <div style="font-size:12px"><strong>${esc(e.user)}</strong> <span style="color:${actionColor(e.action)};font-weight:600">${esc(e.action)}</span>${e.detail?' — <span style="color:var(--muted)">'+esc(e.detail)+'</span>':''}</div>
-        <div class="text-xs text-muted mt-1">${S.roleCfg[e.role]?.label||e.role||'—'}</div>
-      </div>
+      <div><div style="font-size:12px"><strong>${esc(e.user)}</strong> <span style="color:${actionColor(e.action)};font-weight:600">${esc(e.action)}</span>${e.detail?' — <span style="color:var(--muted)">'+esc(e.detail)+'</span>':''}</div>
+      <div class="text-xs text-muted mt-1">${S.roleCfg[e.role]?.label||e.role||'—'}</div></div>
       <span class="text-xs text-muted" style="white-space:nowrap;flex-shrink:0;margin-left:8px">${timeAgo(e.ts)}</span>
     </div>`).join('')}
   </div>
 </div>`;
 }
 
+function printCPD(id){
+  const c=S.cpd.find(x=>x.id===id);if(!c)return;
+  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const w=window.open('','_blank','width=800,height=1000');
+  w.document.write('<!DOCTYPE html><html><head><title>CPD Session — '+safe(c.title)+'</title>'
+  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:740px;margin:0 auto}'
+  +'h1{color:#1F4E79;font-size:19px;margin-bottom:4px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #1F4E79}'
+  +'.section{margin-bottom:16px;padding:12px 14px;border-radius:6px;white-space:pre-wrap}'
+  +'.section-title{font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:6px}'
+  +'.before{background:#dbeafe;border-left:4px solid #1e40af}.during{background:#fef3c7;border-left:4px solid #d97706}.after{background:#d1fae5;border-left:4px solid #059669}'
+  +'@media print{button{display:none!important}}</style></head><body>'
+  +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +'<div><h1>&#128218; '+safe(c.title)+'</h1>'
+  +'<div class="meta">Date: <strong>'+safe(c.date||'—')+'</strong> &nbsp;|&nbsp; Facilitator: <strong>'+safe(c.facilitator||'—')+'</strong> &nbsp;|&nbsp; Audience: <strong>'+safe(c.audience||'All')+'</strong>'+(c.type?' &nbsp;|&nbsp; Type: <strong>'+safe(c.type)+'</strong>':'')+(c.delivery?' &nbsp;|&nbsp; Delivery: <strong>'+safe(c.delivery)+'</strong>':'')+'</div></div>'
+  +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">&#128424; Print</button></div>'
+  +(c.bio?'<div style="margin-bottom:14px"><span style="background:#ede9fe;color:#5b21b6;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">Technique: '+safe(c.bio||c.customTech)+'</span></div>':'')
+  +(c.before?'<div class="section before"><div class="section-title" style="color:#1e40af">📋 Before — Planned Outcomes</div>'+safe(c.before)+'</div>':'')
+  +(c.during?'<div class="section during"><div class="section-title" style="color:#d97706">⚡ During — Activities</div>'+safe(c.during)+'</div>':'')
+  +(c.after?'<div class="section after"><div class="section-title" style="color:#059669">✅ After — Implementation &amp; Monitoring</div>'+safe(c.after)+'</div>':'')
+  +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+' &middot; Session ID: '+safe(id)+'</div></body></html>');
+  w.document.close();setTimeout(()=>w.print(),400);
+}
+
+function printSchedule(){
+  const mf=S.schedMonthFilter||'';const df=S.schedDateFrom||'';const dt=S.schedDateTo||'';
+  let rows=S.schedule.slice();
+  if(mf)rows=rows.filter(r=>r.month===mf);
+  if(df)rows=rows.filter(r=>(r.startDate||'')>=df);
+  if(dt)rows=rows.filter(r=>(r.startDate||'')<=dt);
+  const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const scColor=s=>s==='done'?'#065f46':s==='active'?'#92400e':'#374151';
+  const scBg=s=>s==='done'?'#d1fae5':s==='active'?'#fef3c7':'#f3f4f6';
+  let html='<!DOCTYPE html><html><head><title>Waad Academy — CPD Schedule</title><style>body{font-family:"Segoe UI",sans-serif;padding:24px;font-size:11px;color:#1a1a2e;max-width:1200px;margin:0 auto}h1{color:#1F4E79;font-size:17px;margin:0}.meta{color:#6b7280;font-size:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #1F4E79;margin-top:4px}.cat{background:#1F4E79;color:#fff;padding:5px 10px;font-weight:700;font-size:11px;border-radius:4px 4px 0 0;margin-top:14px}table{width:100%;border-collapse:collapse;margin-bottom:4px}th{padding:4px 6px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;background:#f9fafb;border-bottom:2px solid #e5e7eb}td{padding:4px 6px;border-bottom:1px solid #f3f4f6;font-size:10px;vertical-align:top}.pill{display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600}@media print{button{display:none!important}}</style></head><body>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:start"><div><h1>&#127983; Waad Academy — Annual CPD & Training Schedule</h1><div class="meta"><span>'+(mf?'Month: <strong>'+safe(mf)+'</strong> · ':'')+(df||dt?(df?'From '+df:'')+(dt?' → '+dt:'')+' · ':'')+'<strong>'+rows.length+'</strong> programmes</span><span>Printed: '+new Date().toLocaleDateString()+'</span></div></div><button onclick="window.print()" style="padding:5px 12px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-top:4px">&#128424; Print</button></div>';
+  getSchedCats().forEach(cat=>{
+    const catRows=rows.filter(r=>r.category===cat).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+    if(!catRows.length)return;
+    html+='<div class="cat">'+safe(cat)+' ('+catRows.length+')</div><table><thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Venue</th><th>Target</th><th>Cost</th><th>Status</th></tr></thead><tbody>';
+    catRows.forEach(r=>{const sc=scColor(r.status);const sb=scBg(r.status);html+='<tr><td style="font-weight:600">'+safe(r.program)+'</td><td>'+safe(r.facilitator||'—')+'</td><td>'+safe(r.type||'—')+'</td><td>'+safe(r.time||'—')+'</td><td>'+safe(r.duration||'—')+'</td><td>'+safe(r.startDate||'—')+'</td><td>'+safe(r.endDate||'—')+'</td><td>'+safe(r.venue||'—')+'</td><td>'+safe(r.target||'—')+'</td><td>'+safe(r.cost||'—')+'</td><td><span class="pill" style="background:'+sb+';color:'+sc+'">'+safe(r.status)+'</span></td></tr>';});
+    html+='</tbody></table>';
+  });
+  html+='<div style="margin-top:14px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy School Improvement Platform · Annual Schedule · '+new Date().toLocaleDateString()+'</div></body></html>';
+  const w=window.open('','_blank','width=1200,height=900');w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);
+}
+
+function exportScheduleExcel(){
+  const mf=S.schedMonthFilter||'';const df=S.schedDateFrom||'';const dt=S.schedDateTo||'';
+  let rows=S.schedule.slice();
+  if(mf)rows=rows.filter(r=>r.month===mf);
+  if(df)rows=rows.filter(r=>(r.startDate||'')>=df);
+  if(dt)rows=rows.filter(r=>(r.startDate||'')<=dt);
+  rows.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const header=['Category','Programme','Facilitator','Type','Delivery','Time','Duration','Start Date','End Date','Month','Venue','Target Audience','Cost','Status'];
+  const data=rows.map(r=>[r.category||'',r.program||'',r.facilitator||'',r.type||'',r.delivery||'',r.time||'',r.duration||'',r.startDate||'',r.endDate||'',r.month||'',r.venue||'',r.target||'',r.cost||'',r.status||'']);
+  const filterLabel=[mf?'Month: '+mf:'',df?'From: '+df:'',dt?'To: '+dt:''].filter(Boolean).join(' | ')||'All Programmes';
+  const summaryRows=[['Waad Academy — Annual CPD & Training Schedule','','','','','','','','','','','','',''],[ filterLabel,'','Total: '+rows.length,'','','','','','','','','','',''],['Printed: '+new Date().toLocaleDateString(),'','','','','','','','','','','','',''],['','','','','','','','','','','','','',''],header];
+  const allRows=[...summaryRows,...data];
+  const csv=allRows.map(r=>r.map(v=>{const s=String(v||'').replace(/"/g,'""');return '"'+s+'"';}).join(',')).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Waad-Schedule-'+new Date().toISOString().split('T')[0]+'.csv';a.click();URL.revokeObjectURL(url);
+  showToast('Excel file downloaded ✓');
+}
+
+// ═══ CSV EXPORT ══════════════════════════════════════════════════════════════
 function exportCSV(filename, rows){
   if(!rows||!rows.length)return;
   const keys=Object.keys(rows[0]);
