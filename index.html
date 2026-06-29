@@ -111,7 +111,7 @@ async function sbDelete(table,id){try{const r=await fetch(SB_URL+'/rest/v1/'+tab
 const MEM={};
 function sget(k){try{const v=localStorage.getItem('wa_'+k);return v?JSON.parse(v):null}catch(e){return MEM[k]||null}}
 function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){MEM[k]=v}}
-const SEED_USERS = [
+const SEED_USERS=[
   {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'BilalHarb',password:'WaadAcademy2026',role:'admin',depts:[]},
   {id:'52ejvt0s_mqh2scax',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr123',role:'admin',depts:[]},
   {id:'8fku19n7_mqh2t2e1',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
@@ -129,8 +129,7 @@ const SEED_USERS = [
   {id:'3c56e5bc-ad74-4faf-afe9-6229adb7ec0e',name:'Amal Alghamdi',fullName:'Amal Alghamdi',username:'Amal',password:'HODA1234567',role:'cpdLead',depts:[]},
   {id:'41317ce2-d495-4117-a3ce-b3d069ff5a72',name:'Safaih Alzahrani',fullName:'Safaih Alzahrani',username:'Safiah',password:'HOLSaf123',role:'cpdLead',depts:[]},
   {id:'c82cd000-07f1-47ff-ab14-166726d60eb3',name:'Ashwag AlMarwani',fullName:'Ashwag AlMarwani',username:'Ashwag',password:'HODAsh123',role:'cpdLead',depts:[]},
-  {id:'22d4fc82-88c4-48c1-8a64-f091fe725908',name:'Hanan Mshlab',fullName:'Hanan Mshlab',username:'Hanan',password:'HOLHa1234567',role:'viewer',depts:[]},
-  {id:'a67365d8-3384-4217-92fe-da666b52de65',name:'Georges',fullName:'Georges',username:'Georges',password:'G12345',role:'teacher',depts:["Science"]}
+  {id:'22d4fc82-88c4-48c1-8a64-f091fe725908',name:'Hanan Mshlab',fullName:'Hanan Mshlab',username:'Hanan',password:'HOLHa1234567',role:'viewer',depts:[]}
 ];
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','KG/Primary','Other'];
 const SECTIONS=['Boys','Girls'];
@@ -154,7 +153,7 @@ const DEFAULT_RESOURCES=[{id:'r1',title:'Darling-Hammond (2017) — Effective Te
 const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},{id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},{id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},{id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null}];
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 const SEED_TEACHERS=[{id:'22222222-0000-4000-8000-000000000001',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000002',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000003',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000004',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000005',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000006',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000003'},{id:'22222222-0000-4000-8000-000000000007',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'11111111-0000-4000-8000-000000000003'}];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],teacherSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],teacherSearch:'',tchDepts:[],tchSects:[],impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{}};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 
 async function loadAll(){
@@ -250,7 +249,7 @@ async function save(k,v){
     else if(k==='trips') await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};}));
     else if(k==='lwalks') await sbUpsert('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}));
     else if(k==='cpd') await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
-    else if(k==='sched') await sbUpsert('schedule_rows',v.map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null,cost:r.cost||'',time_slot:r.time||''})));
+    else if(k==='sched') await sbUpsert('schedule_rows',v.map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null})));
     else if(k==='impacts') await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
     else if(k==='progress') await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',stage_scores:p.scores||{},folder_link:p.folderLink||''})));
     else if(k==='snapshots') await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
@@ -648,8 +647,8 @@ ${cats.map(cat=>{
       <span class="badge badge-blue">${rows.length} programme${rows.length!==1?'s':''}</span>
     </div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Venue</th><th>Target</th><th>Cost</th><th>Status</th>${canEdit()?'<th style="min-width:80px"></th>':''}</tr></thead>
-      <tbody>${rows.map(r=>`<tr style="${conflicts.has(r.id)?'background:#fff7ed;border-left:3px solid #f59e0b':''}">
+      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Venue</th><th>Target</th><th>Cost</th><th>⭐</th><th>Status</th>${canEdit()?'<th style="min-width:80px"></th>':''}</tr></thead>
+      <tbody>${rows.map(r=>{const ratingVal=(S.schedRatings||{})[r.id]||0;return`<tr style="${conflicts.has(r.id)?'background:#fff7ed;border-left:3px solid #f59e0b':''}">
         <td style="font-weight:600;direction:auto">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}${conflicts.has(r.id)?'<span class="badge badge-amber ml-1" style="font-size:10px">⚠ conflict</span>':''}</td>
         <td class="text-xs">${esc(r.facilitator||'—')}</td>
         <td><span class="badge badge-${r.type==='Cambridge'?'purple':r.type==='External'?'amber':r.type==='COBIS'?'green':'blue'}">${esc(r.type||'—')}</span></td>
@@ -661,6 +660,7 @@ ${cats.map(cat=>{
         <td class="text-xs">${esc(r.venue||'—')}</td>
         <td class="text-xs">${esc(r.target||'—')}</td>
         <td class="text-xs">${r.cost?'<span style="font-weight:600;color:var(--forest)">'+esc(r.cost)+'</span>':'—'}</td>
+        <td class="text-xs" style="white-space:nowrap">${ratingVal>0?'<span style="color:#f59e0b;font-weight:700">'+'★'.repeat(ratingVal)+'</span> <span style="color:var(--muted);font-size:10px">'+ratingVal+'/5</span>':'<span style="color:#d1d5db">—</span>'}</td>
         <td>${canEdit()
           ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:90px" data-status-sched="${r.id}">
               ${['planned','active','done'].map(s=>`<option ${r.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
@@ -668,7 +668,7 @@ ${cats.map(cat=>{
           :`<span class="badge ${statusBadge(r.status)}">${r.status}</span>`}
         </td>
         ${canEdit()?`<td><div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-sched="${r.id}" title="Edit">✏</button><button class="btn btn-sm btn-danger" data-del-sched="${r.id}">✕</button></div></td>`:''}
-      </tr>`).join('')}
+      </tr>`;}).join('')}
       </tbody>
     </table></div>
   </div>`;
@@ -679,9 +679,27 @@ ${filteredSched.length===0?`<div class="card" style="text-align:center;color:var
 function renderTeachers(){
   const q=(S.teacherSearch||'').toLowerCase();
   let teachers=scopedTeachers();
+  // Apply dept filter
+  if((S.tchDepts||[]).length>0) teachers=teachers.filter(t=>S.tchDepts.includes(t.dept));
+  // Apply section filter
+  if((S.tchSects||[]).length>0) teachers=teachers.filter(t=>S.tchSects.includes(t.section));
+  // Apply search
   if(q) teachers=teachers.filter(t=>t.name.toLowerCase().includes(q)||t.dept.toLowerCase().includes(q));
   const groups=S.groups;
+  const hasFilters=(S.tchDepts||[]).length>0||(S.tchSects||[]).length>0||q;
   return `
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:72px">Department:</span>
+    <div class="pill-opt ${(S.tchDepts||[]).length===0?'sel':''}" data-tch-dept="">All</div>
+    ${DEPTS.map(d=>`<div class="pill-opt ${(S.tchDepts||[]).includes(d)?'sel':''}" data-tch-dept="${d}">${d}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:72px">Section:</span>
+    <div class="pill-opt ${(S.tchSects||[]).length===0?'sel':''}" data-tch-sect="">All</div>
+    ${SECTIONS.map(s=>`<div class="pill-opt ${(S.tchSects||[]).includes(s)?'sel':''}" data-tch-sect="${s}">${s}</div>`).join('')}
+  </div>
+</div>
 <div class="flex justify-between items-center mb-3">
   ${canEdit()?`<div class="flex gap-2">
     <button class="btn btn-primary" data-modal="teacher">+ Add Teacher</button>
@@ -690,12 +708,14 @@ function renderTeachers(){
   <div class="flex items-center gap-2">
     <input class="form-control" id="teacher-search-box" placeholder="🔍 Search name or department…" value="${esc(S.teacherSearch||'')}" style="width:220px;padding:5px 9px;font-size:12px">
     ${q?`<button class="btn btn-ghost btn-sm" onclick="S.teacherSearch='';render()">✕</button>`:''}
+    ${hasFilters?`<button class="btn btn-ghost btn-sm" onclick="S.tchDepts=[];S.tchSects=[];S.teacherSearch='';render()">✕ Clear all</button>`:''}
+    <span class="text-xs text-muted">${teachers.length} teacher${teachers.length!==1?'s':''}</span>
   </div>
 </div>
-${q&&!teachers.length?`<div class="card" style="text-align:center;color:var(--muted);padding:20px;font-style:italic">No teachers match "<strong>${esc(q)}</strong>"</div>`:''}
+${q&&!teachers.length?`<div class="card" style="text-align:center;color:var(--muted);padding:20px;font-style:italic">No teachers match current filters.</div>`:''}
 ${groups.map(g=>{
   const ts=teachers.filter(t=>t.groupId===g.id);
-  if(q&&!ts.length)return'';
+  if(hasFilters&&!ts.length)return'';
   return `<div class="card">
     <div class="flex justify-between items-center mb-3">
       <div class="card-title" style="margin:0"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${g.color};margin-right:6px"></span>${g.name}</div>
@@ -1057,24 +1077,51 @@ ${tab==='coaching'?`
 `:''}
 
 ${tab==='schedule'?`
-  ${mySchedule.length===0?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No scheduled CPD events found for your department or section.</div>':''}
-  ${mySchedule.map(r=>{
-    const statusColor=r.status==='done'?'#0F6E56':r.status==='active'?'#7B4F0C':'#6b7280';
-    const statusBg=r.status==='done'?'#d1fae5':r.status==='active'?'#fef3c7':'#f3f4f6';
-    return `<div class="card" style="border-left:3px solid ${statusColor}">
-      <div class="flex justify-between items-center mb-1">
-        <div>
-          <span style="font-weight:700;direction:auto">${esc(r.program)}</span>
-          <span class="badge badge-${r.type==='Cambridge'?'purple':r.type==='External'?'amber':'blue'} ml-1">${esc(r.type||r.delivery||'—')}</span>
-        </div>
-        <span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${r.status}</span>
-      </div>
-      <div class="text-xs text-muted">${r.startDate||'—'}${r.endDate&&r.endDate!==r.startDate?' → '+r.endDate:''} · ${esc(r.month||'')} · ${esc(r.venue||'TBC')}</div>
-      ${r.time?'<div class="text-xs text-muted">🕐 '+esc(r.time)+'</div>':''}
-      ${r.facilitator?'<div class="text-xs text-muted mt-1">Facilitator: '+esc(r.facilitator)+'</div>':''}
-      ${r.duration?'<div class="text-xs text-muted">Duration: '+esc(r.duration)+'</div>':''}
-    </div>`;
-  }).join('')}
+  <div class="card mb-3" style="padding:10px 14px">
+    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Month:</span>
+      <div class="pill-opt ${(S.portalSchedMonth||'')==''?'sel':''}" data-portal-month="">All</div>
+      ${MONTHS.map(m=>`<div class="pill-opt ${S.portalSchedMonth===m?'sel':''}" data-portal-month="${m}">${m}</div>`).join('')}
+    </div>
+    <div class="flex items-center gap-2" style="flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Status:</span>
+      <div class="pill-opt ${(S.portalSchedStatus||'')==''?'sel':''}" data-portal-status="">All</div>
+      ${['planned','active','done'].map(s=>`<div class="pill-opt ${S.portalSchedStatus===s?'sel':''}" data-portal-status="${s}">${s}</div>`).join('')}
+    </div>
+  </div>
+  ${(()=>{
+    let rows=mySchedule;
+    if(S.portalSchedMonth)rows=rows.filter(r=>r.month===S.portalSchedMonth);
+    if(S.portalSchedStatus)rows=rows.filter(r=>r.status===S.portalSchedStatus);
+    if(!rows.length)return '<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No sessions match the current filters.</div>';
+    return rows.map(r=>{
+      const statusColor=r.status==='done'?'#0F6E56':r.status==='active'?'#7B4F0C':'#6b7280';
+      const statusBg=r.status==='done'?'#d1fae5':r.status==='active'?'#fef3c7':'#f3f4f6';
+      const myRating=(S.schedRatings||{})[r.id]||0;
+      return '<div class="card" style="border-left:4px solid '+statusColor+'">'
+        +'<div class="flex justify-between items-center mb-2">'
+        +'<div><span style="font-weight:700;font-size:14px;direction:auto">'+esc(r.program)+'</span>'
+        +(r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':'')+'</div>'
+        +'<span style="background:'+statusBg+';color:'+statusColor+';padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">'+r.status+'</span>'
+        +'</div>'
+        // Details grid
+        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📅 Date</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.startDate||'—')+(r.endDate&&r.endDate!==r.startDate?'<br><span style="color:var(--muted)">→ '+r.endDate+'</span>':'')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🕐 Time</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.time||'—')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📍 Venue</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.venue||'TBC')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">⏱ Duration</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.duration||'—')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🎤 Facilitator</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.facilitator||'—')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">👥 Target</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.target||'All')+'</div></div>'
+        +'</div>'
+        // Star rating
+        +(r.status==='done'?'<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px">⭐ Rate this session</div>'
+        +'<div class="flex gap-1 items-center">'
+        +[1,2,3,4,5].map(n=>'<button data-rate-sched="'+r.id+'-'+n+'" style="width:32px;height:32px;font-size:18px;border:none;background:transparent;cursor:pointer;color:'+(myRating>=n?'#f59e0b':'#d1d5db')+';transition:color .15s" title="'+n+' star'+(n!==1?'s':'')+'">'+(myRating>=n?'★':'☆')+'</button>').join('')
+        +(myRating>0?'<span style="font-size:12px;font-weight:700;color:#f59e0b;margin-left:6px">'+myRating+'/5</span>':'')
+        +'</div></div>':'')
+        +'</div>';
+    }).join('');
+  })()}
 `:''}
 
 ${tab==='resources'?`
@@ -2877,6 +2924,115 @@ function bindEvents(){
     el.onclick=()=>{
       const u=getAllUsers().find(u=>u.id===el.dataset.editUser);
       if(u){S.modal=renderModal('user',u);render();}
+    };
+  });
+
+  // ── Observation (Fieldwork) filter pills ────────────────────────────────
+  document.querySelectorAll('[data-fw-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.fwDept;if(d===''){S.fwDepts=[];}else{if(!S.fwDepts)S.fwDepts=[];const i=S.fwDepts.indexOf(d);if(i>=0)S.fwDepts.splice(i,1);else S.fwDepts.push(d);}render();};
+  });
+  document.querySelectorAll('[data-fw-sect]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.fwSect;if(s===''){S.fwSects=[];}else{if(!S.fwSects)S.fwSects=[];const i=S.fwSects.indexOf(s);if(i>=0)S.fwSects.splice(i,1);else S.fwSects.push(s);}render();};
+  });
+  document.querySelectorAll('[data-fw-stage]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.fwStage;if(s===''){S.fwStages=[];}else{if(!S.fwStages)S.fwStages=[];const i=S.fwStages.indexOf(s);if(i>=0)S.fwStages.splice(i,1);else S.fwStages.push(s);}render();};
+  });
+
+  // Schedule CSV export
+  document.querySelectorAll('[data-export-sched]').forEach(el=>{
+    el.onclick=()=>exportCSV('annual-schedule.csv',S.schedule.map(r=>({category:r.category,program:r.program,facilitator:r.facilitator,type:r.type,month:r.month,startDate:r.startDate,endDate:r.endDate,status:r.status})));
+  });
+
+  // ── Teacher search box ───────────────────────────────────────────────────
+  const teacherSearchBox=document.getElementById('teacher-search-box');
+  if(teacherSearchBox){
+    teacherSearchBox.oninput=()=>{S.teacherSearch=teacherSearchBox.value;render();};
+    teacherSearchBox.onkeydown=e=>{if(e.key==='Escape'){S.teacherSearch='';render();}};
+  }
+
+  // ── Teacher tab dept/section filter pills ────────────────────────────────
+  document.querySelectorAll('[data-tch-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.tchDept;if(d===''){S.tchDepts=[];}else{if(!S.tchDepts)S.tchDepts=[];const i=S.tchDepts.indexOf(d);if(i>=0)S.tchDepts.splice(i,1);else S.tchDepts.push(d);}render();};
+  });
+  document.querySelectorAll('[data-tch-sect]').forEach(el=>{
+    el.onclick=()=>{const s=el.dataset.tchSect;if(s===''){S.tchSects=[];}else{if(!S.tchSects)S.tchSects=[];const i=S.tchSects.indexOf(s);if(i>=0)S.tchSects.splice(i,1);else S.tchSects.push(s);}render();};
+  });
+
+  // ── Schedule month filter pills ──────────────────────────────────────────
+  document.querySelectorAll('[data-sched-month]').forEach(el=>{
+    el.onclick=()=>{S.schedMonthFilter=el.dataset.schedMonth;render();};
+  });
+  // ── Schedule print + Excel ───────────────────────────────────────────────
+  const printSchedBtn=document.getElementById('print-sched-btn');
+  if(printSchedBtn)printSchedBtn.onclick=()=>printSchedule();
+  const excelSchedBtn=document.getElementById('excel-sched-btn');
+  if(excelSchedBtn)excelSchedBtn.onclick=()=>exportScheduleExcel();
+  // ── Schedule edit ────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-edit-sched]').forEach(el=>{
+    el.onclick=()=>{
+      const r=S.schedule.find(s=>s.id===el.dataset.editSched);
+      if(r){S.editingId={type:'sched',id:r.id};S.modal=renderModal('sched',r);render();}
+    };
+  });
+
+  // ── Schedule Categories editor (Settings) ────────────────────────────────
+  const saveSchedCats=document.querySelector('[data-save-sched-cats]');
+  if(saveSchedCats)saveSchedCats.onclick=()=>{
+    const inputs=[...document.querySelectorAll('.sched-cat-input')];
+    const updated=inputs.map(el=>el.value.trim()).filter(Boolean);
+    if(!updated.length){showToast('Must have at least one category','error');return;}
+    S.schedCats=updated;save('schedCats',S.schedCats);showToast('Schedule categories saved ✓');render();
+  };
+  const resetSchedCats=document.querySelector('[data-reset-sched-cats]');
+  if(resetSchedCats)resetSchedCats.onclick=()=>{if(!confirm('Reset to default categories?'))return;S.schedCats=null;save('schedCats',null);showToast('Categories reset ✓');render();};
+  const addSchedCatBtn=document.getElementById('add-sched-cat-btn');
+  if(addSchedCatBtn)addSchedCatBtn.onclick=()=>{
+    S.schedCats=[...getSchedCats(),'New Category'];save('schedCats',S.schedCats);render();
+    setTimeout(()=>{const inp=[...document.querySelectorAll('.sched-cat-input')];if(inp.length)inp[inp.length-1].focus();},50);
+  };
+  document.querySelectorAll('[data-del-sched-cat]').forEach(el=>{
+    el.onclick=()=>{
+      const ci=parseInt(el.dataset.delSchedCat);const current=getSchedCats();
+      if(current.length<=1){showToast('Must keep at least one category','error');return;}
+      const catName=current[ci];
+      const inUse=S.schedule.filter(r=>r.category===catName).length;
+      if(inUse&&!confirm(inUse+' entries use "'+catName+'". Delete anyway?'))return;
+      S.schedCats=current.filter((_,i)=>i!==ci);save('schedCats',S.schedCats);showToast('Category removed ✓');render();
+    };
+  });
+
+  // ── My Portal tabs ───────────────────────────────────────────────────────
+  document.querySelectorAll('[data-myportal-tab]').forEach(el=>{
+    el.onclick=()=>{S.myPortalTab=el.dataset.myportalTab;render();};
+  });
+  // ── My Portal: teacher schedule filters ──────────────────────────────────
+  document.querySelectorAll('[data-portal-month]').forEach(el=>{
+    el.onclick=()=>{S.portalSchedMonth=el.dataset.portalMonth;render();};
+  });
+  document.querySelectorAll('[data-portal-status]').forEach(el=>{
+    el.onclick=()=>{S.portalSchedStatus=el.dataset.portalStatus;render();};
+  });
+  // ── Teacher workshop rating (stars) ──────────────────────────────────────
+  document.querySelectorAll('[data-rate-sched]').forEach(el=>{
+    el.onclick=()=>{
+      const[sid,n]=el.dataset.rateSched.split('-');
+      if(!S.schedRatings)S.schedRatings={};
+      S.schedRatings[sid]=parseInt(n);
+      sset('schedRatings',S.schedRatings);
+      showToast('Rating saved ✓');
+      render();
+    };
+  });
+  // ── Teacher response save ────────────────────────────────────────────────
+  document.querySelectorAll('[data-save-teacher-response]').forEach(el=>{
+    el.onclick=()=>{
+      const oid=el.dataset.saveTeacherResponse;
+      const ta=document.getElementById('tr-resp-'+oid);
+      if(!ta)return;
+      const resp=ta.value.trim();
+      S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp}:o);
+      save('obs',S.observations);
+      showToast('Response saved ✓');
     };
   });
 }
