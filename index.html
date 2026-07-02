@@ -183,10 +183,10 @@ async function loadAll(){
     if(cpd&&Array.isArray(cpd)){S.cpd=cpd.map(mapCPD);sset('cpd',S.cpd);}
     else S.cpd=sget('cpd')||[];
     if(sched&&Array.isArray(sched)){
-      // Merge: keep seed rows locally (they're not in DB) + all DB rows
-      const _dbIds=new Set(sched.map(r=>r.id));
-      const _seedOnly=SEED_SCHEDULE.filter(r=>!_dbIds.has(r.id));
-      S.schedule=[..._seedOnly,...sched.map(mapSched)];
+      // Seed rows (sc1-sc6) are never in DB; merge them back so they always show
+      const _dbSchedIds=new Set(sched.map(r=>r.id));
+      const _seedKeep=SEED_SCHEDULE.filter(r=>!_dbSchedIds.has(r.id));
+      S.schedule=[..._seedKeep,...sched.map(mapSched)];
       sset('sched',S.schedule);
     }
     else S.schedule=sget('sched')||SEED_SCHEDULE;
@@ -240,7 +240,7 @@ function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observe
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:'',fid:'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false}}
 function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
 function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
-function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||''}}
+function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
 function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
 function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.stage_scores||{},folderLink:r.folder_link||''}}
 function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0,tripCount:r.trip_count||0,lwCount:r.lw_count||0,dept:r.dept||'Whole School',date:r.submitted_at||new Date().toISOString()}}
@@ -257,7 +257,11 @@ async function save(k,v){
     else if(k==='trips') await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};}));
     else if(k==='lwalks') await sbUpsert('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}));
     else if(k==='cpd') await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
-    else if(k==='sched'){const _uuidRe2=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;const _schedRows=v.filter(r=>_uuidRe2.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null}));if(_schedRows.length)await sbUpsert('schedule_rows',_schedRows);}
+    else if(k==='sched'){
+      const _uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null}));
+      if(_dbRows.length) await sbUpsert('schedule_rows',_dbRows);
+    }
     else if(k==='impacts') await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
     else if(k==='progress') await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',stage_scores:p.scores||{},folder_link:p.folderLink||''})));
     else if(k==='snapshots') await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
@@ -682,30 +686,6 @@ ${cats.map(cat=>{
     </table></div>
   </div>`;
 }).join('')}
-${(()=>{
-  // Show any schedule rows whose category doesn't match any current category (orphaned)
-  const currentCats=getSchedCats();
-  const orphaned=filteredSched.filter(r=>!currentCats.includes(r.category));
-  if(!orphaned.length) return '';
-  const statusBadge2=s=>s==='done'?'badge-green':s==='active'?'badge-amber':'badge-gray';
-  return `<div class="card" style="border-left:4px solid var(--amber)">
-    <div class="flex justify-between items-center mb-2">
-      <div class="card-title" style="margin:0;color:var(--amber)">⚠ Other / Uncategorized (${orphaned.length})</div>
-      <span class="badge badge-amber">Category not in current list</span>
-    </div>
-    <div style="overflow-x:auto"><table>
-      <thead><tr><th>Programme</th><th>Category</th><th>Month</th><th>Start</th><th>Status</th>${canEdit()?'<th></th>':''}</tr></thead>
-      <tbody>${orphaned.map(r=>`<tr>
-        <td style="font-weight:600">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}</td>
-        <td class="text-xs text-muted">${esc(r.category||'—')}</td>
-        <td class="text-xs">${r.month||'—'}</td>
-        <td class="text-xs">${r.startDate||'—'}</td>
-        <td><span class="badge ${statusBadge2(r.status)}">${r.status}</span></td>
-        ${canEdit()?`<td><button class="btn btn-sm btn-danger" data-del-sched="${r.id}">✕</button></td>`:''}
-      </tr>`).join('')}</tbody>
-    </table></div>
-  </div>`;
-})()}
 ${filteredSched.length===0?`<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No programmes match the current filters. <button class="btn btn-ghost btn-sm ml-2" onclick="S.schedMonthFilter='';S.schedDateFrom='';S.schedDateTo='';render()">Clear filters</button></div>`:''}
 `}
 
@@ -1166,7 +1146,7 @@ ${tab==='schedule'?`
         +'</div>'
         // Details grid
         +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📅 Date</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.startDate||r.month||'—')+(r.endDate&&r.endDate!==r.startDate?'<br><span style="color:var(--muted)">→ '+r.endDate+'</span>':'')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📅 Date</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.startDate||'—')+(r.endDate&&r.endDate!==r.startDate?'<br><span style="color:var(--muted)">→ '+r.endDate+'</span>':'')+'</div></div>'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🕐 Time</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.time||'—')+'</div></div>'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📍 Venue</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.venue||'TBC')+'</div></div>'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">⏱ Duration</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.duration||'—')+'</div></div>'
@@ -2160,16 +2140,21 @@ function renderModal(type, data={}){
   }
 
   if(type==='sched'){
-    const _cats=getSchedCats();
-    return M('🗓 Add Schedule Entry',
-      FS('sch-cat','Category',_cats,data.category||_cats[0])+
-      FI('sch-prog','Programme Name','','text','e.g. Cambridge PDQ Teaching & Learning')+
-      G2(FI('sch-fac','Facilitator',''),FI('sch-target','Target Audience',''))+
-      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],'Internal'),
-         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],'Workshop'))+
-      G2(FI('sch-dur','Duration','','text','e.g. 60 min'),FS('sch-month','Month',MONTHS,MONTHS[0]))+
-      G2(FI('sch-start','Start Date','','date'),FI('sch-end','End Date','','date')),
-      '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>Save</button>'
+    const isSchedEdit=!!(data.id);
+    const _sCats=getSchedCats();
+    const _sCatVal=data.category||_sCats[0]||'Internal - SDP-Based Training';
+    return M((isSchedEdit?'✏ Edit':'🗓 Add')+' Schedule Entry',
+      FS('sch-cat','Category',_sCats,_sCatVal)+
+      FI('sch-prog','Programme Name',data.program||'','text','e.g. Cambridge PDQ Teaching & Learning')+
+      G2(FI('sch-fac','Facilitator',data.facilitator||''),FI('sch-target','Target Audience',data.target||''))+
+      G2(FS('sch-type','Type',['Cambridge','Internal','External','COBIS','WLC','Other'],data.type||'Internal'),
+         FS('sch-del','Delivery',['Course','Workshop','WLC','Online','Face to Face','In School','Other'],data.delivery||'Workshop'))+
+      G2(FI('sch-dur','Duration',data.duration||'','text','e.g. 60 min'),FS('sch-month','Month',MONTHS,data.month||MONTHS[0]))+
+      G2(FI('sch-start','Start Date',data.startDate||'','date'),FI('sch-end','End Date',data.endDate||'','date'))+
+      G2(FI('sch-time-from','Time From',data.timeFrom||data.time||'','time'),FI('sch-time-to','Time To',data.timeTo||'','time'))+
+      G2(FI('sch-venue','Venue',data.venue||'','text','e.g. School Hall / Online'),FI('sch-cost','Cost / Fee',data.cost||'','text','e.g. SAR 500 or Free'))+
+      (isSchedEdit?`<input type="hidden" id="sch-edit-id" value="${data.id}">`:''),
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-sched>${isSchedEdit?'Update Entry':'Save Entry'}</button>`
     );
   }
 
@@ -2628,25 +2613,8 @@ function bindEvents(){
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     save('cpd',S.cpd);
     if(!editId){
-      // CREATE: link to first available schedule category
-      const _defaultCat=getSchedCats().includes('Internal - SDP-Based Training')
-        ?'Internal - SDP-Based Training'
-        :getSchedCats()[0]||'Internal - SDP-Based Training';
-      const newRow={id:uid(),category:_defaultCat,program:title,facilitator:cpd.facilitator,
-        delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,
-        status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
-      S.schedule=[...S.schedule,newRow];
-      save('sched',S.schedule);
-    } else {
-      // EDIT: update the existing linked schedule row in-place
-      const linkedIdx=S.schedule.findIndex(r=>r.cpdId===cpd.id);
-      if(linkedIdx>=0){
-        S.schedule[linkedIdx]={...S.schedule[linkedIdx],
-          program:title,facilitator:cpd.facilitator,delivery:cpd.delivery,
-          type:cpd.type,month,startDate:cpd.date||S.schedule[linkedIdx].startDate,
-          target:aud};
-        save('sched',S.schedule);
-      }
+      const newRow={id:uid(),category:'Internal - SDP-Based Training',program:title,facilitator:cpd.facilitator,delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
+      S.schedule=[...S.schedule,newRow];save('sched',S.schedule);
     }
     S.modal=null;S.editingId=null;
     showToast(editId?'CPD session updated ✓':'CPD session saved & linked to schedule ✓');
@@ -2677,15 +2645,39 @@ function bindEvents(){
   if(saveSched)saveSched.onclick=()=>{
     const prog=gv('sch-prog');
     if(!prog.trim()){showToast('Please enter a programme name','error');return;}
-    const _cat=gv('sch-cat')||getSchedCats()[0]||'Internal - SDP-Based Training';
-    const row={id:uid(),category:_cat,program:prog,facilitator:gv('sch-fac'),
-      delivery:gv('sch-del'),type:gv('sch-type'),duration:gv('sch-dur'),
-      month:gv('sch-month'),startDate:gv('sch-start'),endDate:gv('sch-end'),
-      venue:'TBC',target:gv('sch-target'),status:'planned',cpdId:null};
-    S.schedule=[...S.schedule,row];
-    save('sched',S.schedule);
-    S.modal=null;
-    showToast('Schedule entry saved ✓');
+    const editSchedId=(document.getElementById('sch-edit-id')||{}).value||null;
+    const existingRow=editSchedId?S.schedule.find(r=>r.id===editSchedId):null;
+    const row={
+      id:editSchedId||uid(),
+      category:gv('sch-cat')||getSchedCats()[0]||'Internal - SDP-Based Training',
+      program:prog,
+      facilitator:gv('sch-fac'),
+      delivery:gv('sch-del'),
+      type:gv('sch-type'),
+      duration:gv('sch-dur'),
+      month:gv('sch-month'),
+      startDate:gv('sch-start'),
+      endDate:gv('sch-end'),
+      timeFrom:gv('sch-time-from'),
+      timeTo:gv('sch-time-to'),
+      time:gv('sch-time-from'),
+      venue:gv('sch-venue')||'TBC',
+      cost:gv('sch-cost'),
+      target:gv('sch-target'),
+      status:existingRow?existingRow.status:'planned',
+      cpdId:existingRow?existingRow.cpdId:null
+    };
+    if(editSchedId){
+      S.schedule=S.schedule.map(r=>r.id===editSchedId?row:r);
+      save('sched',S.schedule);
+      S.modal=null;S.editingId=null;
+      showToast('Schedule entry updated ✓');
+    } else {
+      S.schedule=[...S.schedule,row];
+      save('sched',S.schedule);
+      S.modal=null;
+      showToast('Schedule entry saved ✓');
+    }
   };
 
   const saveTch=document.querySelector('[data-save-teacher]');
