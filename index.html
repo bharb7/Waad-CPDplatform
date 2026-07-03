@@ -100,6 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
+const BUILD_VERSION='2026-07-03-B8-autoclean-dedup';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -307,6 +308,33 @@ async function sbRemove(table,id){
   if(!uuidRe.test(id))return true;
   return await sbDelete(table,id);
 }
+async function autoCleanDuplicateSchedule(){
+  if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
+  const sid='school_id=eq.'+SCHOOL_ID;
+  const rows=await sbGet('schedule_rows',sid+'&select=*&order=program.asc');
+  if(rows===null){alert('Could not fetch rows to clean — query failed.');return;}
+  // Group rows that share the same cpd_id — these are always true duplicates
+  // (one CPD session should only ever have one linked schedule row).
+  const groups={};
+  rows.forEach(r=>{ if(r.cpd_id){ (groups[r.cpd_id]=groups[r.cpd_id]||[]).push(r); } });
+  const toDelete=[];
+  Object.values(groups).forEach(group=>{
+    if(group.length>1){
+      // Keep whichever copy has a real start_date; otherwise keep the first one
+      const keeper=group.find(r=>r.start_date)||group[0];
+      group.forEach(r=>{ if(r.id!==keeper.id) toDelete.push(r); });
+    }
+  });
+  if(!toDelete.length){ alert('No duplicate linked rows found (by cpd_id) — nothing to clean.'); openScheduleDbDebug(); return; }
+  if(!confirm('Found '+toDelete.length+' duplicate row(s) sharing a CPD link. Delete all but the best copy of each?'))return;
+  let okCount=0,failCount=0;
+  for(const r of toDelete){
+    const ok=await sbDelete('schedule_rows',r.id);
+    if(ok)okCount++; else failCount++;
+  }
+  alert('Cleanup finished. Deleted: '+okCount+(failCount?(' · Failed: '+failCount+' (check RLS/connection)'):''));
+  openScheduleDbDebug();
+}
 async function openScheduleDbDebug(){
   if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
   const sid='school_id=eq.'+SCHOOL_ID;
@@ -509,6 +537,7 @@ ${S.modal?S.modal:''}
       ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">':''}
       <h1 style="font-size:13px">${S.branding.logo?'':'🏫 '}${S.branding.name}</h1>
       <p class="sidebar-sub">School Improvement Platform</p>
+      <p style="font-size:9px;color:#9ca3af;margin-top:2px;font-family:monospace">build: ${BUILD_VERSION}</p>
       ${(S.branding.partners||[]).filter(Boolean).length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:18px;object-fit:contain;border-radius:2px;background:#fff;padding:1px">').join('')}</div>`:''}
     </div>
     ${views.map(v=>`
@@ -2246,8 +2275,13 @@ function renderModal(type, data={}){
 
   if(type==='dbDebugSched'){
     const rows=data.rows||[];
+    const _cpdGroups={};
+    rows.forEach(r=>{ if(r.cpd_id){ (_cpdGroups[r.cpd_id]=_cpdGroups[r.cpd_id]||[]).push(r); } });
+    const _dupCount=Object.values(_cpdGroups).filter(g=>g.length>1).reduce((s,g)=>s+g.length-1,0);
     return M('🛠 Raw schedule_rows in Supabase ('+rows.length+')',
       `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">This is a live, unfiltered read straight from the database — no local cache, no seed logic. If duplicates show here, they are genuinely in Supabase. Force-deleting shows the raw HTTP response so we can see exactly what happens.</p>
+      <p style="font-size:10px;color:#9ca3af;font-family:monospace;margin-bottom:8px">build: ${BUILD_VERSION}</p>
+      ${_dupCount>0?`<div class="alert alert-warn" style="margin-bottom:8px;font-size:12px">⚠️ ${_dupCount} duplicate row(s) detected (multiple rows sharing one CPD link). <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="autoCleanDuplicateSchedule()">🧹 Auto-clean duplicates now</button></div>`:''}
       <div style="max-height:360px;overflow-y:auto;font-family:monospace;font-size:11px">
       ${rows.length?rows.map(r=>`
         <div style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px">
@@ -2754,9 +2788,11 @@ function bindEvents(){
       before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active'};
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     save('cpd',S.cpd);
+    console.log('[saveCPD]',editId?'EDIT':'NEW','cpd.id=',cpd.id,'editId=',editId);
     if(!editId){
       // NEW CPD: create a linked schedule row — but never create a second one for the same cpdId
       const _alreadyLinked=S.schedule.some(r=>r.cpdId===cpd.id);
+      console.log('[saveCPD] NEW branch — alreadyLinked=',_alreadyLinked);
       if(!_alreadyLinked){
         const _defCat=getSchedCats().includes('Internal - SDP-Based Training')
           ?'Internal - SDP-Based Training':getSchedCats()[0]||'Internal - SDP-Based Training';
@@ -2765,16 +2801,20 @@ function bindEvents(){
           status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
         S.schedule=[...S.schedule,newRow];
         save('sched',S.schedule);
+        console.log('[saveCPD] created linked schedule row id=',newRow.id);
       }
     } else {
       // EDIT CPD: update the existing linked schedule row in-place (live sync)
       const _linkedIdx=S.schedule.findIndex(r=>r.cpdId===cpd.id);
+      console.log('[saveCPD] EDIT branch — linkedIdx=',_linkedIdx,'of',S.schedule.length,'rows');
       if(_linkedIdx>=0){
         S.schedule[_linkedIdx]={...S.schedule[_linkedIdx],
           program:title,facilitator:cpd.facilitator,delivery:cpd.delivery,
           type:cpd.type,month,startDate:cpd.date||S.schedule[_linkedIdx].startDate,
           target:aud};
         save('sched',S.schedule);
+      } else {
+        console.warn('[saveCPD] EDIT branch found NO linked schedule row for cpd.id=',cpd.id,'— nothing updated, and nothing created (by design).');
       }
     }
     S.modal=null;S.editingId=null;
