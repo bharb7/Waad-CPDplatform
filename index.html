@@ -2736,14 +2736,16 @@ function bindEvents(){
 
   const saveCPD=document.querySelector('[data-save-cpd]');
   if(saveCPD)saveCPD.onclick=()=>{
+    if(saveCPD.disabled)return; // guard against double-tap creating duplicate linked rows
+    saveCPD.disabled=true;
     const title=gv('cpd-title');
-    if(!title.trim()){showToast('Please enter a session title','error');return;}
+    if(!title.trim()){showToast('Please enter a session title','error');saveCPD.disabled=false;return;}
     const month=gv('cpd-month');
     const aud=gv('cpd-aud');
     const editId=S.editingId?.type==='cpd'?S.editingId.id:null;
     if(!editId&&aud&&aud!=='Whole School'){
       const conflict=S.cpd.find(c=>c.month===month&&c.audience==='Whole School');
-      if(conflict&&!confirm('⚠ Conflict: "'+conflict.title+'" (Whole School) is also in '+month+'. Save anyway?'))return;
+      if(conflict&&!confirm('⚠ Conflict: "'+conflict.title+'" (Whole School) is also in '+month+'. Save anyway?')){saveCPD.disabled=false;return;}
     }
     const existing=editId?S.cpd.find(c=>c.id===editId):{};
     const{bio:cpdBio,customTech:cpdCustomTech}=getTechFromForm('cpd-tech','cpd-custom-tech');
@@ -2753,14 +2755,17 @@ function bindEvents(){
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     save('cpd',S.cpd);
     if(!editId){
-      // NEW CPD: create a linked schedule row
-      const _defCat=getSchedCats().includes('Internal - SDP-Based Training')
-        ?'Internal - SDP-Based Training':getSchedCats()[0]||'Internal - SDP-Based Training';
-      const newRow={id:uid(),category:_defCat,program:title,facilitator:cpd.facilitator,
-        delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,
-        status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
-      S.schedule=[...S.schedule,newRow];
-      save('sched',S.schedule);
+      // NEW CPD: create a linked schedule row — but never create a second one for the same cpdId
+      const _alreadyLinked=S.schedule.some(r=>r.cpdId===cpd.id);
+      if(!_alreadyLinked){
+        const _defCat=getSchedCats().includes('Internal - SDP-Based Training')
+          ?'Internal - SDP-Based Training':getSchedCats()[0]||'Internal - SDP-Based Training';
+        const newRow={id:uid(),category:_defCat,program:title,facilitator:cpd.facilitator,
+          delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,
+          status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
+        S.schedule=[...S.schedule,newRow];
+        save('sched',S.schedule);
+      }
     } else {
       // EDIT CPD: update the existing linked schedule row in-place (live sync)
       const _linkedIdx=S.schedule.findIndex(r=>r.cpdId===cpd.id);
@@ -2799,8 +2804,10 @@ function bindEvents(){
 
   const saveSched=document.querySelector('[data-save-sched]');
   if(saveSched)saveSched.onclick=()=>{
+    if(saveSched.disabled)return; // guard against double-tap creating duplicate rows
     const prog=gv('sch-prog');
     if(!prog.trim()){showToast('Please enter a programme name','error');return;}
+    saveSched.disabled=true;
     const editSchedId=(document.getElementById('sch-edit-id')||{}).value||null;
     const existingRow=editSchedId?S.schedule.find(r=>r.id===editSchedId):null;
     const row={
