@@ -186,16 +186,22 @@ async function loadAll(){
       // Strip non-UUID rows from DB (sc1-sc6 written before UUID guard was added)
       const _uuidRe3=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const _realDbRows=sched.filter(r=>_uuidRe3.test(r.id));
-      // Re-load deletedSeeds so we respect user deletions of seed rows
-      S.deletedSeeds=sget('deletedSeeds')||[];
-      const _activeSeedRows=SEED_SCHEDULE.filter(r=>!S.deletedSeeds.includes(r.id));
-      S.schedule=[..._activeSeedRows,..._realDbRows.map(mapSched)];
+      // Only use SEED rows if the school has ZERO real DB rows (brand new setup)
+      // Once any real rows exist, seeds are never injected — user controls all entries
+      const _deletedSeeds=sget('deletedSeeds')||[];
+      if(_realDbRows.length===0){
+        // No real rows in DB: show seeds minus any the user has deleted
+        S.schedule=SEED_SCHEDULE.filter(r=>!_deletedSeeds.includes(r.id));
+      } else {
+        // Real rows exist: show only DB rows (no seed injection)
+        S.schedule=_realDbRows.map(mapSched);
+      }
       sset('sched',S.schedule);
     }
     else{
-      S.deletedSeeds=sget('deletedSeeds')||[];
-      const _activeSeedRows=SEED_SCHEDULE.filter(r=>!S.deletedSeeds.includes(r.id));
-      S.schedule=[..._activeSeedRows,...((sget('sched')||[]).filter(r=>{const _u=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;return _u.test(r.id);}))];
+      // DB fetch failed: fall back to localStorage, never re-inject seeds
+      const _lsRows=sget('sched')||[];
+      S.schedule=_lsRows.length>0?_lsRows:SEED_SCHEDULE.filter(r=>!(sget('deletedSeeds')||[]).includes(r.id));
     }
     if(impacts&&Array.isArray(impacts)){S.impacts=impacts.map(mapImpact);sset('impacts',S.impacts);}
     else S.impacts=sget('impacts')||[];
