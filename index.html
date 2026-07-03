@@ -282,11 +282,63 @@ async function save(k,v){
   }catch(e){console.warn('Supabase save failed for',k,e);}
 }
 async function sbRemove(table,id){
-  if(!SCHOOL_ID)return;
-  // Skip DB delete for seed IDs that are not valid UUIDs (e.g. 'sc1','sc2')
+  // Returns true = deleted (or nothing needed deleting), false = DB delete actually failed.
+  // Callers use this to warn the user instead of silently showing "Deleted" when the
+  // row is still sitting in Supabase and will reappear on next refresh.
+  if(!SCHOOL_ID)return true;
+  // Skip DB delete for seed IDs that are not valid UUIDs (e.g. 'sc1','sc2') — nothing in DB to remove
   const uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if(!uuidRe.test(id))return;
-  await sbDelete(table,id);
+  if(!uuidRe.test(id))return true;
+  return await sbDelete(table,id);
+}
+async function performCpdDelete(id,alsoDeleteSched){
+  const linkedRow=S.schedule.find(r=>r.cpdId===id);
+  let schedOk=true;
+  if(alsoDeleteSched&&linkedRow){
+    S.schedule=S.schedule.filter(r=>r.id!==linkedRow.id);
+    save('sched',S.schedule);
+    schedOk=await sbRemove('schedule_rows',linkedRow.id);
+  } else if(linkedRow){
+    // Keeping the schedule entry: unlink it so it doesn't reference a deleted CPD session
+    S.schedule=S.schedule.map(r=>r.id===linkedRow.id?{...r,cpdId:null}:r);
+    save('sched',S.schedule);
+  }
+  S.cpd=S.cpd.filter(c=>c.id!==id);
+  save('cpd',S.cpd);
+  const cpdOk=await sbRemove('cpd_sessions',id);
+  S.modal=null;
+  if(cpdOk===false||schedOk===false){
+    showToast('Removed locally, but the database delete failed (check connection) — it may reappear on refresh. Try again.','error');
+  } else {
+    showToast('Deleted');
+  }
+  render();
+}
+async function performSchedDelete(id,alsoDeleteCPD){
+  const row=S.schedule.find(r=>r.id===id);
+  if(!row)return;
+  const uuidRe4=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // If this is a seed row (non-UUID), record it as deleted so it won't return on refresh
+  if(!uuidRe4.test(id)){
+    if(!S.deletedSeeds.includes(id))S.deletedSeeds.push(id);
+    sset('deletedSeeds',S.deletedSeeds);
+  }
+  let cpdOk=true;
+  if(alsoDeleteCPD&&row.cpdId){
+    S.cpd=S.cpd.filter(c=>c.id!==row.cpdId);
+    save('cpd',S.cpd);
+    cpdOk=await sbRemove('cpd_sessions',row.cpdId);
+  }
+  S.schedule=S.schedule.filter(r=>r.id!==id);
+  save('sched',S.schedule);
+  const schedOk=await sbRemove('schedule_rows',id);
+  S.modal=null;
+  if(schedOk===false||cpdOk===false){
+    showToast('Removed locally, but the database delete failed (check connection) — it may reappear on refresh. Try again.','error');
+  } else {
+    showToast('Deleted');
+  }
+  render();
 }
 function getAllUsers(){
   const local=S.users||[];
@@ -2152,6 +2204,24 @@ function renderModal(type, data={}){
     );
   }
 
+  if(type==='delCpdConfirm'){
+    return M('🗑 Delete Linked Entry',
+      `<p style="font-size:13px;color:var(--muted);line-height:1.5">"<strong>${esc(data.title||'')}</strong>" is linked to an Annual Schedule entry. Choose what to remove:</p>`,
+      `<button class="btn btn-ghost" data-close-modal>Cancel — don't delete</button>
+       <button class="btn btn-danger" onclick="performCpdDelete('${data.id}',false)">Delete CPD only</button>
+       <button class="btn btn-danger" onclick="performCpdDelete('${data.id}',true)">Delete Both</button>`
+    );
+  }
+
+  if(type==='delSchedConfirm'){
+    return M('🗑 Delete Linked Entry',
+      `<p style="font-size:13px;color:var(--muted);line-height:1.5">"<strong>${esc(data.program||'')}</strong>" is linked to a CPD session. Choose what to remove:</p>`,
+      `<button class="btn btn-ghost" data-close-modal>Cancel — don't delete</button>
+       <button class="btn btn-danger" onclick="performSchedDelete('${data.id}',false)">Delete Schedule only</button>
+       <button class="btn btn-danger" onclick="performSchedDelete('${data.id}',true)">Delete Both</button>`
+    );
+  }
+
   if(type==='sched'){
     const isSchedEdit=!!(data.id);
     const _sCats=getSchedCats();
@@ -2699,6 +2769,16 @@ function bindEvents(){
     if(editSchedId){
       S.schedule=S.schedule.map(r=>r.id===editSchedId?row:r);
       save('sched',S.schedule);
+      // LIVE SYNC: if this row is linked to a CPD session, push the changes back into it
+      if(row.cpdId){
+        const _linkedCpd=S.cpd.find(c=>c.id===row.cpdId);
+        if(_linkedCpd){
+          S.cpd=S.cpd.map(c=>c.id===row.cpdId?{...c,title:row.program,facilitator:row.facilitator,
+            delivery:row.delivery,type:row.type,month:row.month,date:row.startDate||c.date,
+            audience:row.target||c.audience}:c);
+          save('cpd',S.cpd);
+        }
+      }
       S.modal=null;S.editingId=null;
       showToast('Schedule entry updated ✓');
     } else {
@@ -3067,7 +3147,18 @@ function bindEvents(){
     el.onclick=()=>{const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-cpd]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delCpd;S.cpd=S.cpd.filter(o=>o.id!==id);save('cpd',S.cpd);sbRemove('cpd_sessions',id);showToast('Deleted');render();};
+    el.onclick=()=>{
+      const id=el.dataset.delCpd;
+      const linkedRow=S.schedule.find(r=>r.cpdId===id);
+      if(linkedRow){
+        const _c=S.cpd.find(c=>c.id===id);
+        S.modal=renderModal('delCpdConfirm',{id,title:_c?_c.title:''});
+        render();
+        return;
+      }
+      if(!confirm('Delete this CPD session?'))return;
+      performCpdDelete(id,false);
+    };
   });
   document.querySelectorAll('[data-del-trip]').forEach(el=>{
     el.onclick=()=>{const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();};
@@ -3077,29 +3168,14 @@ function bindEvents(){
       const id=el.dataset.delSched;
       const row=S.schedule.find(r=>r.id===id);
       if(!row)return;
-      const uuidRe4=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      // If this is a seed row (non-UUID), record it as deleted so it won't return on refresh
-      if(!uuidRe4.test(id)){
-        if(!S.deletedSeeds.includes(id))S.deletedSeeds.push(id);
-        sset('deletedSeeds',S.deletedSeeds);
+      // If this row is linked to a CPD session, open the 3-way choice modal
+      if(row.cpdId&&S.cpd.find(c=>c.id===row.cpdId)){
+        S.modal=renderModal('delSchedConfirm',row);
+        render();
+        return;
       }
-      // If this row is linked to a CPD session, ask what to do
-      if(row.cpdId){
-        const linked=S.cpd.find(c=>c.id===row.cpdId);
-        if(linked){
-          const alsoDeleteCPD=confirm('Session ['+row.program+'] is linked to a CPD entry. OK=Delete from BOTH. Cancel=Annual Schedule only.');
-          if(alsoDeleteCPD){
-            S.cpd=S.cpd.filter(c=>c.id!==row.cpdId);
-            save('cpd',S.cpd);
-            sbRemove('cpd_sessions',row.cpdId);
-          }
-        }
-      }
-      S.schedule=S.schedule.filter(r=>r.id!==id);
-      save('sched',S.schedule);
-      sbRemove('schedule_rows',id);
-      showToast('Deleted');
-      render();
+      if(!confirm('Delete this schedule entry?'))return;
+      performSchedDelete(id,false);
     };
   });
   document.querySelectorAll('[data-del-teacher]').forEach(el=>{
