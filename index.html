@@ -310,8 +310,13 @@ async function sbRemove(table,id){
 async function openScheduleDbDebug(){
   if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
   const sid='school_id=eq.'+SCHOOL_ID;
-  // Cache-bust with a timestamp param so we can never get a stale cached response
-  const rows=await sbGet('schedule_rows',sid+'&select=*&order=program.asc&_cb='+Date.now())||[];
+  const rows=await sbGet('schedule_rows',sid+'&select=*&order=program.asc');
+  if(rows===null){
+    alert('The debug query itself failed (network/permissions error) — check console, or this may be an RLS SELECT issue.');
+    S.modal=renderModal('dbDebugSched',{rows:[]});
+    render();
+    return;
+  }
   S.modal=renderModal('dbDebugSched',{rows});
   render();
 }
