@@ -155,7 +155,7 @@ const DEFAULT_RESOURCES=[{id:'r1',title:'Darling-Hammond (2017) — Effective Te
 const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},{id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},{id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},{id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null}];
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 const SEED_TEACHERS=[{id:'22222222-0000-4000-8000-000000000001',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000002',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000003',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000004',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000005',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000006',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000003'},{id:'22222222-0000-4000-8000-000000000007',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'11111111-0000-4000-8000-000000000003'}];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{}};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[]};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 
 async function loadAll(){
@@ -183,14 +183,20 @@ async function loadAll(){
     if(cpd&&Array.isArray(cpd)){S.cpd=cpd.map(mapCPD);sset('cpd',S.cpd);}
     else S.cpd=sget('cpd')||[];
     if(sched&&Array.isArray(sched)){
-      // Strip any non-UUID rows from DB (sc1-sc6 written before UUID guard was added)
+      // Strip non-UUID rows from DB (sc1-sc6 written before UUID guard was added)
       const _uuidRe3=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const _realDbRows=sched.filter(r=>_uuidRe3.test(r.id));
-      // Always show SEED rows from local constant (not from DB)
-      S.schedule=[...SEED_SCHEDULE,..._realDbRows.map(mapSched)];
+      // Re-load deletedSeeds so we respect user deletions of seed rows
+      S.deletedSeeds=sget('deletedSeeds')||[];
+      const _activeSeedRows=SEED_SCHEDULE.filter(r=>!S.deletedSeeds.includes(r.id));
+      S.schedule=[..._activeSeedRows,..._realDbRows.map(mapSched)];
       sset('sched',S.schedule);
     }
-    else S.schedule=sget('sched')||SEED_SCHEDULE;
+    else{
+      S.deletedSeeds=sget('deletedSeeds')||[];
+      const _activeSeedRows=SEED_SCHEDULE.filter(r=>!S.deletedSeeds.includes(r.id));
+      S.schedule=[..._activeSeedRows,...((sget('sched')||[]).filter(r=>{const _u=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;return _u.test(r.id);}))];
+    }
     if(impacts&&Array.isArray(impacts)){S.impacts=impacts.map(mapImpact);sset('impacts',S.impacts);}
     else S.impacts=sget('impacts')||[];
     if(progress&&Array.isArray(progress)){S.progress=progress.map(mapProgress);sset('progress',S.progress);}
@@ -3061,7 +3067,34 @@ function bindEvents(){
     el.onclick=()=>{const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-sched]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delSched;S.schedule=S.schedule.filter(o=>o.id!==id);save('sched',S.schedule);sbRemove('schedule_rows',id);showToast('Deleted');render();};
+    el.onclick=()=>{
+      const id=el.dataset.delSched;
+      const row=S.schedule.find(r=>r.id===id);
+      if(!row)return;
+      const uuidRe4=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      // If this is a seed row (non-UUID), record it as deleted so it won't return on refresh
+      if(!uuidRe4.test(id)){
+        if(!S.deletedSeeds.includes(id))S.deletedSeeds.push(id);
+        sset('deletedSeeds',S.deletedSeeds);
+      }
+      // If this row is linked to a CPD session, ask what to do
+      if(row.cpdId){
+        const linked=S.cpd.find(c=>c.id===row.cpdId);
+        if(linked){
+          const alsoDeleteCPD=confirm('Session ['+row.program+'] is linked to a CPD entry. OK=Delete from BOTH. Cancel=Annual Schedule only.');
+          if(alsoDeleteCPD){
+            S.cpd=S.cpd.filter(c=>c.id!==row.cpdId);
+            save('cpd',S.cpd);
+            sbRemove('cpd_sessions',row.cpdId);
+          }
+        }
+      }
+      S.schedule=S.schedule.filter(r=>r.id!==id);
+      save('sched',S.schedule);
+      sbRemove('schedule_rows',id);
+      showToast('Deleted');
+      render();
+    };
   });
   document.querySelectorAll('[data-del-teacher]').forEach(el=>{
     el.onclick=()=>{const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();};
