@@ -307,6 +307,24 @@ async function sbRemove(table,id){
   if(!uuidRe.test(id))return true;
   return await sbDelete(table,id);
 }
+async function openScheduleDbDebug(){
+  if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
+  const sid='school_id=eq.'+SCHOOL_ID;
+  // Cache-bust with a timestamp param so we can never get a stale cached response
+  const rows=await sbGet('schedule_rows',sid+'&select=*&order=program.asc&_cb='+Date.now())||[];
+  S.modal=renderModal('dbDebugSched',{rows});
+  render();
+}
+async function forceDeleteDbRow(id){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/schedule_rows?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
+    const text=await r.text();
+    alert('DELETE status: '+r.status+'\nResponse body: '+(text||'(empty)').slice(0,400));
+  }catch(e){
+    alert('Network/request error: '+e.message);
+  }
+  openScheduleDbDebug();
+}
 async function performCpdDelete(id,alsoDeleteSched){
   const linkedRow=S.schedule.find(r=>r.cpdId===id);
   let schedOk=true;
@@ -728,6 +746,7 @@ ${conflicts.size?`<div class="alert alert-warn mb-3">⚠️ <strong>Schedule con
     <button class="btn btn-ghost" data-export-sched>⬇ CSV</button>
     <button class="btn btn-ghost" id="print-sched-btn">🖨 Print</button>
     <button class="btn btn-success" id="excel-sched-btn">📊 Excel</button>
+    ${isAdmin()?'<button class="btn btn-ghost" id="db-debug-sched-btn" style="border-color:#f59e0b;color:#b45309">🛠 DB Debug</button>':''}
   </div>
   <span class="text-xs text-muted">${filteredSched.length} of ${S.schedule.length} programmes${hasFilter?' — filtered':''}${hasFilter?` <button class="btn btn-ghost btn-sm ml-1" onclick="S.schedMonthFilter='';S.schedDateFrom='';S.schedDateTo='';render()">✕ Clear all</button>`:''}</span>
 </div>
@@ -2220,6 +2239,23 @@ function renderModal(type, data={}){
     );
   }
 
+  if(type==='dbDebugSched'){
+    const rows=data.rows||[];
+    return M('🛠 Raw schedule_rows in Supabase ('+rows.length+')',
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">This is a live, unfiltered read straight from the database — no local cache, no seed logic. If duplicates show here, they are genuinely in Supabase. Force-deleting shows the raw HTTP response so we can see exactly what happens.</p>
+      <div style="max-height:360px;overflow-y:auto;font-family:monospace;font-size:11px">
+      ${rows.length?rows.map(r=>`
+        <div style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px">
+          <div style="font-weight:700;font-family:inherit">${esc(r.program||'(no title)')}</div>
+          <div style="color:#6b7280">id: ${esc(r.id)}</div>
+          <div style="color:#6b7280">start: ${esc(r.start_date||'—')} · end: ${esc(r.end_date||'—')} · month: ${esc(r.month||'—')} · cpd_id: ${esc(r.cpd_id||'—')}</div>
+          <button class="btn btn-danger btn-sm" style="margin-top:4px" onclick="forceDeleteDbRow('${r.id}')">Force delete this exact row</button>
+        </div>`).join(''):'<p>No rows returned.</p>'}
+      </div>`,
+      `<button class="btn btn-ghost" data-close-modal>Close</button><button class="btn btn-primary" onclick="openScheduleDbDebug()">↻ Refresh</button>`
+    );
+  }
+
   if(type==='delCpdConfirm'){
     return M('🗑 Delete Linked Entry',
       `<p style="font-size:13px;color:var(--muted);line-height:1.5">"<strong>${esc(data.title||'')}</strong>" is linked to an Annual Schedule entry. Choose what to remove:</p>`,
@@ -3290,6 +3326,8 @@ function bindEvents(){
   if(printSchedBtn)printSchedBtn.onclick=()=>printSchedule();
   const excelSchedBtn=document.getElementById('excel-sched-btn');
   if(excelSchedBtn)excelSchedBtn.onclick=()=>exportScheduleExcel();
+  const dbDebugSchedBtn=document.getElementById('db-debug-sched-btn');
+  if(dbDebugSchedBtn)dbDebugSchedBtn.onclick=()=>openScheduleDbDebug();
   // ── Schedule edit ────────────────────────────────────────────────────────
   document.querySelectorAll('[data-edit-sched]').forEach(el=>{
     el.onclick=()=>{
