@@ -107,7 +107,23 @@ let SCHOOL_ID='2b526882-97b3-4f98-b850-6e989c26d99b';
 async function resolveSchoolId(){sset('school_id',SCHOOL_ID);}
 async function sbGet(table,params=''){try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:{...SB_HEADERS,'Prefer':'count=none'}});if(!r.ok){const e=await r.text();console.warn('sbGet failed',table,r.status,e);return null;}return await r.json();}catch(e){console.warn('sbGet error',table,e);return null;}}
 async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,80),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);return false;}}
-async function sbDelete(table,id){try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});return r.ok;}catch(e){console.warn('sbDelete error',table,e);return false;}}
+async function sbDelete(table,id){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
+    if(!r.ok){const e=await r.text();console.warn('sbDelete failed',table,id,r.status,e);return false;}
+    // Supabase/PostgREST returns HTTP 200/204 "ok" even when 0 rows were actually deleted
+    // (e.g. a missing/blocking RLS DELETE policy). SB_HEADERS sets Prefer: return=representation,
+    // so a genuinely successful delete comes back with the deleted row(s) in the body.
+    // An empty array here means nothing was actually removed in the DB — must be reported as a failure.
+    let body=[];
+    try{body=await r.json();}catch(_e){}
+    if(Array.isArray(body)&&body.length===0){
+      console.warn('sbDelete: 0 rows removed — likely blocked by an RLS DELETE policy',table,id);
+      return false;
+    }
+    return true;
+  }catch(e){console.warn('sbDelete error',table,e);return false;}
+}
 const MEM={};
 function sget(k){try{const v=localStorage.getItem('wa_'+k);return v?JSON.parse(v):null}catch(e){return MEM[k]||null}}
 function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){MEM[k]=v}}
