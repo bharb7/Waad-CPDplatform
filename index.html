@@ -183,10 +183,11 @@ async function loadAll(){
     if(cpd&&Array.isArray(cpd)){S.cpd=cpd.map(mapCPD);sset('cpd',S.cpd);}
     else S.cpd=sget('cpd')||[];
     if(sched&&Array.isArray(sched)){
-      // Seed rows (sc1-sc6) are never in DB; merge them back so they always show
-      const _dbSchedIds=new Set(sched.map(r=>r.id));
-      const _seedKeep=SEED_SCHEDULE.filter(r=>!_dbSchedIds.has(r.id));
-      S.schedule=[..._seedKeep,...sched.map(mapSched)];
+      // Strip any non-UUID rows from DB (sc1-sc6 written before UUID guard was added)
+      const _uuidRe3=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const _realDbRows=sched.filter(r=>_uuidRe3.test(r.id));
+      // Always show SEED rows from local constant (not from DB)
+      S.schedule=[...SEED_SCHEDULE,..._realDbRows.map(mapSched)];
       sset('sched',S.schedule);
     }
     else S.schedule=sget('sched')||SEED_SCHEDULE;
@@ -2613,8 +2614,24 @@ function bindEvents(){
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     save('cpd',S.cpd);
     if(!editId){
-      const newRow={id:uid(),category:'Internal - SDP-Based Training',program:title,facilitator:cpd.facilitator,delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
-      S.schedule=[...S.schedule,newRow];save('sched',S.schedule);
+      // NEW CPD: create a linked schedule row
+      const _defCat=getSchedCats().includes('Internal - SDP-Based Training')
+        ?'Internal - SDP-Based Training':getSchedCats()[0]||'Internal - SDP-Based Training';
+      const newRow={id:uid(),category:_defCat,program:title,facilitator:cpd.facilitator,
+        delivery:cpd.delivery,type:cpd.type,month,venue:'TBC',target:aud,
+        status:'active',cpdId:cpd.id,startDate:cpd.date||'',endDate:''};
+      S.schedule=[...S.schedule,newRow];
+      save('sched',S.schedule);
+    } else {
+      // EDIT CPD: update the existing linked schedule row in-place (live sync)
+      const _linkedIdx=S.schedule.findIndex(r=>r.cpdId===cpd.id);
+      if(_linkedIdx>=0){
+        S.schedule[_linkedIdx]={...S.schedule[_linkedIdx],
+          program:title,facilitator:cpd.facilitator,delivery:cpd.delivery,
+          type:cpd.type,month,startDate:cpd.date||S.schedule[_linkedIdx].startDate,
+          target:aud};
+        save('sched',S.schedule);
+      }
     }
     S.modal=null;S.editingId=null;
     showToast(editId?'CPD session updated ✓':'CPD session saved & linked to schedule ✓');
