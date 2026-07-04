@@ -100,14 +100,15 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C5-confirm-all-deletes';
+const BUILD_VERSION='2026-07-04-C6-surface-real-db-error';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 let SCHOOL_ID='2b526882-97b3-4f98-b850-6e989c26d99b';
 async function resolveSchoolId(){sset('school_id',SCHOOL_ID);}
 async function sbGet(table,params=''){try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:{...SB_HEADERS,'Prefer':'count=none'}});if(!r.ok){const e=await r.text();console.warn('sbGet failed',table,r.status,e);return null;}return await r.json();}catch(e){console.warn('sbGet error',table,e);return null;}}
-async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?on_conflict=id',{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,300),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);return false;}}
+let LAST_DB_ERROR='';
+async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?on_conflict=id',{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);LAST_DB_ERROR=table+': '+r.status+' '+e.slice(0,300);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,300),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);LAST_DB_ERROR=table+': network/exception — '+e.message;return false;}}
 async function sbDelete(table,id){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
@@ -587,7 +588,7 @@ function showToast(msg,type='success'){
   S.toast={msg,type};
   if(type==='success'&&S.session) logActivity(msg);
   render();
-  S.toastTimer=setTimeout(()=>{S.toast=null;render();},3000);
+  S.toastTimer=setTimeout(()=>{S.toast=null;render();},type==='error'?9000:3000);
 }
 
 function renderLogin(){return `
@@ -2997,7 +2998,7 @@ function bindEvents(){
     const cpdSaveOk=await saveCpdRecord(cpd,S.cpd);
     if(!cpdSaveOk){
       S.modal=null;S.editingId=null;
-      showToast('CPD session did NOT save to the database — check connection/console and try again. No schedule link was created.','error');
+      showToast('CPD did NOT save — '+LAST_DB_ERROR+' — no schedule link created.','error');
       render();
       return;
     }
