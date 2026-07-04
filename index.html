@@ -100,14 +100,14 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C3-upsert-conflict-fix';
+const BUILD_VERSION='2026-07-04-C4-single-record-save';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 let SCHOOL_ID='2b526882-97b3-4f98-b850-6e989c26d99b';
 async function resolveSchoolId(){sset('school_id',SCHOOL_ID);}
 async function sbGet(table,params=''){try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:{...SB_HEADERS,'Prefer':'count=none'}});if(!r.ok){const e=await r.text();console.warn('sbGet failed',table,r.status,e);return null;}return await r.json();}catch(e){console.warn('sbGet error',table,e);return null;}}
-async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?on_conflict=id',{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,80),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);return false;}}
+async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?on_conflict=id',{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,300),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);return false;}}
 async function sbDelete(table,id){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
@@ -316,6 +316,25 @@ async function sbRemove(table,id){
   if(!uuidRe.test(id))return true;
   return await sbDelete(table,id);
 }
+async function saveCpdRecord(cpd,fullArray){
+  sset('cpd',fullArray); // keep the full local cache in sync for offline fallback
+  if(!SCHOOL_ID)return true;
+  const tech=cpd.bio||cpd.customTech||'';
+  return await sbUpsert('cpd_sessions',[{id:cpd.id,school_id:SCHOOL_ID,title:cpd.title||'',date:cpd.date||null,
+    facilitator:cpd.facilitator||'',audience:cpd.audience||'',type:cpd.type||'Internal',delivery:cpd.delivery||'Workshop',
+    month:cpd.month||'',techniques:tech?[tech]:[],before_text:cpd.before||'',during_text:cpd.during||'',
+    after_text:cpd.after||'',status:cpd.status||'active'}]);
+}
+async function saveSchedRecord(row,fullArray){
+  sset('sched',fullArray); // keep the full local cache in sync for offline fallback
+  if(!SCHOOL_ID)return true;
+  const uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if(!uuidRe.test(row.id))return true; // seed/local-only row, nothing to persist
+  return await sbUpsert('schedule_rows',[{id:row.id,school_id:SCHOOL_ID,category:row.category||'',program:row.program||'',
+    facilitator:row.facilitator||'',delivery:row.delivery||'',type:row.type||'',duration:row.duration||'',month:row.month||'',
+    start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
+    status:row.status||'planned',cpd_id:row.cpdId||null}]);
+}
 async function reconcileCpdScheduleLink(cpdId,fields){
   if(!SCHOOL_ID){
     // No DB — just keep local state sane
@@ -343,7 +362,7 @@ async function reconcileCpdScheduleLink(cpdId,fields){
         delivery:fields.delivery,type:fields.type,month:fields.month,venue:'TBC',target:fields.audience,
         status:'active',cpdId,startDate:fields.date||'',endDate:''};
       S.schedule=[...S.schedule.filter(r=>r.cpdId!==cpdId),newRow];
-      await save('sched',S.schedule);
+      await saveSchedRecord(newRow,S.schedule);
       return;
     }
     // One or more already exist in the DB: keep the best, delete the rest via raw DELETE
@@ -357,7 +376,7 @@ async function reconcileCpdScheduleLink(cpdId,fields){
       delivery:fields.delivery,type:fields.type,month:fields.month,venue:keeper.venue||'TBC',target:fields.audience,
       status:keeper.status||'active',cpdId,startDate:fields.date||keeper.start_date||'',endDate:keeper.end_date||''};
     S.schedule=[...S.schedule.filter(r=>r.cpdId!==cpdId),merged];
-    await save('sched',S.schedule);
+    await saveSchedRecord(merged,S.schedule);
   }catch(e){ console.warn('[reconcile] failed',e); }
 }
 async function autoCleanDuplicateSchedule(){
@@ -403,14 +422,17 @@ async function autoCleanDuplicateSchedule(){
 async function openScheduleDbDebug(){
   if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
   const sid='school_id=eq.'+SCHOOL_ID;
-  const rows=await sbGet('schedule_rows',sid+'&select=*&order=program.asc');
+  const [rows,cpdRows]=await Promise.all([
+    sbGet('schedule_rows',sid+'&select=*&order=program.asc'),
+    sbGet('cpd_sessions',sid+'&select=id')
+  ]);
   if(rows===null){
     alert('The debug query itself failed (network/permissions error) — check console, or this may be an RLS SELECT issue.');
-    S.modal=renderModal('dbDebugSched',{rows:[]});
+    S.modal=renderModal('dbDebugSched',{rows:[],cpdIds:[]});
     render();
     return;
   }
-  S.modal=renderModal('dbDebugSched',{rows});
+  S.modal=renderModal('dbDebugSched',{rows,cpdIds:(cpdRows||[]).map(c=>c.id)});
   render();
 }
 async function forceDeleteDbRow(id){
@@ -428,15 +450,16 @@ async function performCpdDelete(id,alsoDeleteSched){
   let schedOk=true;
   if(alsoDeleteSched&&linkedRow){
     S.schedule=S.schedule.filter(r=>r.id!==linkedRow.id);
-    save('sched',S.schedule);
+    sset('sched',S.schedule);
     schedOk=await sbRemove('schedule_rows',linkedRow.id);
   } else if(linkedRow){
     // Keeping the schedule entry: unlink it so it doesn't reference a deleted CPD session
-    S.schedule=S.schedule.map(r=>r.id===linkedRow.id?{...r,cpdId:null}:r);
-    save('sched',S.schedule);
+    const unlinked={...linkedRow,cpdId:null};
+    S.schedule=S.schedule.map(r=>r.id===linkedRow.id?unlinked:r);
+    await saveSchedRecord(unlinked,S.schedule);
   }
   S.cpd=S.cpd.filter(c=>c.id!==id);
-  save('cpd',S.cpd);
+  sset('cpd',S.cpd);
   const cpdOk=await sbRemove('cpd_sessions',id);
   S.modal=null;
   if(cpdOk===false||schedOk===false){
@@ -458,11 +481,11 @@ async function performSchedDelete(id,alsoDeleteCPD){
   let cpdOk=true;
   if(alsoDeleteCPD&&row.cpdId){
     S.cpd=S.cpd.filter(c=>c.id!==row.cpdId);
-    save('cpd',S.cpd);
+    sset('cpd',S.cpd);
     cpdOk=await sbRemove('cpd_sessions',row.cpdId);
   }
   S.schedule=S.schedule.filter(r=>r.id!==id);
-  save('sched',S.schedule);
+  sset('sched',S.schedule);
   const schedOk=await sbRemove('schedule_rows',id);
   S.modal=null;
   if(schedOk===false||cpdOk===false){
@@ -2452,19 +2475,21 @@ function renderModal(type, data={}){
 
   if(type==='dbDebugSched'){
     const rows=data.rows||[];
+    const realCpdIds=new Set(data.cpdIds||[]);
     const _cpdGroups={};
     rows.forEach(r=>{ if(r.cpd_id){ (_cpdGroups[r.cpd_id]=_cpdGroups[r.cpd_id]||[]).push(r); } });
     const _dupCount=Object.values(_cpdGroups).filter(g=>g.length>1).reduce((s,g)=>s+g.length-1,0);
+    const _orphanCount=rows.filter(r=>r.cpd_id&&!realCpdIds.has(r.cpd_id)).length;
     return M('🛠 Raw schedule_rows in Supabase ('+rows.length+')',
       `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">This is a live, unfiltered read straight from the database — no local cache, no seed logic. If duplicates show here, they are genuinely in Supabase. Force-deleting shows the raw HTTP response so we can see exactly what happens.</p>
       <p style="font-size:10px;color:#9ca3af;font-family:monospace;margin-bottom:8px">build: ${BUILD_VERSION}</p>
-      ${_dupCount>0?`<div class="alert alert-warn" style="margin-bottom:8px;font-size:12px">⚠️ ${_dupCount} duplicate row(s) detected (multiple rows sharing one CPD link). <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="autoCleanDuplicateSchedule()">🧹 Auto-clean duplicates now</button></div>`:''}
+      ${(_dupCount>0||_orphanCount>0)?`<div class="alert alert-warn" style="margin-bottom:8px;font-size:12px">⚠️ ${_dupCount>0?_dupCount+' duplicate row(s)':''}${_dupCount>0&&_orphanCount>0?' and ':''}${_orphanCount>0?_orphanCount+' orphaned row(s) (linked to a CPD session that no longer exists)':''} detected. <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="autoCleanDuplicateSchedule()">🧹 Auto-clean now</button></div>`:''}
       <div style="max-height:360px;overflow-y:auto;font-family:monospace;font-size:11px">
       ${rows.length?rows.map(r=>`
         <div style="border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px">
           <div style="font-weight:700;font-family:inherit">${esc(r.program||'(no title)')}</div>
           <div style="color:#6b7280">id: ${esc(r.id)}</div>
-          <div style="color:#6b7280">start: ${esc(r.start_date||'—')} · end: ${esc(r.end_date||'—')} · month: ${esc(r.month||'—')} · cpd_id: ${esc(r.cpd_id||'—')}</div>
+          <div style="color:#6b7280">start: ${esc(r.start_date||'—')} · end: ${esc(r.end_date||'—')} · month: ${esc(r.month||'—')} · cpd_id: ${esc(r.cpd_id||'—')}${r.cpd_id&&!realCpdIds.has(r.cpd_id)?' <span style="color:#dc2626;font-weight:700">(ORPHANED)</span>':''}</div>
           <button class="btn btn-danger btn-sm" style="margin-top:4px" onclick="forceDeleteDbRow('${r.id}')">Force delete this exact row</button>
         </div>`).join(''):'<p>No rows returned.</p>'}
       </div>`,
@@ -2967,7 +2992,7 @@ function bindEvents(){
       type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio:cpdBio,customTech:cpdCustomTech||'',
       before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active'};
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
-    const cpdSaveOk=await save('cpd',S.cpd);
+    const cpdSaveOk=await saveCpdRecord(cpd,S.cpd);
     if(!cpdSaveOk){
       S.modal=null;S.editingId=null;
       showToast('CPD session did NOT save to the database — check connection/console and try again. No schedule link was created.','error');
