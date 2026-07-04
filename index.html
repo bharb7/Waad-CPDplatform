@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C9-no-click-outside-close';
+const BUILD_VERSION='2026-07-04-D1-real-teacher-autocomplete';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -2407,9 +2407,12 @@ function renderModal(type, data={}){
     <select class="form-control" id="${id}">${opts.map(o=>typeof o==='string'?'<option '+(val===o?'selected':'')+'>'+o+'</option>':'<option value="'+o.v+'" '+(val===o.v?'selected':'')+'>'+o.l+'</option>').join('')}</select></div>`;
   const FT=(id,label,teacherId,placeholder='Type to search a name…')=>{
     const t=teacherId?scopedTeachers().find(x=>x.id===teacherId):null;
-    return `<div class="form-group"><label class="form-label">${label}</label>
-    <input class="form-control rtl" id="${id}" list="${id}-list" placeholder="${placeholder}" value="${esc(t?t.name:'')}">
-    <datalist id="${id}-list">${scopedTeachers().map(tc=>'<option value="'+esc(tc.name)+'">').join('')}</datalist></div>`;
+    return `<div class="form-group" style="position:relative">
+    <label class="form-label">${label}</label>
+    <input class="form-control rtl teacher-ac-input" id="${id}-txt" data-hidden-id="${id}" autocomplete="off" placeholder="${placeholder}" value="${esc(t?t.name:'')}">
+    <input type="hidden" id="${id}" value="${teacherId||''}">
+    <div class="teacher-ac-list" id="${id}-txt-list" style="display:none;position:absolute;z-index:50;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.15);max-height:190px;overflow-y:auto;width:100%;margin-top:2px"></div>
+    </div>`;
   };
   const FTA=(id,label,val='',rows=3)=>
     `<div class="form-group"><label class="form-label">${label}</label>
@@ -2472,8 +2475,8 @@ function renderModal(type, data={}){
   if(type==='trip'){
     const isTripEdit=!!(data.id);
     return M((isTripEdit?'✏ Edit':'🎯 New')+' Coaching Triplet',
-      G2(FI('tr-name','Session Name','','text','e.g. Term 1 Cycle 1'),
-         FS('tr-gid','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],''))+
+      G2(FI('tr-name','Session Name',data.name||'','text','e.g. Term 1 Cycle 1'),
+         FS('tr-gid','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],data.gid||''))+
       G2(FS('tr-cycle','Cycle',[{v:1,l:'Cycle 1'},{v:2,l:'Cycle 2'},{v:3,l:'Cycle 3'}],data.cycle||1),
          FS('tr-status','Status',['planned','active','complete'],data.status||'planned'))+
       G2(FT('tr-oid','Observer (Teacher being observed)',data.oid||''),
@@ -2799,6 +2802,38 @@ function bindEvents(){
   // Clicking outside a modal no longer closes it (was silently discarding unsaved edits).
   // Modals now only close via the explicit Cancel / X / Close buttons.
 
+  // ── Teacher autocomplete (typeahead) inputs ─────────────────────────────
+  document.querySelectorAll('.teacher-ac-input').forEach(inp=>{
+    const hidden=document.getElementById(inp.dataset.hiddenId);
+    const listEl=document.getElementById(inp.id+'-list');
+    if(!hidden||!listEl)return;
+    const renderSuggestions=()=>{
+      const q=inp.value.trim().toLowerCase();
+      if(!q){listEl.style.display='none';listEl.innerHTML='';return;}
+      const matches=scopedTeachers().filter(t=>t.name.toLowerCase().includes(q)).slice(0,8);
+      if(!matches.length){listEl.style.display='none';listEl.innerHTML='';return;}
+      listEl.innerHTML=matches.map(t=>'<div class="teacher-ac-item" data-tid="'+t.id+'" data-tname="'+t.name.replace(/"/g,'&quot;')+'" style="padding:7px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f1f1">'+t.name+' <span style="color:#9ca3af;font-size:11px">('+t.dept+')</span></div>').join('');
+      listEl.style.display='block';
+      listEl.querySelectorAll('.teacher-ac-item').forEach(item=>{
+        item.onmousedown=item.ontouchstart=(e)=>{
+          e.preventDefault();
+          inp.value=item.dataset.tname;
+          hidden.value=item.dataset.tid;
+          listEl.style.display='none';
+        };
+      });
+    };
+    inp.oninput=renderSuggestions;
+    inp.onfocus=renderSuggestions;
+    inp.onblur=()=>{
+      setTimeout(()=>{
+        listEl.style.display='none';
+        const exact=scopedTeachers().find(t=>t.name.toLowerCase()===inp.value.trim().toLowerCase());
+        hidden.value=exact?exact.id:(inp.value.trim()?hidden.value:'');
+      },200);
+    };
+  });
+
   // Care protocol tabs
   document.querySelectorAll('[data-care-tab]').forEach(el=>{
     el.onclick=()=>{S.careTab=el.dataset.careTab;S.modal=renderModal('care');render()};
@@ -2972,7 +3007,7 @@ function bindEvents(){
   // SAVES
   const saveObs=document.querySelector('[data-save-obs]');
   if(saveObs)saveObs.onclick=()=>{
-    const tid=resolveTeacherByName(gv('obs-tid'));
+    const tid=gv('obs-tid');
     const{bio,customTech}=getTechFromForm('obs-tech','obs-custom-tech');
     const scoreState={};
     document.querySelectorAll('[data-score]').forEach(btn=>{
@@ -3058,7 +3093,7 @@ function bindEvents(){
     const existing=editId?S.triplets.find(t=>t.id===editId):{};
     const{bio:trBio,customTech:trCustomTech}=getTechFromForm('tr-tech','tr-custom-tech');
     const trip={...(existing||{}),id:editId||uid(),gid,name:gv('tr-name'),cycle,status:gv('tr-status'),
-      oid:resolveTeacherByName(gv('tr-oid')),cid:resolveTeacherByName(gv('tr-cid')),fid:resolveTeacherByName(gv('tr-fid')),
+      oid:gv('tr-oid'),cid:gv('tr-cid'),fid:gv('tr-fid'),
       bio:trBio,customTech:trCustomTech||'',od:gv('tr-od'),dd:gv('tr-dd'),
       wwwNotes:gv('tr-www'),ebiNotes:gv('tr-ebi'),action:gv('tr-action'),
       slLinked:existing?.slLinked||false};
@@ -3223,7 +3258,7 @@ function bindEvents(){
   if(saveImpact)saveImpact.onclick=()=>{
     const editId=S.editingId?.type==='impact'?S.editingId.id:null;
     const lvl=gv('imp-level');
-    const entry={...(editId?S.impacts.find(i=>i.id===editId):{}),id:editId||uid(),level:lvl,type:gv('imp-type'),tid:resolveTeacherByName(gv('imp-tid'))||null,value:gv('imp-val'),evidence:gv('imp-evidence'),date:gv('imp-date'),term:gv('imp-term')};
+    const entry={...(editId?S.impacts.find(i=>i.id===editId):{}),id:editId||uid(),level:lvl,type:gv('imp-type'),tid:gv('imp-tid')||null,value:gv('imp-val'),evidence:gv('imp-evidence'),date:gv('imp-date'),term:gv('imp-term')};
     S.impacts=editId?S.impacts.map(i=>i.id===editId?entry:i):[...S.impacts,entry];
     save('impacts',S.impacts);
     S.modal=null;S.editingId=null;
@@ -3276,7 +3311,7 @@ function bindEvents(){
     const focusArea='DOMAIN:'+selDomId+'|'+JSON.stringify(dlwScores);
     const existing=editId?S.lwalks.find(l=>l.id===editId):{};
     const lw={...(existing||{}),id:editId||uid(),date:gv('dlw-date'),observer:gv('dlw-obs'),
-      dept:gv('dlw-dept'),section:gv('dlw-sect'),tid:resolveTeacherByName(gv('dlw-tid'))||null,
+      dept:gv('dlw-dept'),section:gv('dlw-sect'),tid:gv('dlw-tid')||null,
       bio:'',customTech:'',strengths:gv('dlw-str'),afd:gv('dlw-afd'),focusArea};
     S.lwalks=editId?S.lwalks.map(l=>l.id===editId?lw:l):[...S.lwalks,lw];
     save('lwalks',S.lwalks);
