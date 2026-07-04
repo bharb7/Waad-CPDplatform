@@ -102,7 +102,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-05-D5-real-logo-teacher-response-fix';
+const BUILD_VERSION='2026-07-05-D6-conflict-logic-fix';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -876,12 +876,24 @@ function renderSchedule(){
   if(mf) filteredSched=filteredSched.filter(r=>r.month===mf);
   if(df) filteredSched=filteredSched.filter(r=>(r.startDate||r.endDate||'')>=df);
   if(dt) filteredSched=filteredSched.filter(r=>(r.startDate||r.endDate||'')<=(dt+'Z'));
-  // Conflict detection
+  // Conflict detection — a real conflict means the same facilitator or the same
+  // audience is double-booked on overlapping dates/times. Blank or placeholder
+  // venues/targets (e.g. '—', 'TBC', empty) no longer count as a match.
   const conflicts=new Set();
+  const realVal=v=>!!(v&&v.trim()&&v.trim()!=='—'&&v.trim().toLowerCase()!=='tbc');
   filteredSched.forEach((r,i)=>{filteredSched.forEach((r2,j)=>{
-    if(i>=j)return;if(!r.startDate||!r2.startDate)return;
-    const overlap=r.startDate<=(r2.endDate||r2.startDate)&&(r.endDate||r.startDate)>=r2.startDate;
-    if(overlap&&(r.target===r2.target||r.venue===r2.venue)&&r.target&&r.target!=='—'){conflicts.add(r.id);conflicts.add(r2.id);}
+    if(i>=j)return;
+    if(!r.startDate||!r2.startDate)return;
+    const dateOverlap=r.startDate<=(r2.endDate||r2.startDate)&&(r.endDate||r.startDate)>=r2.startDate;
+    if(!dateOverlap)return;
+    // If both rows specify a concrete time window, they only conflict if the times actually overlap
+    if(r.timeFrom&&r.timeTo&&r2.timeFrom&&r2.timeTo){
+      const timeOverlap=r.timeFrom<r2.timeTo&&r.timeTo>r2.timeFrom;
+      if(!timeOverlap)return;
+    }
+    const sameFacilitator=realVal(r.facilitator)&&realVal(r2.facilitator)&&r.facilitator.trim().toLowerCase()===r2.facilitator.trim().toLowerCase();
+    const sameAudience=realVal(r.target)&&realVal(r2.target)&&r.target.trim().toLowerCase()===r2.target.trim().toLowerCase();
+    if(sameFacilitator||sameAudience){conflicts.add(r.id);conflicts.add(r2.id);}
   });});
   const statusBadge=s=>s==='done'?'badge-green':s==='active'?'badge-amber':'badge-gray';
   const hasFilter=mf||df||dt;
@@ -902,7 +914,7 @@ function renderSchedule(){
     ${(df||dt)?`<button class="btn btn-ghost btn-sm" onclick="S.schedDateFrom='';S.schedDateTo='';render()">✕ Clear dates</button>`:''}
   </div>
 </div>
-${conflicts.size?`<div class="alert alert-warn mb-3">⚠️ <strong>Schedule conflicts detected</strong> — rows highlighted below overlap in audience/venue and dates.</div>`:''}
+${conflicts.size?`<div class="alert alert-warn mb-3">⚠️ <strong>Schedule conflicts detected</strong> — rows highlighted below share the same facilitator or audience on overlapping dates/times.</div>`:''}
 <div class="flex justify-between items-center mb-3">
   <div class="flex gap-2" style="flex-wrap:wrap">
     ${canEdit()?'<button class="btn btn-primary" data-modal="sched">+ Add Programme</button>':''}
