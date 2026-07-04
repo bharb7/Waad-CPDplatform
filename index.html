@@ -6,8 +6,8 @@
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
-  --navy:#1F4E79;--teal:#0F6E56;--amber:#7B4F0C;--red:#993C1D;
-  --purple:#3C3489;--forest:#375C15;--bg:#f4f6fb;--white:#fff;
+  --navy:#163A5F;--teal:#1D9BD7;--amber:#E8743B;--red:#D6295E;
+  --purple:#5C3D99;--forest:#375C15;--bg:#f4f6fb;--white:#fff;
   --border:#e5e7eb;--text:#1a1a2e;--muted:#6b7280;--light:#f9fafb;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -15,15 +15,17 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);min-height
 input,select,textarea,button{font-family:inherit;font-size:13px}
 button{cursor:pointer}
 .app{display:flex;min-height:100vh}
-.sidebar{width:200px;background:var(--navy);min-height:100vh;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar{width:200px;background:linear-gradient(180deg,var(--navy) 0%,#0F2843 100%);min-height:100vh;flex-shrink:0;display:flex;flex-direction:column;position:relative}
+.sidebar::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#5BC8F5 0%,#F4813F 50%,#D6295E 100%)}
 .sidebar-logo{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
 .sidebar-logo h1{color:#fff;font-size:15px;font-weight:700}
 .sidebar-logo p{color:rgba(255,255,255,.5);font-size:10px;margin-top:2px}
-.nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,.7);text-decoration:none;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:12.5px;transition:background .15s}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;color:rgba(255,255,255,.7);text-decoration:none;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:12.5px;transition:background .15s;border-left:3px solid transparent}
 .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-item.active{background:rgba(255,255,255,.15);color:#fff;font-weight:600}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff;font-weight:600;border-left:3px solid #5BC8F5}
 .main{flex:1;overflow:auto}
-.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:relative}
+.topbar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:linear-gradient(90deg,#5BC8F5 0%,#F4813F 50%,#D6295E 100%);opacity:.55}
 .topbar h2{font-size:16px;font-weight:700;color:var(--text)}
 .content{padding:20px;max-width:1200px}
 .card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
@@ -100,7 +102,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-D3-print-trip-tlc';
+const BUILD_VERSION='2026-07-05-D4-impact-accuracy-brand-refresh';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -169,6 +171,7 @@ const DEFAULT_DOMAINS=[{id:'d1',n:'Planning',criteria:['Engaging starter','Real-
 function getDomains(){return S.customDomains&&S.customDomains.length===5?S.customDomains:DEFAULT_DOMAINS;}
 const DEFAULT_ROLES={admin:{label:'Administrator',views:['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'],canEdit:true,scoped:false,sections:[]},obsLead:{label:'Observation Lead',views:['dashboard','schedule','teachers','fieldwork','impact'],canEdit:true,scoped:false,sections:[]},coachLead:{label:'Coaching Lead',views:['dashboard','cpd','impact'],canEdit:true,scoped:false,sections:[]},cpdLead:{label:'CPD Lead',views:['dashboard','schedule','cpd','impact'],canEdit:true,scoped:false,sections:[]},deptHead:{label:'Department Coordinator',views:['dashboard','fieldwork','cpd'],canEdit:true,scoped:true,sections:[]},viewer:{label:'Viewer',views:['dashboard','fieldwork','impact','resources'],canEdit:false,scoped:false,sections:[]},teacher:{label:'Teacher',views:['myportal'],canEdit:false,scoped:false,sections:[]}};
 const ALL_VIEWS=['dashboard','schedule','teachers','fieldwork','cpd','impact','process','resources','steplab','settings'];
+const WAAD_LOGO_SVG='<svg viewBox="0 0 100 92" xmlns="http://www.w3.org/2000/svg"><line x1="50.0" y1="32.0" x2="50.0" y2="6.0" stroke="#5BC8F5" stroke-width="5" stroke-linecap="round"/><line x1="54.8" y1="32.8" x2="63.7" y2="8.4" stroke="#F4813F" stroke-width="5" stroke-linecap="round"/><line x1="59.0" y1="35.3" x2="75.7" y2="15.4" stroke="#D6295E" stroke-width="5" stroke-linecap="round"/><line x1="62.1" y1="39.0" x2="84.6" y2="26.0" stroke="#5BC8F5" stroke-width="5" stroke-linecap="round"/><line x1="63.8" y1="43.6" x2="89.4" y2="39.1" stroke="#F4813F" stroke-width="5" stroke-linecap="round"/><line x1="63.8" y1="48.4" x2="89.4" y2="52.9" stroke="#D6295E" stroke-width="5" stroke-linecap="round"/><line x1="62.1" y1="53.0" x2="84.6" y2="66.0" stroke="#5BC8F5" stroke-width="5" stroke-linecap="round"/><line x1="59.0" y1="56.7" x2="75.7" y2="76.6" stroke="#F4813F" stroke-width="5" stroke-linecap="round"/><line x1="54.8" y1="59.2" x2="63.7" y2="83.6" stroke="#D6295E" stroke-width="5" stroke-linecap="round"/><line x1="50.0" y1="60.0" x2="50.0" y2="86.0" stroke="#5BC8F5" stroke-width="5" stroke-linecap="round"/><line x1="45.2" y1="59.2" x2="36.3" y2="83.6" stroke="#F4813F" stroke-width="5" stroke-linecap="round"/><line x1="41.0" y1="56.7" x2="24.3" y2="76.6" stroke="#D6295E" stroke-width="5" stroke-linecap="round"/><line x1="37.9" y1="53.0" x2="15.4" y2="66.0" stroke="#5BC8F5" stroke-width="5" stroke-linecap="round"/><line x1="36.2" y1="48.4" x2="10.6" y2="52.9" stroke="#F4813F" stroke-width="5" stroke-linecap="round"/><line x1="36.2" y1="43.6" x2="10.6" y2="39.1" stroke="#D6295E" stroke-width="5" stroke-linecap="round"/><line x1="37.9" y1="39.0" x2="15.4" y2="26.0" stroke="#5BC8F5" stroke-width="5" stroke-linecap="round"/><line x1="41.0" y1="35.3" x2="24.3" y2="15.4" stroke="#F4813F" stroke-width="5" stroke-linecap="round"/><line x1="45.2" y1="32.8" x2="36.3" y2="8.4" stroke="#D6295E" stroke-width="5" stroke-linecap="round"/></svg>';
 const VIEW_META={dashboard:{label:'Dashboard',icon:'📊'},schedule:{label:'Annual Schedule',icon:'🗓'},teachers:{label:'Teachers',icon:'👩‍🏫'},fieldwork:{label:'Observations',icon:'📋'},cpd:{label:'CPD & Coaching',icon:'📚'},impact:{label:'Impact',icon:'📈'},process:{label:'Process Audit',icon:'✅'},resources:{label:'Resources',icon:'📂'},steplab:{label:'Steplab',icon:'🔗'},settings:{label:'Settings',icon:'⚙️'},myportal:{label:'My Portal',icon:'👤'}};
 const DEFAULT_RESOURCES=[{id:'r1',title:'Darling-Hammond (2017) — Effective Teacher PD',url:'https://learningpolicyinstitute.org/product/effective-teacher-professional-development-report',desc:'Six pillars of effective CPD'},{id:'r2',title:'EEF (2021) — Effective Professional Development',url:'https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF-Effective-Professional-Development-Guidance-Report.pdf',desc:'14 CPD mechanisms'},{id:'r3',title:'EEF — Balanced Design Worksheet',url:'https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF_PD_Planning_resource.pdf',desc:'A·B·C·D balanced design'},{id:'r4',title:'DfE — NPQ Senior Leadership Framework',url:'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1018004/NPQ_Senior_Leadership.pdf',desc:'Section 6: Professional Development'},{id:'r5',title:'Best Practice Network — NPQSL',url:'https://www.bestpracticenet.co.uk/national-professional-qualification-for-senior-leadership',desc:'CARE and GROW frameworks'},{id:'r6',title:'Biol-Og CPD Booklets (Kerensa Ogbe)',url:'https://biol-og.com/cpd-booklets/',desc:'Evidence-informed CPD booklets'},{id:'r7',title:'NEASC — Accreditation & Learning Principles',url:'https://www.neasc.org/schools/accreditation-process',desc:'10 Learning Principles'},{id:'r8',title:'Steplab — Micro-Practice Platform',url:'https://steplab.co',desc:'Action steps and practice tracking'},{id:'r9',title:'Cambridge PDQ Teaching & Learning',url:'https://www.cambridgeinternational.org/professional-development/cambridge-pdq/',desc:'In-school Cambridge programme'}];
 const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},{id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},{id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},{id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null}];
@@ -276,7 +279,7 @@ function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cy
 function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
 function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
 function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
-function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',tripletId:r.linked_triplet_id||''}}
+function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',tripletId:r.linked_triplet_id||'',teacherResponses:r.teacher_responses||{}}}
 function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
 function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.stage_scores||{},folderLink:r.folder_link||''}}
 function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0,tripCount:r.trip_count||0,lwCount:r.lw_count||0,dept:r.dept||'Whole School',date:r.submitted_at||new Date().toISOString()}}
@@ -303,7 +306,7 @@ async function save(k,v){
     else if(k==='progress') return await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',stage_scores:p.scores||{},folder_link:p.folderLink||''})));
     else if(k==='snapshots') return await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
     else if(k==='resources') return await sbUpsert('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0})));
-    else if(k==='deptTLC') return await sbUpsert('dept_tlc_groups',v.map(g=>({id:g.id,school_id:sid,departments:g.depts||[],facilitator:g.facilitator||'',date_from:g.dateFrom||null,date_to:g.dateTo||null,application:g.application||[],application_custom:g.applicationCustom||'',app_content:g.appContent||'',collaboration:g.collaboration||'',active_learning:g.activeLearning||'',focus_feed:g.focusFeed||'',learned:g.learned||'',strategies:g.strategies||'',commitment:g.commitment||'',artifact_image:g.artifactImage||'',linked_triplet_id:g.tripletId||null})));
+    else if(k==='deptTLC') return await sbUpsert('dept_tlc_groups',v.map(g=>({id:g.id,school_id:sid,departments:g.depts||[],facilitator:g.facilitator||'',date_from:g.dateFrom||null,date_to:g.dateTo||null,application:g.application||[],application_custom:g.applicationCustom||'',app_content:g.appContent||'',collaboration:g.collaboration||'',active_learning:g.activeLearning||'',focus_feed:g.focusFeed||'',learned:g.learned||'',strategies:g.strategies||'',commitment:g.commitment||'',artifact_image:g.artifactImage||'',linked_triplet_id:g.tripletId||null,teacher_responses:g.teacherResponses||{}})));
     return true;
   }catch(e){console.warn('Supabase save failed for',k,e);return false;}
 }
@@ -335,6 +338,19 @@ async function saveSchedRecord(row,fullArray){
     facilitator:row.facilitator||'',delivery:row.delivery||'',type:row.type||'',duration:row.duration||'',month:row.month||'',
     start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
     status:row.status||'planned',cpd_id:row.cpdId||null}]);
+}
+async function saveTlcTeacherResponse(tlcId,teacherId,text){
+  const g=S.deptTLC.find(x=>x.id===tlcId);
+  if(!g)return false;
+  const updated={...g,teacherResponses:{...(g.teacherResponses||{}),[teacherId]:text}};
+  S.deptTLC=S.deptTLC.map(x=>x.id===tlcId?updated:x);
+  sset('deptTLC',S.deptTLC); // keep full local cache in sync
+  if(!SCHOOL_ID)return true;
+  return await sbUpsert('dept_tlc_groups',[{id:updated.id,school_id:SCHOOL_ID,departments:updated.depts||[],facilitator:updated.facilitator||'',
+    date_from:updated.dateFrom||null,date_to:updated.dateTo||null,application:updated.application||[],application_custom:updated.applicationCustom||'',
+    app_content:updated.appContent||'',collaboration:updated.collaboration||'',active_learning:updated.activeLearning||'',focus_feed:updated.focusFeed||'',
+    learned:updated.learned||'',strategies:updated.strategies||'',commitment:updated.commitment||'',artifact_image:updated.artifactImage||'',
+    linked_triplet_id:updated.tripletId||null,teacher_responses:updated.teacherResponses||{}}]);
 }
 async function reconcileCpdScheduleLink(cpdId,fields){
   if(!SCHOOL_ID){
@@ -617,7 +633,7 @@ function renderLogin(){return `
 <div class="login-wrap">
   <div class="login-box">
     <div class="login-logo">
-      ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-bottom:6px" id="login-logo">':'<div>🏫</div>'}
+      ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-bottom:6px" id="login-logo">':'<div style="width:64px;margin:0 auto">'+WAAD_LOGO_SVG+'</div>'}
       <h1>${S.branding.name}</h1>
       <p>School Improvement Platform 2026–27</p>
     </div>
@@ -646,8 +662,8 @@ ${S.modal?S.modal:''}
 <div class="app">
   <div class="sidebar">
     <div class="sidebar-logo">
-      ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">':''}
-      <h1 style="font-size:13px">${S.branding.logo?'':'🏫 '}${S.branding.name}</h1>
+      ${S.branding.logo?'<img src="'+S.branding.logo+'" style="height:28px;object-fit:contain;margin-bottom:4px;display:block">':'<div style="width:26px;display:inline-block;vertical-align:middle;margin-right:5px">'+WAAD_LOGO_SVG+'</div>'}
+      <h1 style="font-size:13px;display:inline-block;vertical-align:middle">${S.branding.name}</h1>
       <p class="sidebar-sub">School Improvement Platform</p>
       <p style="font-size:9px;color:#9ca3af;margin-top:2px;font-family:monospace">build: ${BUILD_VERSION}</p>
       ${(S.branding.partners||[]).filter(Boolean).length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${(S.branding.partners||[]).filter(Boolean).map(url=>'<img src="'+url+'" style="height:18px;object-fit:contain;border-radius:2px;background:#fff;padding:1px">').join('')}</div>`:''}
@@ -1998,13 +2014,13 @@ function renderImpact(){
     // 7 indicators with auto-computed scores from domain averages
     const manualRatings={};
     S.impacts.filter(i=>i.level==='3').forEach(i=>{if(i.type&&i.value){const v=parseFloat(i.value);if(!isNaN(v))manualRatings[i.type]=v;}});
-    const engObs=obs.filter(o=>(o.scores?.d4||[]).some(v=>v>0));
-    const fmObs=obs.filter(o=>(o.scores?.d3||[]).some(v=>v>0));
+    const engObs=obs.filter(o=>(o.bio||o.customTech||'')==='Think, Pair, Share'&&(o.scores?.d4||[]).some(v=>v>0));
+    const fmObs=obs.filter(o=>(o.bio||o.customTech||'')==='Simultaneous response'&&(o.scores?.d3||[]).some(v=>v>0));
     const qObs=obs.filter(o=>['Cold call','Ratio of pupil thought','Think, Pair, Share','Simultaneous response'].includes(o.bio||o.customTech||''));
-    const ctObs=obs.filter(o=>(o.scores?.d4||[]).some(v=>v>=3));
+    const ctObs=obs.filter(o=>(o.bio||o.customTech||'')==='Ratio of pupil thought'&&(o.scores?.d4||[]).some(v=>v>=3));
     const colObs=obs.filter(o=>['Think, Pair, Share','Simultaneous response'].includes(o.bio||o.customTech||''));
-    const soObs=obs.filter(o=>(o.scores?.d4||[]).some(v=>v>0)||(o.scores?.d5||[]).some(v=>v>0));
-    const indObs=obs.filter(o=>(o.scores?.d5||[]).some(v=>v>0));
+    const soObs=obs.filter(o=>(o.bio||o.customTech||'')==='Metacognition: Obvious organisers'&&((o.scores?.d4||[]).some(v=>v>0)||(o.scores?.d5||[]).some(v=>v>0)));
+    const indObs=obs.filter(o=>(o.bio||o.customTech||'')==='Overnarration & silence'&&(o.scores?.d5||[]).some(v=>v>0));
     const colTrips=trips.filter(t=>t.status==='complete');
     const L3_ROWS=[
       {key:'engagement',name:'Student Engagement',lps:['LP5'],tech:'Think, Pair, Share',score:engObs.length?avg(engObs.map(o=>avg(o.scores.d4||[]))):0,count:engObs.length},
@@ -4037,8 +4053,8 @@ async function refreshFromDB(){
 }
 async function boot(){
   document.getElementById('app').innerHTML=`
-    <div style="min-height:100vh;background:#1F4E79;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
-      <div style="font-size:40px">🏫</div>
+    <div style="min-height:100vh;background:#163A5F;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+      <div style="width:56px">${WAAD_LOGO_SVG}</div>
       <div style="color:#fff;font-size:18px;font-weight:700">Waad Academy</div>
       <div style="color:rgba(255,255,255,.7);font-size:13px" id="boot-msg">Connecting to database...</div>
       <div style="width:200px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;margin-top:8px">
