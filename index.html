@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C7-active-user-badge-eef-links';
+const BUILD_VERSION='2026-07-04-C8-typeahead-focus-fix-orphans-print';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -522,6 +522,12 @@ function isScoped(){return !isAdmin()&&!!myRole()?.scoped&&(S.session?.depts||[]
 function myDepts(){return S.session?.depts||[]}
 function scopedObs(){if(!isScoped())return S.observations;return S.observations.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&myDepts().includes(t.dept);});}
 function scopedTeachers(){if(!isScoped())return S.teachers;return S.teachers.filter(t=>myDepts().includes(t.dept));}
+function resolveTeacherByName(name){
+  if(!name||!name.trim())return'';
+  const n=name.trim().toLowerCase();
+  const t=S.teachers.find(t=>t.name.toLowerCase()===n);
+  return t?t.id:'';
+}
 function dashFilteredObs(){
   let obs=scopedObs();
   if(S.dashDepts&&S.dashDepts.length>0) obs=obs.filter(o=>{if(!o.tid)return false;const t=S.teachers.find(t=>t.id===o.tid);return t&&S.dashDepts.includes(t.dept);});
@@ -579,8 +585,24 @@ function downloadDashboardCSV(){
 }
 function exportCSV(filename,rows){if(!rows||!rows.length)return;const keys=Object.keys(rows[0]);const csv=[keys.join(','),...rows.map(r=>keys.map(k=>{const v=String(r[k]||'').replace(/"/g,'""');return'"'+v+'"';}).join(','))].join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();}
 function render(){
+  const active=document.activeElement;
+  let activeId=null,selStart=null,selEnd=null;
+  try{
+    activeId=active&&active.id;
+    selStart=active&&typeof active.selectionStart==='number'?active.selectionStart:null;
+    selEnd=active&&typeof active.selectionEnd==='number'?active.selectionEnd:null;
+  }catch(e){/* some input types (number/date/etc.) throw on selectionStart access */}
   document.getElementById('app').innerHTML = S.session ? renderApp() : renderLogin();
   bindEvents();
+  if(activeId){
+    const el=document.getElementById(activeId);
+    if(el&&typeof el.focus==='function'){
+      el.focus();
+      if(selStart!==null&&typeof el.setSelectionRange==='function'){
+        try{el.setSelectionRange(selStart,selEnd);}catch(e){}
+      }
+    }
+  }
 }
 
 function showToast(msg,type='success'){
@@ -958,6 +980,7 @@ ${groups.map(g=>{
       <div class="card-title" style="margin:0"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${g.color};margin-right:6px"></span>${g.name}</div>
       <div class="flex gap-2 items-center">
         <span class="badge badge-blue">${ts.length} teachers</span>
+        <button class="btn btn-sm btn-ghost" onclick="printTeacherGroup('${g.id}')" title="Print this group">🖨</button>
         ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-group="${g.id}" style="font-size:11px">✏ Edit</button>
         <button class="btn btn-sm btn-danger" data-del-group="${g.id}">✕ Delete</button>`:''}
       </div>
@@ -1533,37 +1556,47 @@ ${groups.map(g=>{
   if(!ts.length)return'';
   return `<div class="card">
     <div class="card-title" style="color:${g.color}">${esc(g.name)} <span class="badge badge-blue" style="font-size:10px">${ts.length}</span></div>
-    ${ts.map(t=>{
-      const obs=S.teachers.find(tc=>tc.id===t.oid);
-      const coach=S.teachers.find(tc=>tc.id===t.cid);
-      const fac=S.teachers.find(tc=>tc.id===t.fid);
-      const statusCls=t.status==='complete'?'badge-green':t.status==='active'?'badge-amber':'badge-gray';
-      return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">
-        <div class="flex justify-between items-center mb-1">
-          <span style="font-weight:600;direction:auto">${esc(t.name||'Triplet')}</span>
-          <div class="flex gap-1">
-            <span class="badge ${statusCls}">${t.status}</span>
-            <span class="badge badge-blue">Cycle ${t.cycle}</span>
-            ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-trip="${t.id}" style="font-size:11px">✏</button><button class="btn btn-sm btn-danger" data-del-trip="${t.id}">✕</button>`:''}
-          </div>
-        </div>
-        <div class="text-xs text-muted mb-1">
-          👁 ${obs?esc(obs.name):'—'}${obs?'<span class="badge badge-blue ml-1" style="font-size:9px">'+esc(obs.dept)+'</span>':''} · 🎓 ${coach?esc(coach.name):'—'} · 🎙 ${fac?esc(fac.name):'—'}
-        </div>
-        ${t.bio?'<span class="badge badge-purple">'+esc(t.bio)+'</span>':''}
-        ${t.od||t.dd?`<div class="text-xs text-muted mt-1">${t.od?'👁 Observe: '+t.od:''}${t.od&&t.dd?' · ':''}${t.dd?'💬 Debrief: '+t.dd:''}</div>`:''}
-        ${t.action?'<div class="text-xs mt-1"><strong>Action:</strong> '+esc(t.action)+'</div>':''}
-        ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #e5e7eb">
-          <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${t.slLinked?'var(--teal)':'var(--muted)'}">
-            <input type="checkbox" data-sl-trip="${t.id}" ${t.slLinked?'checked':''}> 📎 Logged in Steplab
-          </label>
-        </div>`:''}
-      </div>`;
-    }).join('')}
+    ${ts.map(t=>tripletCardHtml(t)).join('')}
   </div>`;
 }).join('')}
+${(()=>{
+  const groupedIds=new Set(groups.map(g=>g.id));
+  const ungrouped=trips.filter(t=>!t.gid||!groupedIds.has(t.gid));
+  if(!ungrouped.length)return'';
+  return `<div class="card">
+    <div class="card-title" style="color:#6b7280">Ungrouped <span class="badge badge-gray" style="font-size:10px">${ungrouped.length}</span></div>
+    ${ungrouped.map(t=>tripletCardHtml(t)).join('')}
+  </div>`;
+})()}
 ${!trips.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(S.triplets.length?'No triplets match current filters.':'No coaching triplets yet.')+'</div>':''}
 `}
+function tripletCardHtml(t){
+  const obs=S.teachers.find(tc=>tc.id===t.oid);
+  const coach=S.teachers.find(tc=>tc.id===t.cid);
+  const fac=S.teachers.find(tc=>tc.id===t.fid);
+  const statusCls=t.status==='complete'?'badge-green':t.status==='active'?'badge-amber':'badge-gray';
+  return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">
+    <div class="flex justify-between items-center mb-1">
+      <span style="font-weight:600;direction:auto">${esc(t.name||'Triplet')}</span>
+      <div class="flex gap-1">
+        <span class="badge ${statusCls}">${t.status}</span>
+        <span class="badge badge-blue">Cycle ${t.cycle}</span>
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-trip="${t.id}" style="font-size:11px">✏</button><button class="btn btn-sm btn-danger" data-del-trip="${t.id}">✕</button>`:''}
+      </div>
+    </div>
+    <div class="text-xs text-muted mb-1">
+      👁 ${obs?esc(obs.name):'—'}${obs?'<span class="badge badge-blue ml-1" style="font-size:9px">'+esc(obs.dept)+'</span>':''} · 🎓 ${coach?esc(coach.name):'—'} · 🎙 ${fac?esc(fac.name):'—'}
+    </div>
+    ${t.bio?'<span class="badge badge-purple">'+esc(t.bio)+'</span>':''}
+    ${t.od||t.dd?`<div class="text-xs text-muted mt-1">${t.od?'👁 Observe: '+t.od:''}${t.od&&t.dd?' · ':''}${t.dd?'💬 Debrief: '+t.dd:''}</div>`:''}
+    ${t.action?'<div class="text-xs mt-1"><strong>Action:</strong> '+esc(t.action)+'</div>':''}
+    ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #e5e7eb">
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${t.slLinked?'var(--teal)':'var(--muted)'}">
+        <input type="checkbox" data-sl-trip="${t.id}" ${t.slLinked?'checked':''}> 📎 Logged in Steplab
+      </label>
+    </div>`:''}
+  </div>`;
+}
 
 
 function printSnapshot(snap){
@@ -2372,6 +2405,12 @@ function renderModal(type, data={}){
   const FS=(id,label,opts,val='')=>
     `<div class="form-group"><label class="form-label">${label}</label>
     <select class="form-control" id="${id}">${opts.map(o=>typeof o==='string'?'<option '+(val===o?'selected':'')+'>'+o+'</option>':'<option value="'+o.v+'" '+(val===o.v?'selected':'')+'>'+o.l+'</option>').join('')}</select></div>`;
+  const FT=(id,label,teacherId,placeholder='Type to search a name…')=>{
+    const t=teacherId?scopedTeachers().find(x=>x.id===teacherId):null;
+    return `<div class="form-group"><label class="form-label">${label}</label>
+    <input class="form-control rtl" id="${id}" list="${id}-list" placeholder="${placeholder}" value="${esc(t?t.name:'')}">
+    <datalist id="${id}-list">${scopedTeachers().map(tc=>'<option value="'+esc(tc.name)+'">').join('')}</datalist></div>`;
+  };
   const FTA=(id,label,val='',rows=3)=>
     `<div class="form-group"><label class="form-label">${label}</label>
     <textarea class="form-control rtl" id="${id}" rows="${rows}">${val||''}</textarea></div>`;
@@ -2383,7 +2422,7 @@ function renderModal(type, data={}){
     const preT=data.tid||'';
     const techVal=data.customTech?'Other':(data.bio||'');
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
-      FS('obs-tid','Teacher',[{v:'',l:'— Whole School / Dept —'},...scopedTeachers().map(t=>({v:t.id,l:t.name+' ('+t.dept+')'}))],preT)+
+      FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
       techSelector('obs-tech','obs-custom-tech',techVal,data.customTech||'')+
       '<div id="obs-domains">' +
@@ -2437,9 +2476,9 @@ function renderModal(type, data={}){
          FS('tr-gid','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],''))+
       G2(FS('tr-cycle','Cycle',[{v:1,l:'Cycle 1'},{v:2,l:'Cycle 2'},{v:3,l:'Cycle 3'}],data.cycle||1),
          FS('tr-status','Status',['planned','active','complete'],data.status||'planned'))+
-      G2(FS('tr-oid','Observer (Teacher being observed)',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.oid||''),
-         FS('tr-cid','Coach',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.cid||''))+
-      FS('tr-fid','Facilitator',[{v:'',l:'— Select —'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))],data.fid||'')+
+      G2(FT('tr-oid','Observer (Teacher being observed)',data.oid||''),
+         FT('tr-cid','Coach',data.cid||''))+
+      FT('tr-fid','Facilitator',data.fid||'')+
       techSelector('tr-tech','tr-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       G2(FI('tr-od','Observe Date',data.od||'','date'),FI('tr-dd','CARE Debrief Date',data.dd||'','date'))+
       G2(FTA('tr-www','What Went Well (WWW)',data.wwwNotes||''),FTA('tr-ebi','Even Better If (EBI)',data.ebiNotes||''))+
@@ -2567,7 +2606,7 @@ function renderModal(type, data={}){
     return M('📈 Add Impact Entry',
       FS('imp-level','Level',[{v:'1',l:'L1: Teacher Knowledge'},{v:'2',l:'L2: Classroom Practice'},{v:'3',l:'L3: Student Outcomes'}],lvl)+
       FS('imp-type','Type',(typeOpts[lvl]||typeOpts[1]),'')+
-      G2(FS('imp-tid','Teacher (optional)',[{v:'',l:'All Staff'},...scopedTeachers().map(t=>({v:t.id,l:t.name}))]),
+      G2(FT('imp-tid','Teacher (optional)',data.tid||''),
          FI('imp-val','Value / Score','','text','e.g. 3.8/5'))+
       G2(FI('imp-date','Date',new Date().toISOString().split('T')[0],'date'),FI('imp-term','Term','','text','e.g. Term 1'))+
       FTA('imp-evidence','Evidence'),
@@ -2612,7 +2651,7 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'🎯 New')+' Domain-Focused Learning Walk',
       G2(FI('dlw-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('dlw-obs','Observed by',data.observer||userName))+
       G2(FS('dlw-dept','Department',['', ...DEPTS],data.dept||''),FS('dlw-sect','Section',['','Boys','Girls'],data.section||''))+
-      FS('dlw-tid','Teacher (optional)',[{v:'',l:'— Department Walk (no specific teacher) —'},...scopedTeachers().map(t=>({v:t.id,l:t.name+' ('+t.dept+')'}))],data.tid||'')+
+      FT('dlw-tid','Teacher (optional)',data.tid||'')+
       `<div class="form-group"><label class="form-label">Observation Domain</label>
         <select class="form-control" id="dlw-domain" onchange="S._dlwDomainSel=this.value;S.modal=renderModal('dlw',${JSON.stringify(data)});render()">
           ${getDomains().map(d=>`<option value="${d.id}" ${d.id===selDomId?'selected':''}>${d.n}</option>`).join('')}
@@ -2933,7 +2972,7 @@ function bindEvents(){
   // SAVES
   const saveObs=document.querySelector('[data-save-obs]');
   if(saveObs)saveObs.onclick=()=>{
-    const tid=gv('obs-tid');
+    const tid=resolveTeacherByName(gv('obs-tid'));
     const{bio,customTech}=getTechFromForm('obs-tech','obs-custom-tech');
     const scoreState={};
     document.querySelectorAll('[data-score]').forEach(btn=>{
@@ -3019,7 +3058,7 @@ function bindEvents(){
     const existing=editId?S.triplets.find(t=>t.id===editId):{};
     const{bio:trBio,customTech:trCustomTech}=getTechFromForm('tr-tech','tr-custom-tech');
     const trip={...(existing||{}),id:editId||uid(),gid,name:gv('tr-name'),cycle,status:gv('tr-status'),
-      oid:gv('tr-oid'),cid:gv('tr-cid'),fid:gv('tr-fid'),
+      oid:resolveTeacherByName(gv('tr-oid')),cid:resolveTeacherByName(gv('tr-cid')),fid:resolveTeacherByName(gv('tr-fid')),
       bio:trBio,customTech:trCustomTech||'',od:gv('tr-od'),dd:gv('tr-dd'),
       wwwNotes:gv('tr-www'),ebiNotes:gv('tr-ebi'),action:gv('tr-action'),
       slLinked:existing?.slLinked||false};
@@ -3184,7 +3223,7 @@ function bindEvents(){
   if(saveImpact)saveImpact.onclick=()=>{
     const editId=S.editingId?.type==='impact'?S.editingId.id:null;
     const lvl=gv('imp-level');
-    const entry={...(editId?S.impacts.find(i=>i.id===editId):{}),id:editId||uid(),level:lvl,type:gv('imp-type'),tid:gv('imp-tid')||null,value:gv('imp-val'),evidence:gv('imp-evidence'),date:gv('imp-date'),term:gv('imp-term')};
+    const entry={...(editId?S.impacts.find(i=>i.id===editId):{}),id:editId||uid(),level:lvl,type:gv('imp-type'),tid:resolveTeacherByName(gv('imp-tid'))||null,value:gv('imp-val'),evidence:gv('imp-evidence'),date:gv('imp-date'),term:gv('imp-term')};
     S.impacts=editId?S.impacts.map(i=>i.id===editId?entry:i):[...S.impacts,entry];
     save('impacts',S.impacts);
     S.modal=null;S.editingId=null;
@@ -3237,7 +3276,7 @@ function bindEvents(){
     const focusArea='DOMAIN:'+selDomId+'|'+JSON.stringify(dlwScores);
     const existing=editId?S.lwalks.find(l=>l.id===editId):{};
     const lw={...(existing||{}),id:editId||uid(),date:gv('dlw-date'),observer:gv('dlw-obs'),
-      dept:gv('dlw-dept'),section:gv('dlw-sect'),tid:gv('dlw-tid')||null,
+      dept:gv('dlw-dept'),section:gv('dlw-sect'),tid:resolveTeacherByName(gv('dlw-tid'))||null,
       bio:'',customTech:'',strengths:gv('dlw-str'),afd:gv('dlw-afd'),focusArea};
     S.lwalks=editId?S.lwalks.map(l=>l.id===editId?lw:l):[...S.lwalks,lw];
     save('lwalks',S.lwalks);
@@ -3784,6 +3823,30 @@ function renderActivityLog(){
 </div>`;
 }
 
+function printTeacherGroup(gid){
+  const g=S.groups.find(x=>x.id===gid);if(!g)return;
+  const safe=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const ts=S.teachers.filter(t=>t.groupId===gid);
+  const rows=ts.map(t=>{
+    const st=tStats(t);
+    const allObs=S.observations.filter(o=>o.tid===t.id);
+    const avgs=allObs.map(o=>domAvg(o.scores));
+    const overallAvg=avgs.length?(avgs.reduce((a,b)=>a+b,0)/avgs.length):0;
+    return '<tr><td>'+safe(t.name)+'</td><td>'+safe(t.dept)+'</td><td>'+safe(t.section)+'</td><td>'+safe(t.stage)+'</td><td style="text-align:center">'+st.count+'</td><td style="text-align:center">'+(overallAvg>0?overallAvg.toFixed(1)+'/5':'—')+'</td></tr>';
+  }).join('');
+  const w=window.open('','_blank','width=800,height=1000');
+  w.document.write('<!DOCTYPE html><html><head><title>'+safe(g.name)+' — Teacher Group</title>'
+  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:760px;margin:0 auto}'
+  +'h1{color:'+safe(g.color||'#1F4E79')+';font-size:19px;margin-bottom:4px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid '+safe(g.color||'#1F4E79')+'}'
+  +'table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px 9px;border-bottom:1px solid #e5e7eb;text-align:left}th{background:#f3f4f6;font-size:11px;text-transform:uppercase;color:#6b7280}'
+  +'@media print{button{display:none!important}}</style></head><body>'
+  +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +'<div><h1>👥 '+safe(g.name)+'</h1><div class="meta">'+ts.length+' teacher'+(ts.length!==1?'s':'')+'</div></div>'
+  +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print</button></div>'
+  +'<table><thead><tr><th>Name</th><th>Department</th><th>Section</th><th>Stage</th><th>Obs</th><th>Avg</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;color:#9ca3af">No teachers in this group</td></tr>')+'</tbody></table>'
+  +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+'</div></body></html>');
+  w.document.close();setTimeout(()=>w.print(),400);
+}
 function printCPD(id){
   const c=S.cpd.find(x=>x.id===id);if(!c)return;
   const safe=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
