@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C4-single-record-save';
+const BUILD_VERSION='2026-07-04-C5-confirm-all-deletes';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -436,6 +436,7 @@ async function openScheduleDbDebug(){
   render();
 }
 async function forceDeleteDbRow(id){
+  if(!confirm('Are you sure you want to delete this row? This is a direct, permanent database delete.'))return;
   try{
     const r=await fetch(SB_URL+'/rest/v1/schedule_rows?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
     const text=await r.text();
@@ -2851,6 +2852,7 @@ function bindEvents(){
   };
   document.querySelectorAll('[data-del-snap]').forEach(el=>{
     el.onclick=()=>{
+      if(!confirm('Are you sure you want to delete this snapshot?'))return;
       const id=el.dataset.delSnap;
       S.snapshots=S.snapshots.filter(s=>s.id!==id);
       save('snapshots',S.snapshots);
@@ -3269,7 +3271,7 @@ function bindEvents(){
     };
   });
   document.querySelectorAll('[data-del-dlw]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delDlw;S.lwalks=S.lwalks.filter(l=>l.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this?'))return;const id=el.dataset.delDlw;S.lwalks=S.lwalks.filter(l=>l.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
   });
 
   const saveRole=document.querySelector('[data-save-role]');
@@ -3372,6 +3374,7 @@ function bindEvents(){
   // Delete criterion
   document.querySelectorAll('[data-del-crit]').forEach(el=>{
     el.onclick=()=>{
+      if(!confirm('Are you sure you want to delete this criterion?'))return;
       const[di,ci]= el.dataset.delCrit.split('-').map(Number);
       const base=getDomains();
       if(base[di].criteria.length<=1){showToast('Domain must have at least 1 criterion','error');return;}
@@ -3450,7 +3453,8 @@ function bindEvents(){
       const g=S.groups.find(g=>g.id===el.dataset.delGroup);
       if(!g)return;
       const hasTeachers=S.teachers.filter(t=>t.groupId===g.id).length;
-      if(hasTeachers&&!confirm(hasTeachers+' teachers in this group will be unassigned. Delete anyway?'))return;
+      const msg=hasTeachers?(hasTeachers+' teachers in this group will be unassigned. Delete anyway?'):'Are you sure you want to delete this group?';
+      if(!confirm(msg))return;
       S.groups=S.groups.filter(gr=>gr.id!==g.id);
       S.teachers=S.teachers.map(t=>t.groupId===g.id?{...t,groupId:''}:t);
       save('groups',S.groups);save('teachers',S.teachers);
@@ -3479,7 +3483,7 @@ function bindEvents(){
     el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);save('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-lw]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this learning walk?'))return;const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-cpd]').forEach(el=>{
     el.onclick=()=>{
@@ -3496,7 +3500,7 @@ function bindEvents(){
     };
   });
   document.querySelectorAll('[data-del-trip]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this coaching triplet?'))return;const id=el.dataset.delTrip;S.triplets=S.triplets.filter(o=>o.id!==id);save('trips',S.triplets);sbRemove('triplets',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-tlc]').forEach(el=>{
     el.onclick=()=>{
@@ -3520,19 +3524,19 @@ function bindEvents(){
     };
   });
   document.querySelectorAll('[data-del-teacher]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this teacher?'))return;const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-user]').forEach(el=>{
-    el.onclick=()=>{S.users=S.users.filter(o=>o.id!==el.dataset.delUser);save('users',S.users);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this user?'))return;S.users=S.users.filter(o=>o.id!==el.dataset.delUser);save('users',S.users);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-impact]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delImpact;S.impacts=S.impacts.filter(o=>o.id!==id);save('impacts',S.impacts);sbRemove('impact_entries',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this impact entry?'))return;const id=el.dataset.delImpact;S.impacts=S.impacts.filter(o=>o.id!==id);save('impacts',S.impacts);sbRemove('impact_entries',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-prog]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delProg;S.progress=S.progress.filter(o=>o.id!==id);save('progress',S.progress);sbRemove('student_progress',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this progress entry?'))return;const id=el.dataset.delProg;S.progress=S.progress.filter(o=>o.id!==id);save('progress',S.progress);sbRemove('student_progress',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-res]').forEach(el=>{
-    el.onclick=()=>{const id=el.dataset.delRes;S.resources=S.resources.filter(o=>o.id!==id);save('resources',S.resources);sbRemove('resources',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Are you sure you want to delete this resource?'))return;const id=el.dataset.delRes;S.resources=S.resources.filter(o=>o.id!==id);save('resources',S.resources);sbRemove('resources',id);showToast('Deleted');render();};
   });
   // ── Resource edit ──────────────────────────────────────────────────────────
   document.querySelectorAll('[data-edit-res]').forEach(el=>{
