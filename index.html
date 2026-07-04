@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-D2-www-ebi-script';
+const BUILD_VERSION='2026-07-04-D3-print-trip-tlc';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -1488,7 +1488,7 @@ ${items.slice().reverse().map(g=>{
         ${(g.depts||[]).map(d=>'<span class="badge badge-blue mr-1" style="font-size:10px">'+esc(d)+'</span>').join('')}
         <span class="text-xs text-muted ml-1">${esc(g.dateFrom||'—')}${g.dateTo?' → '+esc(g.dateTo):''}</span>
       </div>
-      ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-tlc="${g.id}" style="font-size:11px">✏</button><button class="btn btn-sm btn-danger" data-del-tlc="${g.id}">✕</button></div>`:''}
+      ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-tlc="${g.id}" style="font-size:11px">✏</button><button class="btn btn-sm btn-ghost" onclick="printTLC('${g.id}')" title="Print TLC session">🖨</button><button class="btn btn-sm btn-danger" data-del-tlc="${g.id}">✕</button></div>`:''}
     </div>
     <div class="text-xs text-muted mb-2">🎙 Facilitator: ${esc(g.facilitator||'—')}</div>
     ${g.appContent||g.collaboration||g.activeLearning?`<div class="grid-3 mt-2 mb-2">
@@ -1581,7 +1581,7 @@ function tripletCardHtml(t){
       <div class="flex gap-1">
         <span class="badge ${statusCls}">${t.status}</span>
         <span class="badge badge-blue">Cycle ${t.cycle}</span>
-        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-trip="${t.id}" style="font-size:11px">✏</button><button class="btn btn-sm btn-danger" data-del-trip="${t.id}">✕</button>`:''}
+        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-trip="${t.id}" style="font-size:11px">✏</button><button class="btn btn-sm btn-ghost" onclick="printTriplet('${t.id}')" title="Print triplet">🖨</button><button class="btn btn-sm btn-danger" data-del-trip="${t.id}">✕</button>`:''}
       </div>
     </div>
     <div class="text-xs text-muted mb-1">
@@ -3895,6 +3895,64 @@ function printTeacherGroup(gid){
   +'<div><h1>👥 '+safe(g.name)+'</h1><div class="meta">'+ts.length+' teacher'+(ts.length!==1?'s':'')+'</div></div>'
   +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print</button></div>'
   +'<table><thead><tr><th>Name</th><th>Department</th><th>Section</th><th>Stage</th><th>Obs</th><th>Avg</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;color:#9ca3af">No teachers in this group</td></tr>')+'</tbody></table>'
+  +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+'</div></body></html>');
+  w.document.close();setTimeout(()=>w.print(),400);
+}
+function printTriplet(id){
+  const t=S.triplets.find(x=>x.id===id);if(!t)return;
+  const safe=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const obs=S.teachers.find(tc=>tc.id===t.oid);
+  const coach=S.teachers.find(tc=>tc.id===t.cid);
+  const fac=S.teachers.find(tc=>tc.id===t.fid);
+  const g=S.groups.find(gr=>gr.id===t.gid);
+  const w=window.open('','_blank','width=800,height=1000');
+  w.document.write('<!DOCTYPE html><html><head><title>Coaching Triplet — '+safe(t.name)+'</title>'
+  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:740px;margin:0 auto}'
+  +'h1{color:#1F4E79;font-size:19px;margin-bottom:4px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #1F4E79}'
+  +'.section{margin-bottom:14px;padding:12px 14px;border-radius:6px;white-space:pre-wrap}'
+  +'.section-title{font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:6px}'
+  +'.www{background:#f0fdf4;border-left:4px solid #0F6E56}.ebi{background:#fffbeb;border-left:4px solid #d97706}.script{background:#f5f3ff;border-left:4px solid #7c3aed}'
+  +'@media print{button{display:none!important}}</style></head><body>'
+  +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +'<div><h1>🎯 '+safe(t.name||'Triplet')+'</h1>'
+  +'<div class="meta">Group: <strong>'+safe(g?g.name:'—')+'</strong> &nbsp;|&nbsp; Cycle: <strong>'+safe(t.cycle)+'</strong> &nbsp;|&nbsp; Status: <strong>'+safe(t.status)+'</strong><br>'
+  +'👁 Observer: <strong>'+safe(obs?obs.name:'—')+'</strong> &nbsp;|&nbsp; 🎓 Coach: <strong>'+safe(coach?coach.name:'—')+'</strong> &nbsp;|&nbsp; 🎙 Facilitator: <strong>'+safe(fac?fac.name:'—')+'</strong><br>'
+  +(t.od?'👁 Observe: '+safe(t.od)+' ':'')+(t.dd?'&nbsp;|&nbsp; 💬 Debrief: '+safe(t.dd):'')+'</div></div>'
+  +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print</button></div>'
+  +(t.bio?'<div style="margin-bottom:14px"><span style="background:#ede9fe;color:#5b21b6;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600">Technique: '+safe(t.bio||t.customTech)+'</span></div>':'')
+  +((t.scriptChecklist&&t.scriptChecklist.length)||t.scriptText?'<div class="section script"><div class="section-title" style="color:#7c3aed">📝 Observation Script</div>'+[['quotes','Verbatim student quotes (3+)'],['moves','Teacher moves (questioning, wait time, CFU)'],['evidence','Evidence of technique in action']].map(([k,l])=>'☑'.slice(0,(t.scriptChecklist||[]).includes(k)?1:0)+((t.scriptChecklist||[]).includes(k)?'✅ ':'☐ ')+l).join('<br>')+(t.scriptText?'<br><br>'+safe(t.scriptText):'')+'</div>':'')
+  +(t.wwwNotes?'<div class="section www"><div class="section-title" style="color:#0F6E56">✅ What Went Well (WWW)</div>'+safe(t.wwwNotes)+'</div>':'')
+  +(t.ebiNotes?'<div class="section ebi"><div class="section-title" style="color:#d97706">🎯 Even Better If (EBI)</div>'+safe(t.ebiNotes)+'</div>':'')
+  +(t.action?'<div class="section" style="background:#eff6ff;border-left:4px solid #3b82f6"><div class="section-title" style="color:#1e40af">📎 Action Step → Steplab</div>'+safe(t.action)+'</div>':'')
+  +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+' &middot; Triplet ID: '+safe(id)+'</div></body></html>');
+  w.document.close();setTimeout(()=>w.print(),400);
+}
+function printTLC(id){
+  const g=S.deptTLC.find(x=>x.id===id);if(!g)return;
+  const safe=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const w=window.open('','_blank','width=800,height=1000');
+  w.document.write('<!DOCTYPE html><html><head><title>Department TLC — '+safe((g.depts||[]).join(', '))+'</title>'
+  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:740px;margin:0 auto}'
+  +'h1{color:#1F4E79;font-size:19px;margin-bottom:4px}.meta{color:#6b7280;font-size:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid #1F4E79}'
+  +'.section{margin-bottom:14px;padding:12px 14px;border-radius:6px;white-space:pre-wrap}'
+  +'.section-title{font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:6px}'
+  +'.app{background:#ede9fe;border-left:4px solid #7c3aed}.collab{background:#e0f2fe;border-left:4px solid #0284c7}.active{background:#fce7f3;border-left:4px solid #db2777}'
+  +'.learned{background:#dbeafe;border-left:4px solid #1e40af}.strat{background:#fef3c7;border-left:4px solid #d97706}.commit{background:#d1fae5;border-left:4px solid #059669}'
+  +'.focus{background:#f0fdf4;border-left:4px solid #16a34a}'
+  +'img{max-width:100%;border-radius:6px;margin-bottom:14px}'
+  +'@media print{button{display:none!important}}</style></head><body>'
+  +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +'<div><h1>🤝 '+safe((g.depts||[]).join(', ')||'Department TLC')+'</h1>'
+  +'<div class="meta">Facilitator: <strong>'+safe(g.facilitator||'—')+'</strong> &nbsp;|&nbsp; '+safe(g.dateFrom||'—')+(g.dateTo?' → '+safe(g.dateTo):'')+'</div></div>'
+  +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print</button></div>'
+  +(g.artifactImage?'<img src="'+g.artifactImage+'">':'')
+  +(g.appContent?'<div class="section app"><div class="section-title" style="color:#7c3aed">🎯 Application (Focused Content)</div>'+safe(g.appContent)+'</div>':'')
+  +(g.collaboration?'<div class="section collab"><div class="section-title" style="color:#0284c7">🤝 Collaboration</div>'+safe(g.collaboration)+'</div>':'')
+  +(g.activeLearning?'<div class="section active"><div class="section-title" style="color:#db2777">⚡ Active Learning</div>'+safe(g.activeLearning)+'</div>':'')
+  +(g.learned?'<div class="section learned"><div class="section-title" style="color:#1e40af">3️⃣ Things Learned</div>'+safe(g.learned)+'</div>':'')
+  +(g.strategies?'<div class="section strat"><div class="section-title" style="color:#d97706">2️⃣ Strategies to Try</div>'+safe(g.strategies)+'</div>':'')
+  +(g.commitment?'<div class="section commit"><div class="section-title" style="color:#059669">1️⃣ Commitment for Next Week</div>'+safe(g.commitment)+'</div>':'')
+  +(g.focusFeed?'<div class="section focus"><div class="section-title" style="color:#16a34a">🔗 Focus Feed into Coaching Triplet</div>'+safe(g.focusFeed)+'</div>':'')
   +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+'</div></body></html>');
   w.document.close();setTimeout(()=>w.print(),400);
 }
