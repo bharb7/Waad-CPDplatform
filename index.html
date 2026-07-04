@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C8-typeahead-focus-fix-orphans-print';
+const BUILD_VERSION='2026-07-04-C9-no-click-outside-close';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -2796,8 +2796,8 @@ function bindEvents(){
   document.querySelectorAll('[data-close-modal]').forEach(el=>{
     el.onclick=()=>{S.modal=null;render()};
   });
-  const ov=g('modal-overlay');
-  if(ov)ov.onclick=e=>{if(e.target===ov){S.modal=null;render()}};
+  // Clicking outside a modal no longer closes it (was silently discarding unsaved edits).
+  // Modals now only close via the explicit Cancel / X / Close buttons.
 
   // Care protocol tabs
   document.querySelectorAll('[data-care-tab]').forEach(el=>{
