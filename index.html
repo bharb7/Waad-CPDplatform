@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-D1-real-teacher-autocomplete';
+const BUILD_VERSION='2026-07-04-D2-www-ebi-script';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -272,7 +272,7 @@ async function saveSchoolSettings(){
 function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
 function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||''}}
-function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:'',fid:'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false}}
+function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
 function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
 function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
@@ -290,7 +290,7 @@ async function save(k,v){
     if(k==='teachers') return await sbUpsert('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:t.section||'',stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})));
     else if(k==='groups') return await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
     else if(k==='obs') return await sbUpsert('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false};}));
-    else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};}));
+    else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsert('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}));
     else if(k==='cpd') return await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
     else if(k==='sched'){
@@ -1589,6 +1589,13 @@ function tripletCardHtml(t){
     </div>
     ${t.bio?'<span class="badge badge-purple">'+esc(t.bio)+'</span>':''}
     ${t.od||t.dd?`<div class="text-xs text-muted mt-1">${t.od?'👁 Observe: '+t.od:''}${t.od&&t.dd?' · ':''}${t.dd?'💬 Debrief: '+t.dd:''}</div>`:''}
+    ${(t.scriptChecklist&&t.scriptChecklist.length)||t.scriptText?`<div class="text-xs mt-1 p-2" style="background:#f5f3ff;border-radius:4px;border-left:3px solid #7c3aed">
+      <strong>📝 Observation Script:</strong>
+      ${(t.scriptChecklist||[]).length?'<div style="margin:3px 0">'+[['quotes','Verbatim quotes'],['moves','Teacher moves'],['evidence','Evidence of technique']].filter(([k])=>t.scriptChecklist.includes(k)).map(([k,l])=>'<span class="badge badge-purple mr-1" style="font-size:9px">✓ '+l+'</span>').join('')+'</div>':''}
+      ${t.scriptText?'<div style="direction:auto">'+esc(t.scriptText)+'</div>':''}
+    </div>`:''}
+    ${t.wwwNotes?'<div class="text-xs mt-1 p-2" style="background:#f0fdf4;border-radius:4px;border-left:3px solid #0F6E56;direction:auto"><strong>✅ WWW:</strong> '+esc(t.wwwNotes)+'</div>':''}
+    ${t.ebiNotes?'<div class="text-xs mt-1 p-2" style="background:#fffbeb;border-radius:4px;border-left:3px solid #d97706;direction:auto"><strong>🎯 EBI:</strong> '+esc(t.ebiNotes)+'</div>':''}
     ${t.action?'<div class="text-xs mt-1"><strong>Action:</strong> '+esc(t.action)+'</div>':''}
     ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #e5e7eb">
       <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${t.slLinked?'var(--teal)':'var(--muted)'}">
@@ -2484,6 +2491,13 @@ function renderModal(type, data={}){
       FT('tr-fid','Facilitator',data.fid||'')+
       techSelector('tr-tech','tr-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       G2(FI('tr-od','Observe Date',data.od||'','date'),FI('tr-dd','CARE Debrief Date',data.dd||'','date'))+
+      `<div class="form-group"><label class="form-label">📝 Observation Script — what to capture</label>
+      <div style="display:flex;flex-direction:column;gap:4px;background:var(--light);border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" class="tr-script-cb" value="quotes" ${(data.scriptChecklist||[]).includes('quotes')?'checked':''}> Verbatim student quotes (3+)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" class="tr-script-cb" value="moves" ${(data.scriptChecklist||[]).includes('moves')?'checked':''}> Teacher moves (questioning, wait time, CFU)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" class="tr-script-cb" value="evidence" ${(data.scriptChecklist||[]).includes('evidence')?'checked':''}> Evidence of technique in action</label>
+      </div></div>`+
+      FTA('tr-script-text','Script Notes (verbatim quotes, moves, evidence)',data.scriptText||'',5)+
       G2(FTA('tr-www','What Went Well (WWW)',data.wwwNotes||''),FTA('tr-ebi','Even Better If (EBI)',data.ebiNotes||''))+
       FTA('tr-action','Steplab Action Step',data.action||''),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-trip>${isTripEdit?'Update Triplet':'Save Triplet'}</button>`
@@ -3092,10 +3106,12 @@ function bindEvents(){
     }
     const existing=editId?S.triplets.find(t=>t.id===editId):{};
     const{bio:trBio,customTech:trCustomTech}=getTechFromForm('tr-tech','tr-custom-tech');
+    const scriptChecklist=Array.from(document.querySelectorAll('.tr-script-cb:checked')).map(cb=>cb.value);
     const trip={...(existing||{}),id:editId||uid(),gid,name:gv('tr-name'),cycle,status:gv('tr-status'),
       oid:gv('tr-oid'),cid:gv('tr-cid'),fid:gv('tr-fid'),
       bio:trBio,customTech:trCustomTech||'',od:gv('tr-od'),dd:gv('tr-dd'),
       wwwNotes:gv('tr-www'),ebiNotes:gv('tr-ebi'),action:gv('tr-action'),
+      scriptChecklist,scriptText:gv('tr-script-text'),
       slLinked:existing?.slLinked||false};
     S.triplets=editId?S.triplets.map(t=>t.id===editId?trip:t):[...S.triplets,trip];
     save('trips',S.triplets);
