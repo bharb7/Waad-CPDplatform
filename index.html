@@ -100,7 +100,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C6-surface-real-db-error';
+const BUILD_VERSION='2026-07-04-C7-active-user-badge-eef-links';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -1734,11 +1734,6 @@ function renderCPD(){
   return `
 <div class="alert alert-info mb-3">
   📊 <strong>EEF Balanced Design Framework:</strong> Sessions should cover all 4 groups: A) Build Knowledge · B) Motivate Staff · C) Develop Techniques · D) Embed Practice
-  <div class="flex gap-2 mt-2" style="flex-wrap:wrap">
-    <a href="https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF_PD_Planning_resource.pdf" target="_blank" class="btn btn-sm btn-ghost">📄 EEF Balanced Design Worksheet ↗</a>
-    <a href="https://d2tic4wvo1iusb.cloudfront.net/production/documents/guidance-reports/effective-professional-development/EEF-Effective-Professional-Development-Guidance-Report.pdf" target="_blank" class="btn btn-sm btn-ghost">📘 EEF Full Report ↗</a>
-    <a href="https://educationendowmentfoundation.org.uk/education-evidence/guidance-reports/effective-professional-development" target="_blank" class="btn btn-sm btn-ghost" style="background:#fef3c7;border-color:#fbbf24">🟡 EEF 14 Mechanisms ↗</a>
-  </div>
 </div>
 <div class="tabs">
   <button class="tab ${tab==='cpd'?'active':''}" data-cpd-tab="cpd">CPD Sessions (${S.cpd.length})</button>
@@ -2250,16 +2245,19 @@ function renderSettings(){
       <div class="card-title" style="margin:0">👥 Users (${users.length})</div>
       ${canEdit()?`<button class="btn btn-ghost btn-sm" onclick="exportUsersForGitHub()">⬆ GitHub Export</button>`:''}
     </div>
-    ${users.map(u=>`<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px">
+    ${users.map(u=>{
+      const isActiveNow=S.session&&(u.fullName||u.name)===S.session.name&&u.role===S.session.role;
+      return `<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px${isActiveNow?';border:1px solid #6ee7b7':''}">
       <div>
-        <div style="font-weight:600;font-size:13px">${esc(u.name)}</div>
+        <div style="font-weight:600;font-size:13px">${esc(u.name)}${isActiveNow?' <span class="badge badge-green" style="font-size:10px;vertical-align:middle">🟢 Active now</span>':''}</div>
         <div class="text-xs text-muted">${esc(u.username)} · ${S.roleCfg[u.role]?.label||u.role}${(u.depts||[]).length?' · '+u.depts.join(', '):''}${(u.sections||[]).length?' · '+u.sections.join('/'):''}${u.password?` <span style="font-size:10px;color:var(--muted);font-family:monospace">••••</span>`:''}</div>
       </div>
       <div class="flex gap-1 items-center">
         ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-user="${u.id}" title="Edit">✏</button>`:''}
         ${S.users.find(x=>x.id===u.id)?canEdit()?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:'':'<span style="font-size:10px;color:var(--muted)">seed</span>'}
       </div>
-    </div>`).join('')}
+    </div>`;
+    }).join('')}
     ${canEdit()?'<button class="btn btn-primary btn-sm mt-2" data-modal="user">+ Add User</button>':''}
   </div>
 </div>
