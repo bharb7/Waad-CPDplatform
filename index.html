@@ -100,14 +100,14 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-04-C2-tlc-boxes-portal';
+const BUILD_VERSION='2026-07-04-C3-upsert-conflict-fix';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 let SCHOOL_ID='2b526882-97b3-4f98-b850-6e989c26d99b';
 async function resolveSchoolId(){sset('school_id',SCHOOL_ID);}
 async function sbGet(table,params=''){try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:{...SB_HEADERS,'Prefer':'count=none'}});if(!r.ok){const e=await r.text();console.warn('sbGet failed',table,r.status,e);return null;}return await r.json();}catch(e){console.warn('sbGet error',table,e);return null;}}
-async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,80),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);return false;}}
+async function sbUpsert(table,data){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?on_conflict=id',{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data])});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,80),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);return false;}}
 async function sbDelete(table,id){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:SB_HEADERS});
@@ -282,27 +282,29 @@ function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0
 
 async function save(k,v){
   sset(k,v);
-  if(['roleCfg','mechM','dhM','branding','customDomains','schedCats'].includes(k)){await saveSchoolSettings();return;}
-  if(!SCHOOL_ID)return;
+  if(['roleCfg','mechM','dhM','branding','customDomains','schedCats'].includes(k)){await saveSchoolSettings();return true;}
+  if(!SCHOOL_ID)return true;
   const sid=SCHOOL_ID;
   try{
-    if(k==='teachers') await sbUpsert('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:t.section||'',stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})));
-    else if(k==='groups') await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
-    else if(k==='obs') await sbUpsert('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false};}));
-    else if(k==='trips') await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};}));
-    else if(k==='lwalks') await sbUpsert('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}));
-    else if(k==='cpd') await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
+    if(k==='teachers') return await sbUpsert('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:t.section||'',stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})));
+    else if(k==='groups') return await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
+    else if(k==='obs') return await sbUpsert('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false};}));
+    else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false};}));
+    else if(k==='lwalks') return await sbUpsert('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}));
+    else if(k==='cpd') return await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
     else if(k==='sched'){
       const _uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null}));
-      if(_dbRows.length) await sbUpsert('schedule_rows',_dbRows);
+      if(_dbRows.length) return await sbUpsert('schedule_rows',_dbRows);
+      return true;
     }
-    else if(k==='impacts') await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
-    else if(k==='progress') await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',stage_scores:p.scores||{},folder_link:p.folderLink||''})));
-    else if(k==='snapshots') await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
-    else if(k==='resources') await sbUpsert('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0})));
-    else if(k==='deptTLC') await sbUpsert('dept_tlc_groups',v.map(g=>({id:g.id,school_id:sid,departments:g.depts||[],facilitator:g.facilitator||'',date_from:g.dateFrom||null,date_to:g.dateTo||null,application:g.application||[],application_custom:g.applicationCustom||'',app_content:g.appContent||'',collaboration:g.collaboration||'',active_learning:g.activeLearning||'',focus_feed:g.focusFeed||'',learned:g.learned||'',strategies:g.strategies||'',commitment:g.commitment||'',artifact_image:g.artifactImage||'',linked_triplet_id:g.tripletId||null})));
-  }catch(e){console.warn('Supabase save failed for',k,e);}
+    else if(k==='impacts') return await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
+    else if(k==='progress') return await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',stage_scores:p.scores||{},folder_link:p.folderLink||''})));
+    else if(k==='snapshots') return await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
+    else if(k==='resources') return await sbUpsert('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0})));
+    else if(k==='deptTLC') return await sbUpsert('dept_tlc_groups',v.map(g=>({id:g.id,school_id:sid,departments:g.depts||[],facilitator:g.facilitator||'',date_from:g.dateFrom||null,date_to:g.dateTo||null,application:g.application||[],application_custom:g.applicationCustom||'',app_content:g.appContent||'',collaboration:g.collaboration||'',active_learning:g.activeLearning||'',focus_feed:g.focusFeed||'',learned:g.learned||'',strategies:g.strategies||'',commitment:g.commitment||'',artifact_image:g.artifactImage||'',linked_triplet_id:g.tripletId||null})));
+    return true;
+  }catch(e){console.warn('Supabase save failed for',k,e);return false;}
 }
 async function sbRemove(table,id){
   // Returns true = deleted (or nothing needed deleting), false = DB delete actually failed.
@@ -361,22 +363,35 @@ async function reconcileCpdScheduleLink(cpdId,fields){
 async function autoCleanDuplicateSchedule(){
   if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
   const sid='school_id=eq.'+SCHOOL_ID;
-  const rows=await sbGet('schedule_rows',sid+'&select=*&order=program.asc');
+  const [rows,cpdRows]=await Promise.all([
+    sbGet('schedule_rows',sid+'&select=*&order=program.asc'),
+    sbGet('cpd_sessions',sid+'&select=id')
+  ]);
   if(rows===null){alert('Could not fetch rows to clean — query failed.');return;}
+  const realCpdIds=new Set((cpdRows||[]).map(c=>c.id));
   // Group rows that share the same cpd_id — these are always true duplicates
   // (one CPD session should only ever have one linked schedule row).
   const groups={};
   rows.forEach(r=>{ if(r.cpd_id){ (groups[r.cpd_id]=groups[r.cpd_id]||[]).push(r); } });
   const toDelete=[];
+  const seen=new Set();
   Object.values(groups).forEach(group=>{
     if(group.length>1){
       // Keep whichever copy has a real start_date; otherwise keep the first one
       const keeper=group.find(r=>r.start_date)||group[0];
-      group.forEach(r=>{ if(r.id!==keeper.id) toDelete.push(r); });
+      group.forEach(r=>{ if(r.id!==keeper.id){toDelete.push(r);seen.add(r.id);} });
     }
   });
-  if(!toDelete.length){ alert('No duplicate linked rows found (by cpd_id) — nothing to clean.'); openScheduleDbDebug(); return; }
-  if(!confirm('Found '+toDelete.length+' duplicate row(s) sharing a CPD link. Delete all but the best copy of each?'))return;
+  // Orphaned rows: cpd_id set but that CPD session doesn't actually exist in the DB
+  // (this happens when the CPD save itself failed but the schedule link was still created)
+  let orphanCount=0;
+  rows.forEach(r=>{
+    if(r.cpd_id&&!realCpdIds.has(r.cpd_id)&&!seen.has(r.id)){
+      toDelete.push(r);seen.add(r.id);orphanCount++;
+    }
+  });
+  if(!toDelete.length){ alert('No duplicate or orphaned linked rows found — nothing to clean.'); openScheduleDbDebug(); return; }
+  if(!confirm('Found '+(toDelete.length-orphanCount)+' duplicate row(s) and '+orphanCount+' orphaned row(s) (linked to a CPD session that doesn\'t exist). Delete them?'))return;
   let okCount=0,failCount=0;
   for(const r of toDelete){
     const ok=await sbDelete('schedule_rows',r.id);
@@ -2952,7 +2967,13 @@ function bindEvents(){
       type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio:cpdBio,customTech:cpdCustomTech||'',
       before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active'};
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
-    save('cpd',S.cpd);
+    const cpdSaveOk=await save('cpd',S.cpd);
+    if(!cpdSaveOk){
+      S.modal=null;S.editingId=null;
+      showToast('CPD session did NOT save to the database — check connection/console and try again. No schedule link was created.','error');
+      render();
+      return;
+    }
     // Self-healing: regardless of new/edit, or what previously created extras,
     // this always converges the DB to exactly ONE schedule row for this cpd.id.
     await reconcileCpdScheduleLink(cpd.id,{title,facilitator:cpd.facilitator,delivery:cpd.delivery,
