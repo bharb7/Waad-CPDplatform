@@ -102,7 +102,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-05-D6-conflict-logic-fix';
+const BUILD_VERSION='2026-07-05-D7-teacher-account-generator';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -178,7 +178,7 @@ const DEFAULT_RESOURCES=[{id:'r1',title:'Darling-Hammond (2017) — Effective Te
 const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',program:'Cambridge PDQ (Teaching & Learning)',facilitator:'Muhammed Sherif',delivery:'Course',type:'Cambridge',duration:'150 hours',startDate:'2026-09-01',endDate:'2027-01-31',month:'September',venue:'In School',target:'TBD',status:'active',cpdId:null},{id:'sc2',category:'Individual - Leadership Training',program:'NPQSL',facilitator:'Best Practice Network',delivery:'Course',type:'External',duration:'18 months',startDate:'2026-09-01',endDate:'2028-03-31',month:'September',venue:'Online',target:'NPQSL Candidate',status:'active',cpdId:null},{id:'sc3',category:'Internal - SDP-Based Training',program:'Assessment For Learning',facilitator:'Leban Noor / Ayesha Ansari',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2026-11-19',endDate:'2026-11-19',month:'November',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc4',category:'Internal - SDP-Based Training',program:'Higher-order Questioning',facilitator:'Ahmad Al Moghrabi',delivery:'WLC',type:'Internal',duration:'60 min',startDate:'2027-04-09',endDate:'2027-04-09',month:'April',venue:'TBC',target:'All Depts',status:'planned',cpdId:null},{id:'sc5',category:'External - Learning Framework-Related Training',program:'Safeguarding & Child Protection',facilitator:'Child Safeguarding.com',delivery:'Online',type:'External',duration:'Half day',startDate:'2026-10-15',endDate:'2026-10-15',month:'October',venue:'Auditorium',target:'All Staff',status:'planned',cpdId:null},{id:'sc6',category:'Orientation PDs',program:'Staff Orientation & Induction',facilitator:'Senior Leadership',delivery:'Workshop',type:'Internal',duration:'2 days',startDate:'2026-08-25',endDate:'2026-08-26',month:'September',venue:'School',target:'All Staff',status:'done',cpdId:null}];
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 const SEED_TEACHERS=[{id:'22222222-0000-4000-8000-000000000001',name:'Fatima Al-Rashid',dept:'Mathematics',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000002',name:'Omar Hassan',dept:'Physics',section:'Boys',stage:'Upper Secondary',grades:['Grade 11','Grade 12'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000003',name:'Sarah Mitchell',dept:'English',section:'Girls',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000004',name:'Mohammed Al-Amri',dept:'Arabic',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8'],groupId:'11111111-0000-4000-8000-000000000002'},{id:'22222222-0000-4000-8000-000000000005',name:'Aisha Patel',dept:'Biology',section:'Girls',stage:'Upper Secondary',grades:['Grade 10','Grade 11'],groupId:'11111111-0000-4000-8000-000000000001'},{id:'22222222-0000-4000-8000-000000000006',name:'James Wilson',dept:'ICT',section:'Boys',stage:'Lower Secondary',grades:['Grade 7','Grade 8','Grade 9'],groupId:'11111111-0000-4000-8000-000000000003'},{id:'22222222-0000-4000-8000-000000000007',name:'Nora Al-Zahrani',dept:'KG/Primary',section:'Girls',stage:'Primary',grades:['Grade 1','Grade 2','Grade 3'],groupId:'11111111-0000-4000-8000-000000000003'}];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[]};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 
 async function loadAll(){
@@ -522,6 +522,19 @@ function getAllUsers(){
   });
   local.forEach(lu=>{if(!merged.find(m=>m.id===lu.id))merged.push(lu);});
   return merged;
+}
+function generateUsername(name){
+  const parts=(name||'').trim().toLowerCase().replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean);
+  const base=(parts[0]||'teacher')+(parts[1]?'.'+parts[1]:'');
+  const all=getAllUsers();
+  let uname=base,n=1;
+  while(all.find(u=>(u.username||'').toLowerCase()===uname)){uname=base+n;n++;}
+  return uname;
+}
+function generateTeacherPassword(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let p='';for(let i=0;i<8;i++)p+=chars[Math.floor(Math.random()*chars.length)];
+  return p;
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -2310,23 +2323,45 @@ function renderSettings(){
     <button class="btn btn-primary btn-sm mt-2" data-save-brand>✓ Save Branding</button>
   </div>
   <div class="card">
-    <div class="flex justify-between items-center mb-2">
+    <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:6px">
       <div class="card-title" style="margin:0">👥 Users (${users.length})</div>
-      ${canEdit()?`<button class="btn btn-ghost btn-sm" onclick="exportUsersForGitHub()">⬆ GitHub Export</button>`:''}
+      <div class="flex gap-2">
+        ${canEdit()?`<button class="btn btn-success btn-sm" data-modal="genTeachers">🧑‍🏫 Generate Teacher Accounts</button>`:''}
+        ${canEdit()?`<button class="btn btn-ghost btn-sm" onclick="exportUsersForGitHub()">⬆ GitHub Export</button>`:''}
+      </div>
     </div>
-    ${users.map(u=>{
-      const isActiveNow=S.session&&(u.fullName||u.name)===S.session.name&&u.role===S.session.role;
-      return `<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px${isActiveNow?';border:1px solid #6ee7b7':''}">
-      <div>
-        <div style="font-weight:600;font-size:13px">${esc(u.name)}${isActiveNow?' <span class="badge badge-green" style="font-size:10px;vertical-align:middle">🟢 Active now</span>':''}</div>
-        <div class="text-xs text-muted">${esc(u.username)} · ${S.roleCfg[u.role]?.label||u.role}${(u.depts||[]).length?' · '+u.depts.join(', '):''}${(u.sections||[]).length?' · '+u.sections.join('/'):''}${u.password?` <span style="font-size:10px;color:var(--muted);font-family:monospace">••••</span>`:''}</div>
+    ${(()=>{
+      const staffUsers=users.filter(u=>u.role!=='teacher');
+      let teacherUsers=users.filter(u=>u.role==='teacher');
+      const zoneDepts=S.userZoneDepts||[];
+      if(zoneDepts.length)teacherUsers=teacherUsers.filter(u=>(u.depts||[]).some(d=>zoneDepts.includes(d)));
+      if(S.userZoneSearch&&S.userZoneSearch.trim()){
+        const q=S.userZoneSearch.toLowerCase();
+        teacherUsers=teacherUsers.filter(u=>(u.name||'').toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q));
+      }
+      const userRow=u=>{
+        const isActiveNow=S.session&&(u.fullName||u.name)===S.session.name&&u.role===S.session.role;
+        return `<div class="flex justify-between items-center mb-2 p-2" style="background:var(--light);border-radius:6px${isActiveNow?';border:1px solid #6ee7b7':''}">
+        <div>
+          <div style="font-weight:600;font-size:13px">${esc(u.name)}${isActiveNow?' <span class="badge badge-green" style="font-size:10px;vertical-align:middle">🟢 Active now</span>':''}</div>
+          <div class="text-xs text-muted">${esc(u.username)} · ${S.roleCfg[u.role]?.label||u.role}${(u.depts||[]).length?' · '+u.depts.join(', '):''}${(u.sections||[]).length?' · '+u.sections.join('/'):''}${u.password?` <span style="font-size:10px;color:var(--muted);font-family:monospace">••••</span>`:''}</div>
+        </div>
+        <div class="flex gap-1 items-center">
+          ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-user="${u.id}" title="Edit">✏</button>`:''}
+          ${S.users.find(x=>x.id===u.id)?canEdit()?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:'':'<span style="font-size:10px;color:var(--muted)">seed</span>'}
+        </div>
+      </div>`;
+      };
+      return `<div class="text-xs font-semibold text-muted mb-2" style="text-transform:uppercase;letter-spacing:.03em">Staff &amp; Leadership (${staffUsers.length})</div>
+      ${staffUsers.map(userRow).join('')||'<div class="text-xs text-muted mb-2" style="font-style:italic">None yet.</div>'}
+      <div class="text-xs font-semibold text-muted mb-2 mt-3" style="text-transform:uppercase;letter-spacing:.03em;border-top:1px solid var(--border);padding-top:10px">🧑‍🏫 Teacher Zone (${users.filter(u=>u.role==='teacher').length})</div>
+      <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+        <div class="pill-opt ${zoneDepts.length===0?'sel':''}" onclick="S.userZoneDepts=[];render()">All</div>
+        ${DEPTS.map(d=>`<div class="pill-opt ${zoneDepts.includes(d)?'sel':''}" onclick="const i=S.userZoneDepts.indexOf('${d}');if(i>=0)S.userZoneDepts.splice(i,1);else S.userZoneDepts.push('${d}');render()">${d}</div>`).join('')}
       </div>
-      <div class="flex gap-1 items-center">
-        ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-user="${u.id}" title="Edit">✏</button>`:''}
-        ${S.users.find(x=>x.id===u.id)?canEdit()?`<button class="btn btn-sm btn-danger" data-del-user="${u.id}">✕</button>`:'':'<span style="font-size:10px;color:var(--muted)">seed</span>'}
-      </div>
-    </div>`;
-    }).join('')}
+      <input class="form-control mb-2" id="user-zone-search" placeholder="🔍 Search teacher name or username…" value="${esc(S.userZoneSearch||'')}" style="max-width:280px;padding:5px 9px;font-size:12px">
+      ${teacherUsers.map(userRow).join('')||'<div class="text-xs text-muted mb-2" style="font-style:italic">No teacher accounts match.</div>'}`;
+    })()}
     ${canEdit()?'<button class="btn btn-primary btn-sm mt-2" data-modal="user">+ Add User</button>':''}
   </div>
 </div>
@@ -2412,7 +2447,7 @@ ${isAdmin()?renderActivityLog():''}`}
 
 function exportUsersForGitHub(){
   const allUsers=getAllUsers();
-  const lines=allUsers.map(u=>`  {id:'${u.id}',name:'${(u.name||'').replace(/'/g,"\'")}',fullName:'${(u.fullName||u.name||'').replace(/'/g,"\'")}',username:'${u.username}',password:'${u.password}',role:'${u.role}',depts:${JSON.stringify(u.depts||[])}}`).join(',\n');
+  const lines=allUsers.map(u=>`  {id:'${u.id}',name:'${(u.name||'').replace(/'/g,"\'")}',fullName:'${(u.fullName||u.name||'').replace(/'/g,"\'")}',username:'${u.username}',password:'${u.password}',role:'${u.role}',depts:${JSON.stringify(u.depts||[])}${u.teacherId?`,teacherId:'${u.teacherId}'`:''}}`).join(',\n');
   window.__exportCode=`const SEED_USERS = [\n${lines}\n];`;
   S.modal=`<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-header"><h3>⬇ Export Users for GitHub</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div><div class="modal-body"><div style="background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow-y:auto">${esc(window.__exportCode)}</div><div style="margin-top:12px;font-size:12px;color:var(--muted)"><strong>Steps:</strong><br>1. Tap Copy<br>2. GitHub → index.html → pencil<br>3. Find const SEED_USERS = [ and replace<br>4. Commit → Vercel auto-deploys</div><button class="btn btn-success" style="margin-top:10px;width:100%" id="copy-export-btn">📋 Copy to Clipboard</button></div><div class="modal-footer"><button class="btn btn-primary" data-close-modal>Close</button></div></div></div>`;
   render();
@@ -2631,6 +2666,47 @@ function renderModal(type, data={}){
     );
   }
 
+  if(type==='genTeachers'){
+    const existingTeacherIds=new Set(getAllUsers().filter(u=>u.role==='teacher'&&u.teacherId).map(u=>u.teacherId));
+    let avail=S.teachers.filter(t=>!existingTeacherIds.has(t.id));
+    const gd=S.genTeacherDepts||[];
+    if(gd.length)avail=avail.filter(t=>gd.includes(t.dept));
+    if(S.genTeacherSearch&&S.genTeacherSearch.trim()){
+      const q=S.genTeacherSearch.toLowerCase();
+      avail=avail.filter(t=>t.name.toLowerCase().includes(q));
+    }
+    return M('🧑‍🏫 Generate Teacher Accounts',
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Pick teachers below and a username + password will be generated automatically for each — no need to type them one by one. Only teachers without an existing account are shown.</p>
+      <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+        <div class="pill-opt ${gd.length===0?'sel':''}" onclick="S.genTeacherDepts=[];render()">All</div>
+        ${DEPTS.map(d=>`<div class="pill-opt ${gd.includes(d)?'sel':''}" onclick="const i=S.genTeacherDepts.indexOf('${d}');if(i>=0)S.genTeacherDepts.splice(i,1);else S.genTeacherDepts.push('${d}');render()">${d}</div>`).join('')}
+      </div>
+      <input class="form-control mb-2" id="gen-teacher-search" placeholder="🔍 Search name…" value="${esc(S.genTeacherSearch||'')}">
+      <div class="flex justify-between items-center mb-2">
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="gen-select-all"> Select all filtered (${avail.length})</label>
+      </div>
+      <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+      ${avail.length?avail.map(t=>`<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #f1f1f1;font-size:12.5px;cursor:pointer">
+        <input type="checkbox" class="gen-teacher-cb" value="${t.id}"> ${esc(t.name)} <span class="badge badge-blue" style="font-size:9px">${esc(t.dept)}</span>
+      </label>`).join(''):'<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;font-style:italic">No teachers available (either none match the filter, or all already have accounts).</div>'}
+      </div>`,
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-gen-teacher-accounts>Generate Accounts</button>`
+    );
+  }
+
+  if(type==='genTeachersResult'){
+    const created=data.created||[];
+    return M('✅ Teacher Accounts Created',
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Share these credentials with each teacher. Passwords are only shown here once — print or copy them now.</p>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Name</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Username</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Password</th></tr></thead>
+        <tbody>${created.map(u=>`<tr><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u.name)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.username)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.password)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="alert alert-warn mt-2" style="font-size:12px">⚠️ Don't forget to use <strong>⬆ GitHub Export</strong> afterward so these accounts work permanently (not just on this device).</div>`,
+      `<button class="btn btn-ghost" onclick="printTeacherCredentials()">🖨 Print</button><button class="btn btn-primary" data-close-modal>Done</button>`
+    );
+  }
+
   if(type==='user'){
     const isUserEdit=!!(data.id);
     return M((isUserEdit?'✏ Edit User: '+esc(data.name||data.username):'👤 Add User'),
@@ -2845,6 +2921,35 @@ function bindEvents(){
   // Clicking outside a modal no longer closes it (was silently discarding unsaved edits).
   // Modals now only close via the explicit Cancel / X / Close buttons.
 
+  const userZoneSearchBox=document.getElementById('user-zone-search');
+  if(userZoneSearchBox)userZoneSearchBox.oninput=()=>{S.userZoneSearch=userZoneSearchBox.value;render();};
+  // ── Generate Teacher Accounts ────────────────────────────────────────────
+  const genTeacherSearchBox=document.getElementById('gen-teacher-search');
+  if(genTeacherSearchBox)genTeacherSearchBox.oninput=()=>{S.genTeacherSearch=genTeacherSearchBox.value;render();};
+  const genSelectAll=document.getElementById('gen-select-all');
+  if(genSelectAll)genSelectAll.onchange=()=>{
+    document.querySelectorAll('.gen-teacher-cb').forEach(cb=>{cb.checked=genSelectAll.checked;});
+  };
+  const genBtn=document.querySelector('[data-gen-teacher-accounts]');
+  if(genBtn)genBtn.onclick=()=>{
+    const ids=Array.from(document.querySelectorAll('.gen-teacher-cb:checked')).map(cb=>cb.value);
+    if(!ids.length){showToast('Select at least one teacher','error');return;}
+    const created=[];
+    ids.forEach(tid=>{
+      const t=S.teachers.find(x=>x.id===tid);
+      if(!t)return;
+      const username=generateUsername(t.name);
+      const password=generateTeacherPassword();
+      const u={id:uid(),name:t.name,fullName:t.name,username,password,role:'teacher',depts:[t.dept],sections:[],teacherId:t.id};
+      S.users=[...S.users,u];
+      created.push(u);
+    });
+    save('users',S.users);
+    window.__lastGenerated=created;
+    S.modal=renderModal('genTeachersResult',{created});
+    render();
+    showToast(created.length+' teacher account(s) created ✓ — remember to use ⬆ GitHub Export to make them permanent');
+  };
   // ── Teacher autocomplete (typeahead) inputs ─────────────────────────────
   document.querySelectorAll('.teacher-ac-input').forEach(inp=>{
     const hidden=document.getElementById(inp.dataset.hiddenId);
@@ -3983,6 +4088,23 @@ function printTLC(id){
   +(g.commitment?'<div class="section commit"><div class="section-title" style="color:#059669">1️⃣ Commitment for Next Week</div>'+safe(g.commitment)+'</div>':'')
   +(g.focusFeed?'<div class="section focus"><div class="section-title" style="color:#16a34a">🔗 Focus Feed into Coaching Triplet</div>'+safe(g.focusFeed)+'</div>':'')
   +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+'</div></body></html>');
+  w.document.close();setTimeout(()=>w.print(),400);
+}
+function printTeacherCredentials(){
+  const created=window.__lastGenerated||[];
+  if(!created.length)return;
+  const safe=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const w=window.open('','_blank','width=800,height=1000');
+  w.document.write('<!DOCTYPE html><html><head><title>Teacher Account Credentials</title>'
+  +'<style>body{font-family:"Segoe UI",sans-serif;padding:28px;font-size:13px;color:#1a1a2e;max-width:700px;margin:0 auto}'
+  +'h1{color:#163A5F;font-size:18px;margin-bottom:14px}table{width:100%;border-collapse:collapse}'
+  +'th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:left}th{background:#f3f4f6;font-size:11px;text-transform:uppercase;color:#6b7280}'
+  +'td{font-family:monospace}@media print{button{display:none!important}}</style></head><body>'
+  +'<div style="display:flex;justify-content:space-between;align-items:start"><h1>🔑 Teacher Account Credentials</h1>'
+  +'<button onclick="window.print()" style="padding:6px 14px;background:#163A5F;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">🖨 Print</button></div>'
+  +'<table><thead><tr><th>Name</th><th>Username</th><th>Password</th></tr></thead><tbody>'
+  +created.map(u=>'<tr><td style="font-family:inherit">'+safe(u.name)+'</td><td>'+safe(u.username)+'</td><td>'+safe(u.password)+'</td></tr>').join('')
+  +'</tbody></table><div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Generated '+new Date().toLocaleDateString()+'</div></body></html>');
   w.document.close();setTimeout(()=>w.print(),400);
 }
 function printCPD(id){
