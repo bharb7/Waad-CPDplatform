@@ -293,9 +293,18 @@ async function loadAll(){
       if(br.roleCfg){S.roleCfg={...DEFAULT_ROLES,...br.roleCfg};sset('roleCfg',S.roleCfg);}
       else S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
       if(br.customDomains){S.customDomains=br.customDomains;sset('customDomains',S.customDomains);}
-      else S.customDomains=sget('customDomains')||null;S.schedCats=sget('schedCats')||null;
-      if(br.schedCats){S.schedCats=br.schedCats;sset('schedCats',S.schedCats);}
-      else S.schedCats=sget('schedCats')||null;
+      else S.customDomains=sget('customDomains')||null;
+      // Merge local + remote Schedule Categories instead of one overwriting the other —
+      // a category added on this device must survive even if the last save to Supabase
+      // (a PATCH on `schools`) failed silently, and a category added elsewhere must still
+      // show up here.
+      {
+        const _localCats=sget('schedCats')||[];
+        const _remoteCats=br.schedCats||[];
+        const _mergedCats=[...new Set([..._remoteCats,..._localCats])];
+        S.schedCats=_mergedCats.length?_mergedCats:null;
+        sset('schedCats',S.schedCats);
+      }
       S.mechM=sd.mech_overrides||sget('mechM')||{};S.dhM=sd.dh_overrides||sget('dhM')||{};
     } else {
       S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};S.mechM=sget('mechM')||{};
@@ -310,16 +319,32 @@ async function loadAll(){
 
 async function saveSchoolSettings(){
   sset('roleCfg',S.roleCfg);sset('mechM',S.mechM);sset('dhM',S.dhM);sset('branding',S.branding);sset('customDomains',S.customDomains);sset('schedCats',S.schedCats);
-  const payload={branding:{name:S.branding.name||'Waad Academy',logo:S.branding.logo||'',partners:S.branding.partners||[],roleCfg:S.roleCfg,customDomains:S.customDomains||null,schedCats:S.schedCats||null},mech_overrides:S.mechM,dh_overrides:S.dhM};
-  try{await fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(payload)});}catch(e){console.warn('saveSchoolSettings failed',e);}
+  if(!SCHOOL_ID)return;
+  // Include online_users/activity_log so this PATCH (which replaces the whole `branding`
+  // JSON column) doesn't silently wipe them out every time a setting like Schedule
+  // Categories is saved.
+  const payload={branding:{name:S.branding.name||'Waad Academy',logo:S.branding.logo||'',partners:S.branding.partners||[],
+    online_users:S.branding.online_users||{},activity_log:S.branding.activity_log||[],
+    roleCfg:S.roleCfg,customDomains:S.customDomains||null,schedCats:S.schedCats||null},mech_overrides:S.mechM,dh_overrides:S.dhM};
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if(!r.ok){
+      const e=await r.text();
+      console.warn('saveSchoolSettings failed',r.status,e);
+      showToast('Saved on this device, but the server update failed ('+r.status+') — it may not show up after a refresh or on another device.','error');
+    }
+  }catch(e){
+    console.warn('saveSchoolSettings failed',e);
+    showToast('Saved on this device, but could not reach the server — it may not show up after a refresh or on another device.','error');
+  }
 }
 
 function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
 function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||''}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
-function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||''}}
-function mapCPD(r){return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active'}}
+function mapLW(r){const _prevLw=(sget('lwalks')||[]).find(x=>x.id===r.id)||{};return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||'',mediaImages:_prevLw.mediaImages||[],mediaVideos:_prevLw.mediaVideos||[]}}
+function mapCPD(r){const _prevCpd=(sget('cpd')||[]).find(x=>x.id===r.id)||{};return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active',venue:_prevCpd.venue||'',timeFrom:_prevCpd.timeFrom||'',timeTo:_prevCpd.timeTo||'',mediaImages:_prevCpd.mediaImages||[],mediaVideos:_prevCpd.mediaVideos||[]}}
 function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
 function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',tripletId:r.linked_triplet_id||'',teacherResponses:r.teacher_responses||{}}}
 function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
@@ -400,13 +425,16 @@ async function reconcileCpdScheduleLink(cpdId,fields){
     const local=S.schedule.filter(r=>r.cpdId===cpdId);
     if(local.length===0){
       const newRow={id:uid(),category:'Internal - SDP-Based Training',program:fields.title,facilitator:fields.facilitator,
-        delivery:fields.delivery,type:fields.type,month:fields.month,venue:'TBC',target:fields.audience,
+        delivery:fields.delivery,type:fields.type,month:fields.month,venue:fields.venue||'TBC',target:fields.audience,
+        timeFrom:fields.timeFrom||'',timeTo:fields.timeTo||'',
         status:'active',cpdId,startDate:fields.date||'',endDate:''};
       S.schedule=[...S.schedule,newRow];
     } else {
       const keep=local[0];
       S.schedule=S.schedule.filter(r=>r.cpdId!==cpdId).concat({...keep,program:fields.title,facilitator:fields.facilitator,
-        delivery:fields.delivery,type:fields.type,month:fields.month,target:fields.audience,startDate:fields.date||keep.startDate});
+        delivery:fields.delivery,type:fields.type,month:fields.month,target:fields.audience,
+        venue:fields.venue||keep.venue||'TBC',timeFrom:fields.timeFrom||'',timeTo:fields.timeTo||'',
+        startDate:fields.date||keep.startDate});
     }
     return;
   }
@@ -418,7 +446,8 @@ async function reconcileCpdScheduleLink(cpdId,fields){
     if(rows.length===0){
       // Nothing linked yet in the DB — create exactly one
       const newRow={id:uid(),category:_defCat,program:fields.title,facilitator:fields.facilitator,
-        delivery:fields.delivery,type:fields.type,month:fields.month,venue:'TBC',target:fields.audience,
+        delivery:fields.delivery,type:fields.type,month:fields.month,venue:fields.venue||'TBC',target:fields.audience,
+        timeFrom:fields.timeFrom||'',timeTo:fields.timeTo||'',
         status:'active',cpdId,startDate:fields.date||'',endDate:''};
       S.schedule=[...S.schedule.filter(r=>r.cpdId!==cpdId),newRow];
       await saveSchedRecord(newRow,S.schedule);
@@ -432,7 +461,8 @@ async function reconcileCpdScheduleLink(cpdId,fields){
       }
     }
     const merged={id:keeper.id,category:keeper.category||_defCat,program:fields.title,facilitator:fields.facilitator,
-      delivery:fields.delivery,type:fields.type,month:fields.month,venue:keeper.venue||'TBC',target:fields.audience,
+      delivery:fields.delivery,type:fields.type,month:fields.month,venue:fields.venue||keeper.venue||'TBC',target:fields.audience,
+      timeFrom:fields.timeFrom||keeper.time_from||'',timeTo:fields.timeTo||keeper.time_to||'',
       status:keeper.status||'active',cpdId,startDate:fields.date||keeper.start_date||'',endDate:keeper.end_date||''};
     S.schedule=[...S.schedule.filter(r=>r.cpdId!==cpdId),merged];
     await saveSchedRecord(merged,S.schedule);
@@ -483,16 +513,38 @@ async function openScheduleDbDebug(){
   const sid='school_id=eq.'+SCHOOL_ID;
   const [rows,cpdRows]=await Promise.all([
     sbGet('schedule_rows',sid+'&select=*&order=program.asc'),
-    sbGet('cpd_sessions',sid+'&select=id')
+    sbGet('cpd_sessions',sid+'&select=id,title,facilitator,delivery,type,month,date,audience')
   ]);
   if(rows===null){
     alert('The debug query itself failed (network/permissions error) — check console, or this may be an RLS SELECT issue.');
-    S.modal=renderModal('dbDebugSched',{rows:[],cpdIds:[]});
+    S.modal=renderModal('dbDebugSched',{rows:[],cpdIds:[],cpdRows:[]});
     render();
     return;
   }
-  S.modal=renderModal('dbDebugSched',{rows,cpdIds:(cpdRows||[]).map(c=>c.id)});
+  S.modal=renderModal('dbDebugSched',{rows,cpdIds:(cpdRows||[]).map(c=>c.id),cpdRows:cpdRows||[]});
   render();
+}
+async function backfillMissingCpdScheduleLinks(){
+  if(!SCHOOL_ID){alert('No SCHOOL_ID resolved yet — cannot query Supabase.');return;}
+  const sid='school_id=eq.'+SCHOOL_ID;
+  const [rows,cpdRows]=await Promise.all([
+    sbGet('schedule_rows',sid+'&select=id,cpd_id'),
+    sbGet('cpd_sessions',sid+'&select=id,title,facilitator,delivery,type,month,date,audience')
+  ]);
+  if(rows===null||cpdRows===null){alert('Could not fetch rows to check — query failed.');return;}
+  const linked=new Set(rows.filter(r=>r.cpd_id).map(r=>r.cpd_id));
+  const missing=cpdRows.filter(c=>!linked.has(c.id));
+  if(!missing.length){alert('No missing links found — every CPD session already has an Annual Schedule row.');openScheduleDbDebug();return;}
+  if(!confirm(missing.length+' CPD session(s) have no Annual Schedule row (this is why they were missing from the schedule/CSV). Create the missing row(s) now?'))return;
+  let okCount=0;
+  for(const c of missing){
+    await reconcileCpdScheduleLink(c.id,{title:c.title||'(untitled CPD session)',facilitator:c.facilitator||'',
+      delivery:c.delivery||'Workshop',type:c.type||'Internal',month:c.month||'',audience:c.audience||'Whole School',date:c.date||''});
+    okCount++;
+  }
+  alert('Created '+okCount+' missing schedule row(s). Refreshing…');
+  render();
+  openScheduleDbDebug();
 }
 async function forceDeleteDbRow(id){
   if(!confirm('Are you sure you want to delete this row? This is a direct, permanent database delete.'))return;
@@ -579,6 +631,25 @@ function generateTeacherPassword(){
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function schedRealVal(v){return !!(v&&v.trim()&&v.trim()!=='—'&&v.trim().toLowerCase()!=='tbc');}
+function schedRowsConflict(r,r2){
+  if(!r.startDate||!r2.startDate)return false;
+  const dateOverlap=r.startDate<=(r2.endDate||r2.startDate)&&(r.endDate||r.startDate)>=r2.startDate;
+  if(!dateOverlap)return false;
+  // Same date window — only a real clash if the times also overlap. Rows without
+  // a concrete time on both sides are treated as unknown/whole-day, so they still
+  // count as potentially overlapping.
+  if(r.timeFrom&&r.timeTo&&r2.timeFrom&&r2.timeTo){
+    const timeOverlap=r.timeFrom<r2.timeTo&&r.timeTo>r2.timeFrom;
+    if(!timeOverlap)return false;
+  }
+  // Same date & time — only a real clash if the venue/place also matches. Two
+  // sessions at the same time in two different rooms are not a conflict.
+  if(schedRealVal(r.venue)&&schedRealVal(r2.venue)&&r.venue.trim().toLowerCase()!==r2.venue.trim().toLowerCase())return false;
+  const sameFacilitator=schedRealVal(r.facilitator)&&schedRealVal(r2.facilitator)&&r.facilitator.trim().toLowerCase()===r2.facilitator.trim().toLowerCase();
+  const sameAudience=schedRealVal(r.target)&&schedRealVal(r2.target)&&r.target.trim().toLowerCase()===r2.target.trim().toLowerCase();
+  return sameFacilitator||sameAudience;
+}
 function avg(arr){const v=arr.filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0}
 function domAvg(scores){const all=Object.values(scores||{}).flat();return avg(all)}
 function scScore(scores){return avg([...(scores?.d3||[]),...(scores?.d4||[])])}
@@ -642,6 +713,28 @@ function techSelector(selId,customId,val,customVal){
 }
 function handleTechChange(selId,customId){const sel=document.getElementById(selId);const wrap=document.getElementById(customId+'-wrap');if(sel&&wrap)wrap.style.display=sel.value==='Other'?'block':'none';}
 function getTechFromForm(selId,customId){const sel=(document.getElementById(selId)||{}).value||'';if(sel==='Other'){const cv=(document.getElementById(customId)||{}).value||'';return{bio:'Other',customTech:cv};}return{bio:sel==='— None —'||sel===''?'':sel,customTech:''};}
+// ── CPD audience: parse/collect a multi-part target-audience selection ────
+// The audience is stored as one friendly comma-joined string (e.g. "Mathematics, HOD Team, Fatima Al-Rashid")
+// so every existing search/filter/print feature that treats audience as plain text keeps working unchanged.
+const CPD_AUD_SCOPES=['Whole School','Girls Section','Boys Section','HOD Team'];
+function parseCpdAudience(str){
+  const toks=(str||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const scopes=[],depts=[],people=[];
+  toks.forEach(t=>{
+    if(CPD_AUD_SCOPES.includes(t))scopes.push(t);
+    else if(DEPTS.includes(t))depts.push(t);
+    else people.push(t);
+  });
+  return{scopes,depts,people};
+}
+function collectCpdAudience(){
+  const scopes=Array.from(document.querySelectorAll('.cpd-aud-scope-cb:checked')).map(el=>el.value);
+  const depts=Array.from(document.querySelectorAll('.cpd-aud-dept-cb:checked')).map(el=>el.value);
+  const people=Array.from(document.querySelectorAll('.cpd-aud-person')).map(el=>el.dataset.name).filter(Boolean);
+  const all=[...scopes,...depts,...people];
+  return all.length?all.join(', '):'Whole School';
+}
+
 function printDashboard(){
   const content=document.querySelector('.content');
   if(!content)return;
@@ -930,24 +1023,13 @@ function renderSchedule(){
   if(mf) filteredSched=filteredSched.filter(r=>r.month===mf);
   if(df) filteredSched=filteredSched.filter(r=>(r.startDate||r.endDate||'')>=df);
   if(dt) filteredSched=filteredSched.filter(r=>(r.startDate||r.endDate||'')<=(dt+'Z'));
-  // Conflict detection — a real conflict means the same facilitator or the same
-  // audience is double-booked on overlapping dates/times. Blank or placeholder
-  // venues/targets (e.g. '—', 'TBC', empty) no longer count as a match.
+  // Conflict detection — a real conflict only counts once date, time AND place
+  // have all been checked (see schedRowsConflict above): different times or
+  // different rooms on the same date are not flagged as conflicts.
   const conflicts=new Set();
-  const realVal=v=>!!(v&&v.trim()&&v.trim()!=='—'&&v.trim().toLowerCase()!=='tbc');
   filteredSched.forEach((r,i)=>{filteredSched.forEach((r2,j)=>{
     if(i>=j)return;
-    if(!r.startDate||!r2.startDate)return;
-    const dateOverlap=r.startDate<=(r2.endDate||r2.startDate)&&(r.endDate||r.startDate)>=r2.startDate;
-    if(!dateOverlap)return;
-    // If both rows specify a concrete time window, they only conflict if the times actually overlap
-    if(r.timeFrom&&r.timeTo&&r2.timeFrom&&r2.timeTo){
-      const timeOverlap=r.timeFrom<r2.timeTo&&r.timeTo>r2.timeFrom;
-      if(!timeOverlap)return;
-    }
-    const sameFacilitator=realVal(r.facilitator)&&realVal(r2.facilitator)&&r.facilitator.trim().toLowerCase()===r2.facilitator.trim().toLowerCase();
-    const sameAudience=realVal(r.target)&&realVal(r2.target)&&r.target.trim().toLowerCase()===r2.target.trim().toLowerCase();
-    if(sameFacilitator||sameAudience){conflicts.add(r.id);conflicts.add(r2.id);}
+    if(schedRowsConflict(r,r2)){conflicts.add(r.id);conflicts.add(r2.id);}
   });});
   const statusBadge=s=>s==='done'?'badge-green':s==='active'?'badge-amber':'badge-gray';
   const hasFilter=mf||df||dt;
@@ -2558,28 +2640,76 @@ function renderModal(type, data={}){
 
   if(type==='lw'){
     const isEdit=!!(data.id);
+    const _lwImgs=window.__lwMediaImages||[];
+    const _lwVids=window.__lwMediaVideos||[];
+    const lwImgChip=(src,idx)=>`<span class="lw-media-img-item" style="position:relative;display:inline-block"><img src="${src}" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeLwMediaImage(${idx})">✕</button></span>`;
+    const lwVidChip=(src,idx)=>`<span class="lw-media-vid-item" style="position:relative;display:inline-block"><video src="${src}" controls style="max-height:100px;max-width:160px;border-radius:6px;border:1px solid var(--border)"></video><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeLwMediaVideo(${idx})">✕</button></span>`;
     return M((isEdit?'✏ Edit':'🚶 New')+' Learning Walk',
       G2(FI('lw-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('lw-obs','Observer',data.observer||userName))+
       G2(FS('lw-sect','Section',['','Boys','Girls'],data.section||''),FS('lw-dept','Department',['', ...DEPTS],data.dept||''))+
       techSelector('lw-tech','lw-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       FI('lw-focus','Focus Area / Question',data.focusArea||'','text','What are we looking for?')+
-      G2(FTA('lw-str','Strengths',data.strengths||''),FTA('lw-afd','Areas for Development',data.afd||'')),
+      G2(FTA('lw-str','Strengths',data.strengths||''),FTA('lw-afd','Areas for Development',data.afd||''))+
+      `<div class="form-group">
+        <label class="form-label">📎 Evidence — Photos & Videos <span style="font-weight:400;color:var(--muted)">(add once the walk is complete)</span></label>
+        <div class="text-xs text-muted mb-1">Photos (max 4MB each)</div>
+        <input type="file" accept="image/*" multiple id="lw-media-image-file">
+        <div id="lw-media-images-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_lwImgs.map(lwImgChip).join('')}</div>
+        <div class="text-xs text-muted mb-1" style="margin-top:8px">Videos (max 20MB each)</div>
+        <input type="file" accept="video/*" multiple id="lw-media-video-file">
+        <div id="lw-media-videos-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_lwVids.map(lwVidChip).join('')}</div>
+      </div>`,
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-lw>${isEdit?'Update Walk':'Save Walk'}</button>`
     );
   }
 
   if(type==='cpd'){
     const isCpdEdit=!!(data.id);
+    const _cpdAud=parseCpdAudience(data.audience||'Whole School');
+    const cpdPill=(cls,val,label,checked)=>`<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;background:var(--light);border:1px solid var(--border);border-radius:14px;padding:4px 10px;cursor:pointer">
+      <input type="checkbox" class="${cls}" value="${esc(val)}" ${checked?'checked':''}> ${esc(label)}</label>`;
+    const cpdPersonChip=(nm)=>`<span class="badge badge-blue cpd-aud-person" data-name="${esc(nm)}" style="gap:5px">${esc(nm)} <span style="cursor:pointer;font-weight:700" onclick="this.closest('.cpd-aud-person').remove()">✕</span></span>`;
+    const _cpdImgs=window.__cpdMediaImages||[];
+    const _cpdVids=window.__cpdMediaVideos||[];
+    const cpdImgChip=(src,idx)=>`<span class="cpd-media-img-item" style="position:relative;display:inline-block"><img src="${src}" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeCpdMediaImage(${idx})">✕</button></span>`;
+    const cpdVidChip=(src,idx)=>`<span class="cpd-media-vid-item" style="position:relative;display:inline-block"><video src="${src}" controls style="max-height:100px;max-width:160px;border-radius:6px;border:1px solid var(--border)"></video><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeCpdMediaVideo(${idx})">✕</button></span>`;
     return M((isCpdEdit?'✏ Edit':'📚 New')+' CPD Session',
       FI('cpd-title','Session Title',data.title||'','text','e.g. AFL Workshop — Biology Dept')+
       G2(FI('cpd-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('cpd-fac','Facilitator',data.facilitator||userName))+
-      G2(FS('cpd-aud','Audience',['Whole School','Boys Section','Girls Section',...DEPTS.map(d=>d+' — Girls'),...DEPTS.map(d=>d+' — Boys')],data.audience||'Whole School'),
-         FS('cpd-month','Month',MONTHS,data.month||MONTHS[new Date().getMonth()]||MONTHS[0]))+
-      G2(FS('cpd-type','Type',['Internal','External','Cambridge','COBIS','WLC','Other'],data.type||'Internal'),
-         FS('cpd-del','Delivery',['Workshop','WLC','Course','Online','Face to Face','In School','Other'],data.delivery||'Workshop'))+
+      G2(FI('cpd-time-from','Time From (optional)',data.timeFrom||'','time'),FI('cpd-time-to','Time To (optional)',data.timeTo||'','time'))+
+      FI('cpd-venue','Venue / Place (optional)',data.venue||'','text','e.g. School Hall / Room 12 / Online — leave blank for TBC')+
+      `<div class="form-group">
+        <label class="form-label">Target Audience <span style="font-weight:400;color:var(--muted)">— select one or more, or search for specific people (e.g. an HOD by name)</span></label>
+        <div class="flex gap-2 mb-2" style="flex-wrap:wrap">
+          ${cpdPill('cpd-aud-scope-cb','Whole School','🏫 Whole School',_cpdAud.scopes.includes('Whole School'))}
+          ${cpdPill('cpd-aud-scope-cb','Girls Section','👧 Girls Section',_cpdAud.scopes.includes('Girls Section'))}
+          ${cpdPill('cpd-aud-scope-cb','Boys Section','👦 Boys Section',_cpdAud.scopes.includes('Boys Section'))}
+          ${cpdPill('cpd-aud-scope-cb','HOD Team','👥 HOD Team',_cpdAud.scopes.includes('HOD Team'))}
+        </div>
+        <div class="text-xs text-muted mb-1" style="font-weight:600">By department</div>
+        <div class="flex gap-2 mb-2" style="flex-wrap:wrap">${DEPTS.map(d=>cpdPill('cpd-aud-dept-cb',d,d,_cpdAud.depts.includes(d))).join('')}</div>
+        <div class="text-xs text-muted mb-1" style="font-weight:600">Specific people</div>
+        <div style="position:relative">
+          <input class="form-control rtl" id="cpd-aud-search-txt" autocomplete="off" placeholder="🔍 Search staff by name (e.g. an HOD) to add them…">
+          <div class="teacher-ac-list" id="cpd-aud-search-txt-list" style="display:none;position:absolute;z-index:50;background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.15);max-height:190px;overflow-y:auto;width:100%;margin-top:2px"></div>
+        </div>
+        <div id="cpd-aud-people" class="flex gap-1 mt-2" style="flex-wrap:wrap">${_cpdAud.people.map(cpdPersonChip).join('')}</div>
+      </div>`+
+      G2(FS('cpd-month','Month',MONTHS,data.month||MONTHS[new Date().getMonth()]||MONTHS[0]),
+         FS('cpd-type','Type',['Internal','External','Cambridge','COBIS','WLC','Other'],data.type||'Internal'))+
+      FS('cpd-del','Delivery',['Workshop','WLC','Course','Online','Face to Face','In School','Other'],data.delivery||'Workshop')+
       techSelector('cpd-tech','cpd-custom-tech',data.customTech?'Other':(data.bio||''),data.customTech||'')+
       G2(FTA('cpd-bef','Before — Planned outcomes',data.before||''),FTA('cpd-dur','During — Activities',data.during||''))+
-      FTA('cpd-aft','After — Implementation & monitoring',data.after||''),
+      FTA('cpd-aft','After — Implementation & monitoring',data.after||'')+
+      `<div class="form-group">
+        <label class="form-label">📎 Evidence — Photos & Videos <span style="font-weight:400;color:var(--muted)">(add once the session is complete)</span></label>
+        <div class="text-xs text-muted mb-1">Photos (max 4MB each)</div>
+        <input type="file" accept="image/*" multiple id="cpd-media-image-file">
+        <div id="cpd-media-images-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_cpdImgs.map(cpdImgChip).join('')}</div>
+        <div class="text-xs text-muted mb-1" style="margin-top:8px">Videos (max 20MB each)</div>
+        <input type="file" accept="video/*" multiple id="cpd-media-video-file">
+        <div id="cpd-media-videos-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_cpdVids.map(cpdVidChip).join('')}</div>
+      </div>`,
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-cpd>${isCpdEdit?'Update Session':'Save Session'}</button>`
     );
   }
@@ -2641,9 +2771,12 @@ function renderModal(type, data={}){
     rows.forEach(r=>{ if(r.cpd_id){ (_cpdGroups[r.cpd_id]=_cpdGroups[r.cpd_id]||[]).push(r); } });
     const _dupCount=Object.values(_cpdGroups).filter(g=>g.length>1).reduce((s,g)=>s+g.length-1,0);
     const _orphanCount=rows.filter(r=>r.cpd_id&&!realCpdIds.has(r.cpd_id)).length;
+    const _linkedCpdIds=new Set(rows.filter(r=>r.cpd_id).map(r=>r.cpd_id));
+    const _missingCpds=(data.cpdRows||[]).filter(c=>!_linkedCpdIds.has(c.id));
     return M('🛠 Raw schedule_rows in Supabase ('+rows.length+')',
       `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">This is a live, unfiltered read straight from the database — no local cache, no seed logic. If duplicates show here, they are genuinely in Supabase. Force-deleting shows the raw HTTP response so we can see exactly what happens.</p>
       <p style="font-size:10px;color:#9ca3af;font-family:monospace;margin-bottom:8px">build: ${BUILD_VERSION}</p>
+      ${_missingCpds.length>0?`<div class="alert alert-warn" style="margin-bottom:8px;font-size:12px">⚠️ ${_missingCpds.length} CPD session(s) exist with NO Annual Schedule row at all — this is why they don't show up in the schedule or its CSV export: ${_missingCpds.map(c=>esc(c.title||'(untitled)')).join(', ')}. <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="backfillMissingCpdScheduleLinks()">🩹 Backfill missing links</button></div>`:''}
       ${(_dupCount>0||_orphanCount>0)?`<div class="alert alert-warn" style="margin-bottom:8px;font-size:12px">⚠️ ${_dupCount>0?_dupCount+' duplicate row(s)':''}${_dupCount>0&&_orphanCount>0?' and ':''}${_orphanCount>0?_orphanCount+' orphaned row(s) (linked to a CPD session that no longer exists)':''} detected. <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="autoCleanDuplicateSchedule()">🧹 Auto-clean now</button></div>`:''}
       <div style="max-height:360px;overflow-y:auto;font-family:monospace;font-size:11px">
       ${rows.length?rows.map(r=>`
@@ -2949,6 +3082,8 @@ function bindEvents(){
   document.querySelectorAll('[data-modal]').forEach(el=>{
     el.onclick=()=>{
       if(el.dataset.modal==='tlc')window.__tlcArtifactData='';
+      if(el.dataset.modal==='cpd'){window.__cpdMediaImages=[];window.__cpdMediaVideos=[];}
+      if(el.dataset.modal==='lw'){window.__lwMediaImages=[];window.__lwMediaVideos=[];}
       openModal(el.dataset.modal);
     };
   });
@@ -3226,16 +3361,124 @@ function bindEvents(){
     showToast(editId?'Observation updated ✓':'Observation saved ✓');
   };
 
+  // ── Learning Walk: media upload (photos & videos) ─────────────────────────
+  function renderLwMediaPreviews(){
+    const imgWrap=document.getElementById('lw-media-images-wrap');
+    if(imgWrap)imgWrap.innerHTML=(window.__lwMediaImages||[]).map((src,idx)=>'<span class="lw-media-img-item" style="position:relative;display:inline-block"><img src="'+src+'" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeLwMediaImage('+idx+')">✕</button></span>').join('');
+    const vidWrap=document.getElementById('lw-media-videos-wrap');
+    if(vidWrap)vidWrap.innerHTML=(window.__lwMediaVideos||[]).map((src,idx)=>'<span class="lw-media-vid-item" style="position:relative;display:inline-block"><video src="'+src+'" controls style="max-height:100px;max-width:160px;border-radius:6px;border:1px solid var(--border)"></video><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeLwMediaVideo('+idx+')">✕</button></span>').join('');
+  }
+  window.removeLwMediaImage=(idx)=>{(window.__lwMediaImages||[]).splice(idx,1);renderLwMediaPreviews();};
+  window.removeLwMediaVideo=(idx)=>{(window.__lwMediaVideos||[]).splice(idx,1);renderLwMediaPreviews();};
+  const lwMediaImageFile=document.getElementById('lw-media-image-file');
+  if(lwMediaImageFile){
+    lwMediaImageFile.onchange=(e)=>{
+      const files=Array.from(e.target.files||[]);
+      files.forEach(file=>{
+        if(file.size>4*1024*1024){showToast('Image "'+file.name+'" too large — please use a photo under 4MB','error');return;}
+        const reader=new FileReader();
+        reader.onload=()=>{window.__lwMediaImages=window.__lwMediaImages||[];window.__lwMediaImages.push(reader.result);renderLwMediaPreviews();};
+        reader.readAsDataURL(file);
+      });
+      lwMediaImageFile.value='';
+    };
+  }
+  const lwMediaVideoFile=document.getElementById('lw-media-video-file');
+  if(lwMediaVideoFile){
+    lwMediaVideoFile.onchange=(e)=>{
+      const files=Array.from(e.target.files||[]);
+      files.forEach(file=>{
+        if(file.size>20*1024*1024){showToast('Video "'+file.name+'" too large — please keep videos under 20MB','error');return;}
+        const reader=new FileReader();
+        reader.onload=()=>{window.__lwMediaVideos=window.__lwMediaVideos||[];window.__lwMediaVideos.push(reader.result);renderLwMediaPreviews();};
+        reader.readAsDataURL(file);
+      });
+      lwMediaVideoFile.value='';
+    };
+  }
+
   const saveLW=document.querySelector('[data-save-lw]');
   if(saveLW)saveLW.onclick=()=>{
     const editId=S.editingId?.type==='lw'?S.editingId.id:null;
     const{bio:lwBio,customTech:lwCustomTech}=getTechFromForm('lw-tech','lw-custom-tech');
-    const lw={...(editId?S.lwalks.find(l=>l.id===editId):{}),id:editId||uid(),date:gv('lw-date'),observer:gv('lw-obs'),section:gv('lw-sect'),dept:gv('lw-dept'),bio:lwBio,customTech:lwCustomTech||'',strengths:gv('lw-str'),afd:gv('lw-afd'),focusArea:gv('lw-focus')};
+    const lw={...(editId?S.lwalks.find(l=>l.id===editId):{}),id:editId||uid(),date:gv('lw-date'),observer:gv('lw-obs'),section:gv('lw-sect'),dept:gv('lw-dept'),bio:lwBio,customTech:lwCustomTech||'',strengths:gv('lw-str'),afd:gv('lw-afd'),focusArea:gv('lw-focus'),
+      mediaImages:(window.__lwMediaImages||[]).slice(),mediaVideos:(window.__lwMediaVideos||[]).slice()};
     S.lwalks=editId?S.lwalks.map(l=>l.id===editId?lw:l):[...S.lwalks,lw];
     save('lwalks',S.lwalks);
     S.modal=null;S.editingId=null;
     showToast(editId?'Learning walk updated ✓':'Learning walk saved ✓');
   };
+
+  // ── CPD: audience people search (typeahead + chips) ────────────────────────
+  const cpdAudSearch=document.getElementById('cpd-aud-search-txt');
+  if(cpdAudSearch){
+    const audListEl=document.getElementById('cpd-aud-search-txt-list');
+    const audPeopleWrap=document.getElementById('cpd-aud-people');
+    const addCpdAudPerson=(name)=>{
+      if(!name||!name.trim()||!audPeopleWrap)return;
+      const clean=name.trim();
+      if(Array.from(audPeopleWrap.querySelectorAll('.cpd-aud-person')).some(el=>el.dataset.name.toLowerCase()===clean.toLowerCase()))return;
+      const chip=document.createElement('span');
+      chip.className='badge badge-blue cpd-aud-person';
+      chip.dataset.name=clean;
+      chip.style.gap='5px';
+      chip.innerHTML=esc(clean)+' <span style="cursor:pointer;font-weight:700" onclick="this.closest(\'.cpd-aud-person\').remove()">✕</span>';
+      audPeopleWrap.appendChild(chip);
+    };
+    const renderCpdAudSuggestions=()=>{
+      const q=cpdAudSearch.value.trim().toLowerCase();
+      if(!q){audListEl.style.display='none';audListEl.innerHTML='';return;}
+      const matches=scopedTeachers().filter(t=>t.name.toLowerCase().includes(q)).slice(0,8);
+      if(!matches.length){audListEl.style.display='none';audListEl.innerHTML='';return;}
+      audListEl.innerHTML=matches.map(t=>'<div class="teacher-ac-item" data-tname="'+t.name.replace(/"/g,'&quot;')+'" style="padding:7px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f1f1">'+t.name+' <span style="color:#9ca3af;font-size:11px">('+t.dept+')</span></div>').join('');
+      audListEl.style.display='block';
+      audListEl.querySelectorAll('.teacher-ac-item').forEach(item=>{
+        item.onmousedown=(e)=>{e.preventDefault();addCpdAudPerson(item.dataset.tname);cpdAudSearch.value='';audListEl.style.display='none';};
+      });
+    };
+    cpdAudSearch.oninput=renderCpdAudSuggestions;
+    cpdAudSearch.onfocus=renderCpdAudSuggestions;
+    cpdAudSearch.onkeydown=(e)=>{
+      if(e.key==='Enter'){e.preventDefault();addCpdAudPerson(cpdAudSearch.value);cpdAudSearch.value='';audListEl.style.display='none';}
+    };
+    cpdAudSearch.onblur=()=>{setTimeout(()=>{audListEl.style.display='none';},200);};
+  }
+
+  // ── CPD: media upload (photos & videos) ────────────────────────────────────
+  function renderCpdMediaPreviews(){
+    const imgWrap=document.getElementById('cpd-media-images-wrap');
+    if(imgWrap)imgWrap.innerHTML=(window.__cpdMediaImages||[]).map((src,idx)=>'<span class="cpd-media-img-item" style="position:relative;display:inline-block"><img src="'+src+'" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeCpdMediaImage('+idx+')">✕</button></span>').join('');
+    const vidWrap=document.getElementById('cpd-media-videos-wrap');
+    if(vidWrap)vidWrap.innerHTML=(window.__cpdMediaVideos||[]).map((src,idx)=>'<span class="cpd-media-vid-item" style="position:relative;display:inline-block"><video src="'+src+'" controls style="max-height:100px;max-width:160px;border-radius:6px;border:1px solid var(--border)"></video><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeCpdMediaVideo('+idx+')">✕</button></span>').join('');
+  }
+  window.removeCpdMediaImage=(idx)=>{(window.__cpdMediaImages||[]).splice(idx,1);renderCpdMediaPreviews();};
+  window.removeCpdMediaVideo=(idx)=>{(window.__cpdMediaVideos||[]).splice(idx,1);renderCpdMediaPreviews();};
+  const cpdMediaImageFile=document.getElementById('cpd-media-image-file');
+  if(cpdMediaImageFile){
+    cpdMediaImageFile.onchange=(e)=>{
+      const files=Array.from(e.target.files||[]);
+      files.forEach(file=>{
+        if(file.size>4*1024*1024){showToast('Image "'+file.name+'" too large — please use a photo under 4MB','error');return;}
+        const reader=new FileReader();
+        reader.onload=()=>{window.__cpdMediaImages=window.__cpdMediaImages||[];window.__cpdMediaImages.push(reader.result);renderCpdMediaPreviews();};
+        reader.readAsDataURL(file);
+      });
+      cpdMediaImageFile.value='';
+    };
+  }
+  const cpdMediaVideoFile=document.getElementById('cpd-media-video-file');
+  if(cpdMediaVideoFile){
+    cpdMediaVideoFile.onchange=(e)=>{
+      const files=Array.from(e.target.files||[]);
+      files.forEach(file=>{
+        if(file.size>20*1024*1024){showToast('Video "'+file.name+'" too large — please keep videos under 20MB','error');return;}
+        const reader=new FileReader();
+        reader.onload=()=>{window.__cpdMediaVideos=window.__cpdMediaVideos||[];window.__cpdMediaVideos.push(reader.result);renderCpdMediaPreviews();};
+        reader.readAsDataURL(file);
+      });
+      cpdMediaVideoFile.value='';
+    };
+  }
 
   const saveCPD=document.querySelector('[data-save-cpd]');
   if(saveCPD)saveCPD.onclick=async()=>{
@@ -3244,17 +3487,26 @@ function bindEvents(){
     const title=gv('cpd-title');
     if(!title.trim()){showToast('Please enter a session title','error');saveCPD.disabled=false;return;}
     const month=gv('cpd-month');
-    const aud=gv('cpd-aud');
+    const aud=collectCpdAudience();
+    const date=gv('cpd-date');
+    const timeFrom=gv('cpd-time-from');
+    const timeTo=gv('cpd-time-to');
+    const venue=gv('cpd-venue');
+    const facilitator=gv('cpd-fac');
     const editId=S.editingId?.type==='cpd'?S.editingId.id:null;
-    if(!editId&&aud&&aud!=='Whole School'){
-      const conflict=S.cpd.find(c=>c.month===month&&c.audience==='Whole School');
-      if(conflict&&!confirm('⚠ Conflict: "'+conflict.title+'" (Whole School) is also in '+month+'. Save anyway?')){saveCPD.disabled=false;return;}
-    }
+    // Conflict check — only flag a genuine clash once date, time AND place have
+    // all been checked (see schedRowsConflict): different times or different
+    // rooms on the same date are never popped up as conflicts.
+    const hypRow={startDate:date,endDate:'',timeFrom,timeTo,venue,facilitator,target:aud};
+    const clash=S.schedule.find(r=>!(editId&&r.cpdId===editId)&&schedRowsConflict(hypRow,r));
+    if(clash&&!confirm('⚠ Conflict: "'+(clash.program||'')+'" overlaps on the same date, time and place. Save anyway?')){saveCPD.disabled=false;return;}
     const existing=editId?S.cpd.find(c=>c.id===editId):{};
     const{bio:cpdBio,customTech:cpdCustomTech}=getTechFromForm('cpd-tech','cpd-custom-tech');
-    const cpd={...(existing||{}),id:editId||uid(),title,date:gv('cpd-date'),facilitator:gv('cpd-fac'),audience:aud,
+    const cpd={...(existing||{}),id:editId||uid(),title,date,facilitator,audience:aud,
       type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio:cpdBio,customTech:cpdCustomTech||'',
-      before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active'};
+      before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active',
+      venue,timeFrom,timeTo,
+      mediaImages:(window.__cpdMediaImages||[]).slice(),mediaVideos:(window.__cpdMediaVideos||[]).slice()};
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     const cpdSaveOk=await saveCpdRecord(cpd,S.cpd);
     if(!cpdSaveOk){
@@ -3266,7 +3518,7 @@ function bindEvents(){
     // Self-healing: regardless of new/edit, or what previously created extras,
     // this always converges the DB to exactly ONE schedule row for this cpd.id.
     await reconcileCpdScheduleLink(cpd.id,{title,facilitator:cpd.facilitator,delivery:cpd.delivery,
-      type:cpd.type,month,audience:aud,date:cpd.date});
+      type:cpd.type,month,audience:aud,date:cpd.date,venue:cpd.venue,timeFrom:cpd.timeFrom,timeTo:cpd.timeTo});
     S.modal=null;S.editingId=null;
     showToast(editId?'CPD session updated ✓':'CPD session saved & linked to schedule ✓');
   };
@@ -3661,14 +3913,14 @@ function bindEvents(){
   document.querySelectorAll('[data-edit-lw]').forEach(el=>{
     el.onclick=()=>{
       const lw=S.lwalks.find(l=>l.id===el.dataset.editLw);
-      if(lw){S.editingId={type:'lw',id:lw.id};S.modal=renderModal('lw',lw);render();}
+      if(lw){window.__lwMediaImages=(lw.mediaImages||[]).slice();window.__lwMediaVideos=(lw.mediaVideos||[]).slice();S.editingId={type:'lw',id:lw.id};S.modal=renderModal('lw',lw);render();}
     };
   });
   // ── Edit CPD ─────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-edit-cpd]').forEach(el=>{
     el.onclick=()=>{
       const c=S.cpd.find(c=>c.id===el.dataset.editCpd);
-      if(c){S.editingId={type:'cpd',id:c.id};S.modal=renderModal('cpd',c);render();}
+      if(c){window.__cpdMediaImages=(c.mediaImages||[]).slice();window.__cpdMediaVideos=(c.mediaVideos||[]).slice();S.editingId={type:'cpd',id:c.id};S.modal=renderModal('cpd',c);render();}
     };
   });
   // ── Edit Trip ────────────────────────────────────────────────────────────
