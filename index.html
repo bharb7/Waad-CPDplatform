@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<!-- Prevent browsers/CDNs from serving a stale cached copy of this file after a new deploy —
+     this is the most likely reason a permission change "doesn't show up even after waiting" on
+     someone else's device: they were still running the previous deploy's JS until a hard
+     refresh. These tags tell the browser to always revalidate/re-fetch. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -756,26 +763,21 @@ function renderCpdLeadPermissionCheck(){
   const users=cpdLeadLikeUsers();
   const drifted=users.filter(u=>u.role!=='cpdLead');
   const curViews=(S.roleCfg.cpdLead&&S.roleCfg.cpdLead.views)||[];
-  const missing=CPD_LEAD_STANDARD_VIEWS.filter(v=>!curViews.includes(v));
-  const extra=curViews.filter(v=>!CPD_LEAD_STANDARD_VIEWS.includes(v));
-  const viewsOk=missing.length===0;
   return `
 <div class="card" style="border-top:3px solid var(--amber)">
   <div class="flex justify-between items-center mb-2" style="flex-wrap:wrap;gap:6px">
     <div class="card-title" style="margin:0">🩺 CPD Lead Permission Check</div>
     <div class="flex gap-2">
-      ${!viewsOk?`<button class="btn btn-success btn-sm" data-apply-cpdlead-views>✓ Apply Standard Views</button>`:''}
+      <button class="btn btn-ghost btn-sm" data-apply-cpdlead-views title="Resets CPD Lead to Dashboard, Annual Schedule, Teachers, Observations, CPD, Impact, Resources">↺ Reset to Suggested Views</button>
       ${drifted.length?`<button class="btn btn-success btn-sm" data-normalize-cpdlead>✓ Fix ${drifted.length} user${drifted.length!==1?'s':''}</button>`:''}
-      ${viewsOk&&!drifted.length?'<span class="badge badge-green">All in sync ✓</span>':''}
+      ${!drifted.length?'<span class="badge badge-green">All in sync ✓</span>':''}
     </div>
   </div>
-  <div class="mb-2" style="background:${viewsOk?'#f0fdf4':'#fff7ed'};border-radius:6px;padding:8px 10px;font-size:12px">
-    <strong>What the "cpdLead" role currently grants:</strong>
+  <div class="mb-2" style="background:var(--light);border-radius:6px;padding:8px 10px;font-size:12px">
+    <strong>What the "cpdLead" role currently grants</strong> <span class="text-xs text-muted">(edit this anytime above in Role Permissions — ✏ next to CPD Lead)</span>:<br>
     ${curViews.length?curViews.map(v=>`<span class="badge badge-blue" style="margin:2px">${(VIEW_META[v]&&VIEW_META[v].icon)||''} ${(VIEW_META[v]&&VIEW_META[v].label)||v}</span>`).join(''):'<span style="color:var(--red)">none</span>'}
-    ${!viewsOk?`<div class="mt-1" style="color:#b45309">⚠ Missing: ${missing.map(v=>(VIEW_META[v]&&VIEW_META[v].label)||v).join(', ')} — click "Apply Standard Views" to add ${missing.length>1?'them':'it'}.</div>`:''}
-    ${extra.length?`<div class="mt-1 text-xs text-muted">Also currently has: ${extra.map(v=>(VIEW_META[v]&&VIEW_META[v].label)||v).join(', ')} (left as-is).</div>`:''}
   </div>
-  <p class="text-xs text-muted mb-2">Every user below should carry the exact same role key (<code>cpdLead</code>) so they all get identical permissions. Anyone highlighted has drifted onto a different role and will see different access until fixed.</p>
+  <p class="text-xs text-muted mb-2">Every user below should carry the exact same role key (<code>cpdLead</code>) so they all get identical permissions — whatever views are ticked above. Anyone highlighted has drifted onto a different role and will see different access until fixed.</p>
   ${users.length?`<div style="overflow-x:auto"><table style="width:100%;font-size:12px">
     <thead><tr><th style="text-align:left">Name</th><th style="text-align:left">Username</th><th style="text-align:left">Role key</th><th style="text-align:left">Views granted</th></tr></thead>
     <tbody>${users.map(u=>{
