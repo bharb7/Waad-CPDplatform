@@ -450,6 +450,29 @@ async function saveSchoolSettings(retrying){
   }
 }
 
+// ── Safe role-permission updates (fixes the real root cause of permissions "resetting") ────
+// schools.branding.roleCfg is ONE shared JSON blob holding every role's permissions. Every save
+// used to PATCH the whole blob using whatever S.roleCfg this particular browser tab happened to
+// have in memory. With several tabs/devices open (very normal while testing — Bilal's laptop,
+// Junaid's device, a previous tab left open, the 30s live-permission poll, etc.) an older tab's
+// snapshot can silently overwrite a newer change made elsewhere: a classic "lost update" race.
+// That's why CPD Lead permissions were losing views unpredictably even though each individual
+// save reported success — the write itself worked, it just overwrote something newer.
+// Fix: always re-fetch the CURRENT server copy of roleCfg immediately before writing, apply only
+// the one change being made right now on top of that fresh copy, then save. Works the same way
+// for every role (not just CPD Lead) and for creating, editing, or deleting a role.
+async function updateRoleCfg(mutatorFn){
+  let base={...S.roleCfg};
+  if(SCHOOL_ID){
+    const fresh=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding&limit=1');
+    if(fresh&&fresh[0]&&fresh[0].branding&&fresh[0].branding.roleCfg){
+      base={...DEFAULT_ROLES,...fresh[0].branding.roleCfg};
+    }
+  }
+  S.roleCfg=mutatorFn(base);
+  return await save('roleCfg',S.roleCfg);
+}
+
 function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.full_name||r.name||'',username:r.username||'',password:r.password||'',role:r.role||'viewer',depts:r.depts||[],sections:r.sections||[],teacherId:r.teacher_id||null}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
@@ -4019,13 +4042,15 @@ function bindEvents(){
     const canEditR=document.getElementById('role-canedit')?.checked||false;
     const scoped=document.getElementById('role-scoped')?.checked||false;
     const isNew=!editKey;
-    S.roleCfg[key]={...S.roleCfg[key],label,views,canEdit:canEditR,scoped};
     saveRole.disabled=true;saveRole.textContent='Saving…';
-    const ok=await save('roleCfg',S.roleCfg);
+    // Read-fresh-merge-write (see updateRoleCfg above) — applies to every role, not just this
+    // one, and to editing an existing role or creating a new one.
+    const ok=await updateRoleCfg(cfg=>{cfg[key]={...cfg[key],label,views,canEdit:canEditR,scoped};return cfg;});
     S.modal=null;
     // Only claim success if the write actually reached Supabase — save() now reports the
     // truth instead of always saying "updated ✓" (see saveSchoolSettings for why this matters).
     if(ok!==false)showToast('Role "'+label+'" '+(isNew?'created':'updated')+' ✓ — synced to database, other users will see it within ~30s or on their next refresh');
+    else showToast('Role change did not reach the database — see the error above for why. Nothing else was affected.','error');
     render();
   };
   // ── CPD Lead permission-drift fix ───────────────────────────────────────
@@ -4050,8 +4075,10 @@ function bindEvents(){
   const applyCpdViewsBtn=document.querySelector('[data-apply-cpdlead-views]');
   if(applyCpdViewsBtn)applyCpdViewsBtn.onclick=async()=>{
     applyCpdViewsBtn.disabled=true;applyCpdViewsBtn.textContent='Applying…';
-    S.roleCfg.cpdLead={...(S.roleCfg.cpdLead||{}),label:(S.roleCfg.cpdLead&&S.roleCfg.cpdLead.label)||'CPD Lead',views:CPD_LEAD_STANDARD_VIEWS,canEdit:(S.roleCfg.cpdLead&&S.roleCfg.cpdLead.canEdit)!==false,scoped:(S.roleCfg.cpdLead&&S.roleCfg.cpdLead.scoped)||false};
-    const ok=await save('roleCfg',S.roleCfg);
+    const ok=await updateRoleCfg(cfg=>{
+      cfg.cpdLead={...(cfg.cpdLead||{}),label:(cfg.cpdLead&&cfg.cpdLead.label)||'CPD Lead',views:CPD_LEAD_STANDARD_VIEWS,canEdit:(cfg.cpdLead&&cfg.cpdLead.canEdit)!==false,scoped:(cfg.cpdLead&&cfg.cpdLead.scoped)||false};
+      return cfg;
+    });
     if(ok===false){
       showToast('Applied locally, but the database write failed — CPD Leads on other devices will NOT see this yet. See the error above for why.','error');
     }else{
@@ -4065,13 +4092,12 @@ function bindEvents(){
   });
   // Delete role
   document.querySelectorAll('[data-del-role]').forEach(el=>{
-    el.onclick=()=>{
+    el.onclick=async()=>{
       const key=el.dataset.delRole;
       if(key==='admin'){showToast('Cannot delete admin role','error');return;}
       if(!confirm('Delete role "'+key+'"? Users with this role will default to viewer.'))return;
-      delete S.roleCfg[key];
-      save('roleCfg',S.roleCfg);
-      showToast('Role deleted');
+      const ok=await updateRoleCfg(cfg=>{delete cfg[key];return cfg;});
+      showToast(ok!==false?'Role deleted ✓ — synced to database':'Delete did not reach the database — see the error above for why.',ok!==false?'success':'error');
       render();
     };
   });
