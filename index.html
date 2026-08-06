@@ -164,7 +164,7 @@ async function sbDelete(table,id){
 const MEM={};
 function sget(k){try{const v=localStorage.getItem('wa_'+k);return v?JSON.parse(v):null}catch(e){return MEM[k]||null}}
 function sset(k,v){try{localStorage.setItem('wa_'+k,JSON.stringify(v))}catch(e){MEM[k]=v}}
-cconst SEED_USERS = [
+const SEED_USERS = [
   {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'BilalHarb',password:'WaadAcademy2026',role:'admin',depts:[]},
   {id:'52ejvt0s_mqh2scax',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr123',role:'admin',depts:[]},
   {id:'8fku19n7_mqh2t2e1',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
@@ -225,9 +225,7 @@ cconst SEED_USERS = [
   {id:'c340f394-bc26-4e63-9d72-05a3821ea64e',name:'Mohammed Ismail',fullName:'Mohammed Ismail',username:'mohammed.ismail',password:'akDDBa6R',role:'teacher',depts:["Arabic"],teacherId:'a83d0e74-81f1-4438-8522-0af10cb807ea'},
   {id:'a0b4d244-616c-46fb-9dbc-ef0edd693d4a',name:'Maewand Hakim',fullName:'Maewand Hakim',username:'maewand.hakim',password:'Bcz2wUeG',role:'teacher',depts:["Biology"],teacherId:'85cb3bd1-3b03-462f-8145-4fb9cdee4f56'},
   {id:'079c36a5-5dd2-4070-be78-00e392a5526e',name:'Nasr Aldroubi',fullName:'Nasr Aldroubi',username:'nasr.aldroubi',password:'TpsszRS4',role:'teacher',depts:["Mathematics"],teacherId:'cfb43322-230e-4ecf-b6d0-09657ea56819'},
-  {id:'8fcf9d17-b501-4f44-bd5b-c71cee02c8bf',name:'Foad BinYousef',fullName:'Foad BinYousef',username:'foad.binyousef',password:'EYCSP4nG',role:'teacher',depts:["ICT"],teacherId:'c9c2037b-085f-4fd7-bd80-6e5c093f6a72'},
-  {id:'099f737b-db5d-44ca-9b8e-4376b9c400a6',name:'Bilal Omar Harb',fullName:'Bilal Omar Harb',username:'',password:'',role:'viewer',depts:[]},
-  {id:'dbabeabc-7474-4300-b27a-cd8342322bed',name:'Arwa',fullName:'Arwa',username:'Arwa',password:'HOSAr1234$',role:'cpdLead',depts:[]}
+  {id:'8fcf9d17-b501-4f44-bd5b-c71cee02c8bf',name:'Foad BinYousef',fullName:'Foad BinYousef',username:'foad.binyousef',password:'EYCSP4nG',role:'teacher',depts:["ICT"],teacherId:'c9c2037b-085f-4fd7-bd80-6e5c093f6a72'}
 ];
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','Other'];
 const TLC_APPLICATION_OPTIONS=['Collaborative Protocol','Active Learning'];
