@@ -10,6 +10,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
+     running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
+     bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
+<meta name="app-build" content="2026-08-08-D8-role-sync-guard">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -109,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-07-05-D7-teacher-account-generator';
+const BUILD_VERSION='2026-08-08-D8-role-sync-guard';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -229,9 +233,7 @@ const SEED_USERS = [
   {id:'c340f394-bc26-4e63-9d72-05a3821ea64e',name:'Mohammed Ismail',fullName:'Mohammed Ismail',username:'mohammed.ismail',password:'akDDBa6R',role:'teacher',depts:["Arabic"],teacherId:'a83d0e74-81f1-4438-8522-0af10cb807ea'},
   {id:'a0b4d244-616c-46fb-9dbc-ef0edd693d4a',name:'Maewand Hakim',fullName:'Maewand Hakim',username:'maewand.hakim',password:'Bcz2wUeG',role:'teacher',depts:["Biology"],teacherId:'85cb3bd1-3b03-462f-8145-4fb9cdee4f56'},
   {id:'079c36a5-5dd2-4070-be78-00e392a5526e',name:'Nasr Aldroubi',fullName:'Nasr Aldroubi',username:'nasr.aldroubi',password:'TpsszRS4',role:'teacher',depts:["Mathematics"],teacherId:'cfb43322-230e-4ecf-b6d0-09657ea56819'},
-  {id:'8fcf9d17-b501-4f44-bd5b-c71cee02c8bf',name:'Foad BinYousef',fullName:'Foad BinYousef',username:'foad.binyousef',password:'EYCSP4nG',role:'teacher',depts:["ICT"],teacherId:'c9c2037b-085f-4fd7-bd80-6e5c093f6a72'},
-  {id:'099f737b-db5d-44ca-9b8e-4376b9c400a6',name:'Bilal Omar Harb',fullName:'Bilal Omar Harb',username:'',password:'',role:'viewer',depts:[]},
-  {id:'c5ed9088-627b-4fc0-9f0c-38f5f52f1f6c',name:'Arwa',fullName:'Arwa',username:'Arwa',password:'HOSAr1234$',role:'cpdLead',depts:[]}
+  {id:'8fcf9d17-b501-4f44-bd5b-c71cee02c8bf',name:'Foad BinYousef',fullName:'Foad BinYousef',username:'foad.binyousef',password:'EYCSP4nG',role:'teacher',depts:["ICT"],teacherId:'c9c2037b-085f-4fd7-bd80-6e5c093f6a72'}
 ];
 const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','Other'];
 const TLC_APPLICATION_OPTIONS=['Collaborative Protocol','Active Learning'];
@@ -4567,6 +4569,30 @@ async function refreshLivePermissions(){
     }
   }catch(e){/* best-effort — silent */}
 }
+// Self-healing fix for "I changed a role's permissions and it works on my device but not on
+// theirs": that symptom is caused by the OTHER person's browser tab still running an OLDER
+// cached copy of this whole page (from before the latest deploy) — refreshLivePermissions()
+// above can't help them because their tab is running old code that may not even contain that
+// function yet. This check fetches the live page's build marker (bypassing cache) every ~30s;
+// if it doesn't match what THIS tab is running, a newer version has been deployed, so we
+// auto-reload to pick it up. Skipped while a modal is open so it never interrupts someone
+// mid-edit. This makes every future deploy self-propagate to already-open tabs without anyone
+// needing to be told to manually hard-refresh.
+let _newVersionReloadQueued=false;
+async function checkForNewVersion(){
+  if(S.modal||_newVersionReloadQueued)return;
+  try{
+    const r=await fetch(location.pathname+'?_v='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const html=await r.text();
+    const m=html.match(/<meta name="app-build" content="([^"]+)"/);
+    if(m&&m[1]&&m[1]!==BUILD_VERSION){
+      _newVersionReloadQueued=true;
+      showToast('A newer version of this app is available — refreshing…');
+      setTimeout(()=>location.reload(),1800);
+    }
+  }catch(e){/* best-effort — silent */}
+}
 function startHeartbeat(){
   if(_heartbeatTimer)clearInterval(_heartbeatTimer);
   _heartbeatTimer=setInterval(()=>{
@@ -4574,6 +4600,7 @@ function startHeartbeat(){
     const snap=getOnlineSnapshot();
     fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({branding:{...(S.branding||{}),online_users:snap}}),cache:'no-store'}).catch(()=>{});
     refreshLivePermissions();
+    checkForNewVersion();
   },HEARTBEAT_MS);
 }
 
