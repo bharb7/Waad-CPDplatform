@@ -792,6 +792,45 @@ function generateTeacherPassword(){
   return p;
 }
 
+// ── Bulk Add Teachers: CSV/Excel file parsing ───────────────────────────────
+// Minimal CSV parser (handles quoted fields containing commas/newlines) — used for .csv/.txt
+// uploads so Bulk Add Teachers doesn't depend on any external library for the common case.
+function parseCSV(text){
+  const rows=[];let row=[],field='',inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQuotes){
+      if(c==='"'){if(text[i+1]==='"'){field+='"';i++;}else inQuotes=false;}
+      else field+=c;
+    }else{
+      if(c==='"')inQuotes=true;
+      else if(c===','){row.push(field);field='';}
+      else if(c==='\n'||c==='\r'){
+        if(field!==''||row.length){row.push(field);rows.push(row);row=[];field='';}
+        if(c==='\r'&&text[i+1]==='\n')i++;
+      }else field+=c;
+    }
+  }
+  if(field!==''||row.length){row.push(field);rows.push(row);}
+  return rows.filter(r=>r.some(c=>String(c).trim()!==''));
+}
+// .xlsx/.xls needs a real parser for the binary/zip format — loaded on-demand from a CDN only
+// when someone actually uploads an Excel file, so the app has zero extra network dependency for
+// everyone who just uses CSV (or doesn't use Bulk Add at all).
+let _xlsxLibPromise=null;
+function loadXLSXLib(){
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(_xlsxLibPromise)return _xlsxLibPromise;
+  _xlsxLibPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>resolve(window.XLSX);
+    s.onerror=()=>reject(new Error('Could not load the Excel file reader'));
+    document.head.appendChild(s);
+  });
+  return _xlsxLibPromise;
+}
+
 // ── CPD Lead permission-drift diagnostic ────────────────────────────────────
 // Root cause of "some CPD Leads have different permissions": a user's `role` field is what
 // actually decides their permissions (via S.roleCfg[role]) — if a user ends up on a role KEY
@@ -3131,9 +3170,13 @@ function renderModal(type, data={}){
   }
 
   if(type==='bulkTeachers'){
+    const tmplHref='data:text/csv;charset=utf-8,'+encodeURIComponent('Name,Department,Section\nSara Ahmed,Mathematics,Girls\nOmar Youssef,Physics,Boys\n');
     return M('👩‍🏫 Bulk Add Teachers',
-      `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">One teacher per line. Just a name is fine — you can fill in the rest later via ✏ Edit. To set more at once, use commas: <code>Name, Department, Section, Stage</code> (any part can be left blank, e.g. <code>Sara Ahmed, Mathematics</code>). Department/Section/Stage must match the exact names used elsewhere in the app or they'll be left blank.</p>
-      <div class="form-group"><textarea class="form-control rtl" id="bulk-tch-text" rows="10" placeholder="Sara Ahmed, Mathematics, Girls, Primary&#10;Omar Youssef&#10;Layla Hassan, English, Girls"></textarea></div>
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Upload a CSV or Excel (.xlsx) file with 3 columns, in this order: <strong>Name, Department, Section</strong> (Boys/Girls). A header row is fine, it's detected automatically. Grades aren't set here — allocate those afterward from the Teachers tab (✏ Edit) once everyone's added.</p>
+      <p style="margin-bottom:10px"><a href="${tmplHref}" download="teacher_bulk_template.csv" style="font-size:12px">⬇ Download CSV template</a></p>
+      <div class="form-group"><label class="form-label">File</label>
+       <input type="file" class="form-control" id="bulk-tch-file" accept=".csv,.xlsx,.xls,text/csv"></div>
+      <div id="bulk-tch-status" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
       `+FS('bulk-tch-group','TLC Group (applied to all)',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],''),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-bulk-teachers>Add Teachers</button>`
     );
@@ -3984,22 +4027,55 @@ function bindEvents(){
 
   // ── Bulk Add Teachers ────────────────────────────────────────────────────
   const saveBulkTch=document.querySelector('[data-save-bulk-teachers]');
-  if(saveBulkTch)saveBulkTch.onclick=()=>{
-    const raw=(document.getElementById('bulk-tch-text')||{}).value||'';
+  if(saveBulkTch)saveBulkTch.onclick=async()=>{
+    const fileInput=document.getElementById('bulk-tch-file');
+    const file=fileInput&&fileInput.files&&fileInput.files[0];
+    const statusEl=document.getElementById('bulk-tch-status');
+    if(!file){showToast('Choose a CSV or Excel file first','error');return;}
     const groupId=gv('bulk-tch-group')||S.groups[0]?.id;
-    const matchExact=(val,list)=>{if(!val)return'';const v=val.trim().toLowerCase();return list.find(x=>x.toLowerCase()===v)||'';};
-    const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
-    if(!lines.length){showToast('Paste at least one teacher name','error');return;}
-    const newTeachers=lines.map(line=>{
-      const parts=line.split(',').map(p=>p.trim());
-      const name=parts[0]||'';
-      return{id:uid(),name,dept:matchExact(parts[1],DEPTS),section:matchExact(parts[2],SECTIONS),stage:matchExact(parts[3],STAGES),grades:[],groupId};
-    }).filter(t=>t.name);
-    if(!newTeachers.length){showToast('No valid names found','error');return;}
-    S.teachers=[...S.teachers,...newTeachers];
-    save('teachers',S.teachers);
-    S.modal=null;
-    showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓ — edit any of them (✏) to fill in details or set Grades');
+    const matchExact=(val,list)=>{if(!val)return'';const v=String(val).trim().toLowerCase();return list.find(x=>x.toLowerCase()===v)||'';};
+    saveBulkTch.disabled=true;saveBulkTch.textContent='Reading file…';
+    if(statusEl)statusEl.textContent='Reading '+file.name+'…';
+    try{
+      const fname=file.name.toLowerCase();
+      let rows=[];
+      if(fname.endsWith('.xlsx')||fname.endsWith('.xls')){
+        const XLSX=await loadXLSXLib();
+        const buf=await file.arrayBuffer();
+        const wb=XLSX.read(buf,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{header:1,blankrows:false});
+      }else{
+        const text=await file.text();
+        rows=parseCSV(text);
+      }
+      // Drop an optional header row (e.g. "Name, Department, Section")
+      if(rows.length&&rows[0]&&/^name$/i.test(String(rows[0][0]||'').trim())){
+        rows=rows.slice(1);
+      }
+      const newTeachers=rows.map(r=>({
+        id:uid(),
+        name:String(r[0]||'').trim(),
+        dept:matchExact(r[1],DEPTS),
+        section:matchExact(r[2],SECTIONS),
+        stage:'',grades:[],groupId
+      })).filter(t=>t.name);
+      if(!newTeachers.length){
+        showToast('No valid rows found in that file — check it has Name in the first column','error');
+        saveBulkTch.disabled=false;saveBulkTch.textContent='Add Teachers';
+        if(statusEl)statusEl.textContent='';
+        return;
+      }
+      S.teachers=[...S.teachers,...newTeachers];
+      save('teachers',S.teachers);
+      S.modal=null;
+      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓ — edit any of them (✏) to fill in details or allocate Grades');
+    }catch(e){
+      console.warn('Bulk teacher import failed',e);
+      showToast('Could not read that file. For .xlsx this needs an internet connection the first time (to load the Excel reader) — if that keeps failing, try saving it as CSV instead.','error');
+      saveBulkTch.disabled=false;saveBulkTch.textContent='Add Teachers';
+      if(statusEl)statusEl.textContent='';
+    }
   };
 
   const saveUser=document.querySelector('[data-save-user]');
