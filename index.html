@@ -4055,15 +4055,40 @@ function bindEvents(){
     };
     const matchDept=val=>matchWithAliases(val,DEPTS,DEPT_ALIASES);
     const matchSection=val=>matchWithAliases(val,SECTIONS,SECTION_ALIASES);
+    // Some spreadsheets list two departments in one cell (e.g. "Math/Science" or "Math and
+    // Science") when a teacher covers both — take the first one listed.
+    const firstChoice=val=>{
+      if(!val)return val;
+      const parts=String(val).trim().split(/\s*(?:\/|,|&|;|\bor\b|\band\b)\s*/i).filter(Boolean);
+      return parts.length?parts[0]:String(val).trim();
+    };
     // TLC Groups are typically named after the department they represent (e.g. "English
-    // Department") — auto-place each teacher in whichever group's name contains their
-    // department, so a mixed-department file doesn't dump everyone into one group. Falls back
-    // to the manually chosen dropdown (or nothing) only when no name match is found.
-    const autoMatchGroup=dept=>{
-      if(!dept)return fallbackGroupId;
-      const d=dept.toLowerCase();
-      const found=S.groups.find(g=>(g.name||'').toLowerCase().includes(d));
-      return found?found.id:fallbackGroupId;
+    // Department"), but not always word-for-word — e.g. a department of "ICT" should match a
+    // group named "IT Department". Match on whole words (with a small alias table for known
+    // short forms) rather than plain substring, since a plain substring check would either miss
+    // that match ("it department".includes("ict") is false) or wrongly match unrelated words
+    // that happen to contain the same letters. If truly nothing matches, create a new TLC group
+    // named after the department as it appears in the Excel file, rather than silently dumping
+    // the teacher into an unrelated fallback group.
+    const GROUP_NAME_ALIASES={'ict':['it','ict','computing','computer']};
+    const STOPWORDS=['department','dept','group','team','tlc','the','of','and'];
+    const normWords=s=>String(s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w&&!STOPWORDS.includes(w));
+    const titleCase=s=>String(s||'').trim().replace(/\w\S*/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+    const createdGroups=[];
+    const GROUP_COLORS=['#1F4E79','#0F6E56','#3C3489','#7B4F0C','#993C1D'];
+    const autoMatchGroup=(dept,rawText)=>{
+      const basisName=(dept||rawText||'').trim();
+      if(!basisName)return fallbackGroupId;
+      const baseWords=normWords(basisName);
+      const keys=new Set([...baseWords,...baseWords.flatMap(w=>GROUP_NAME_ALIASES[w]||[])]);
+      const found=[...S.groups,...createdGroups].find(g=>normWords(g.name).some(w=>keys.has(w)));
+      if(found)return found.id;
+      const newName=titleCase(basisName)+(/department|group|team/i.test(basisName)?'':' Department');
+      const dup=[...S.groups,...createdGroups].find(g=>(g.name||'').toLowerCase()===newName.toLowerCase());
+      if(dup)return dup.id;
+      const newGroup={id:uid(),name:newName,color:GROUP_COLORS[(S.groups.length+createdGroups.length)%GROUP_COLORS.length]};
+      createdGroups.push(newGroup);
+      return newGroup.id;
     };
     saveBulkTch.disabled=true;saveBulkTch.textContent='Reading file…';
     if(statusEl)statusEl.textContent='Reading '+file.name+'…';
@@ -4086,14 +4111,15 @@ function bindEvents(){
       }
       let unmatchedCount=0;
       const newTeachers=rows.map(r=>{
-        const dept=matchDept(r[1]);
-        if(r[1]&&!dept)unmatchedCount++;
+        const rawDept=firstChoice(r[1]);
+        const dept=matchDept(rawDept);
+        if(rawDept&&!dept)unmatchedCount++;
         return{
           id:uid(),
           name:String(r[0]||'').trim(),
           dept,
           section:matchSection(r[2]),
-          stage:'',grades:[],groupId:autoMatchGroup(dept)
+          stage:'',grades:[],groupId:autoMatchGroup(dept,rawDept)
         };
       }).filter(t=>t.name);
       if(!newTeachers.length){
@@ -4102,10 +4128,14 @@ function bindEvents(){
         if(statusEl)statusEl.textContent='';
         return;
       }
+      if(createdGroups.length){
+        S.groups=[...S.groups,...createdGroups];
+        save('groups',S.groups);
+      }
       S.teachers=[...S.teachers,...newTeachers];
       save('teachers',S.teachers);
       S.modal=null;
-      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓'+(unmatchedCount?' — '+unmatchedCount+" had a Department that didn't match exactly (left blank, TLC group left as picked below) — check those via Edit":'')+'. Fill in Grades via ✏ Edit.');
+      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓'+(createdGroups.length?' — created '+createdGroups.length+' new TLC group'+(createdGroups.length!==1?'s':'')+' for departments with no existing match':'')+(unmatchedCount?' — '+unmatchedCount+" had a Department that didn't match an existing option exactly (left blank on the teacher, but still got its own TLC group by name) — check those via Edit":'')+'. Fill in Grades via ✏ Edit.');
     }catch(e){
       console.warn('Bulk teacher import failed',e);
       showToast('Could not read that file. For .xlsx this needs an internet connection the first time (to load the Excel reader) — if that keeps failing, try saving it as CSV instead.','error');
@@ -4778,7 +4808,14 @@ async function updateOnlinePresence(remove){
     else online[key]={ts:new Date().toISOString(),role:S.session.role};
     S.branding={...(S.branding||{}),...baseBranding,online_users:online};sset('branding',S.branding);sset('online_users',online);
     await fetch(SB_URL+'/rest/v1/schools?id=eq.'+SCHOOL_ID,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=minimal'},body:JSON.stringify({branding:{...baseBranding,online_users:online}}),cache:'no-store'});
-    render();
+    // BUGFIX: this used to call render() unconditionally on every ~30s heartbeat tick, unlike
+    // refreshLivePermissions()/checkForNewVersion() which both already skip while a modal is
+    // open. Since this whole app re-renders its DOM from scratch on every render(), that was
+    // wiping out anything someone was mid-typing into an open modal (e.g. the Add Teacher name
+    // field would silently reset every 30 seconds) — the modal's input value is only ever
+    // initialized once from S.modal's stored data, not kept in sync with what's on screen. The
+    // presence write itself still happens either way; only the disruptive re-render is skipped.
+    if(!S.modal)render();
   }catch(e){/* best-effort — presence is non-critical, never blocks the rest of the app */}
 }
 
