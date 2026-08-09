@@ -513,7 +513,15 @@ async function save(k,v){
     // didn't actually exist (see mapUser), grades on teachers isn't assumed safe either — if that
     // column is still missing when this runs, the rest of the teacher's data (name/dept/section/
     // stage) now still saves instead of the WHOLE row silently failing.
-    if(k==='teachers') return await sbUpsertResilient('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:t.section||'',stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})),['grades']);
+    // teachers.section has a DB check constraint (only 'Boys'/'Girls' pass) — an empty string on
+    // even ONE teacher fails the ENTIRE batch save (including deletes and edits, since they
+    // resend the whole list), not just that one row. Sending null instead of '' passes a SQL
+    // CHECK constraint (NULL is exempt from CHECK evaluation), so this self-heals any teacher
+    // already stuck this way WITHOUT guessing/fabricating a Boys-or-Girls value for someone we
+    // don't actually know — those still show blank until fixed via Edit, which is correct: this
+    // value matters for the Head of Section scoping feature, so silently guessing wrong would be
+    // worse than leaving it blank.
+    if(k==='teachers') return await sbUpsertResilient('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:SECTIONS.includes(t.section)?t.section:null,stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})),['grades']);
     else if(k==='groups') return await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
     // role_key (not "role") is the real column name on public.users. username/password/sections/
     // teacher_id/grades are optional — they only exist after the ALTER TABLE statements shipped
@@ -3172,12 +3180,12 @@ function renderModal(type, data={}){
   if(type==='bulkTeachers'){
     const tmplHref='data:text/csv;charset=utf-8,'+encodeURIComponent('Name,Department,Section\nSara Ahmed,Mathematics,Girls\nOmar Youssef,Physics,Boys\n');
     return M('👩‍🏫 Bulk Add Teachers',
-      `<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Upload a CSV or Excel (.xlsx) file with 3 columns, in this order: <strong>Name, Department, Section</strong> (Boys/Girls). A header row is fine, it's detected automatically. Grades aren't set here — allocate those afterward from the Teachers tab (✏ Edit) once everyone's added.</p>
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Upload a CSV or Excel (.xlsx) file with 3 columns, in this order: <strong>Name, Department, Section</strong> (Boys/Girls). A header row is fine, it's detected automatically. Each teacher is auto-placed into whichever TLC Group's name contains their department (e.g. Department "English" → group "English Department") — no need to pick one group for everybody. Grades aren't set here — allocate those afterward from the Teachers tab (✏ Edit) once everyone's added.</p>
       <p style="margin-bottom:10px"><a href="${tmplHref}" download="teacher_bulk_template.csv" style="font-size:12px">⬇ Download CSV template</a></p>
       <div class="form-group"><label class="form-label">File</label>
        <input type="file" class="form-control" id="bulk-tch-file" accept=".csv,.xlsx,.xls,text/csv"></div>
       <div id="bulk-tch-status" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
-      `+FS('bulk-tch-group','TLC Group (applied to all)',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],''),
+      `+FS('bulk-tch-group','Fallback TLC Group (only used if a teacher\'s department has no matching group name)',[{v:'',l:'— None —'},...S.groups.map(g=>({v:g.id,l:g.name}))],''),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-bulk-teachers>Add Teachers</button>`
     );
   }
@@ -4032,8 +4040,31 @@ function bindEvents(){
     const file=fileInput&&fileInput.files&&fileInput.files[0];
     const statusEl=document.getElementById('bulk-tch-status');
     if(!file){showToast('Choose a CSV or Excel file first','error');return;}
-    const groupId=gv('bulk-tch-group')||S.groups[0]?.id;
-    const matchExact=(val,list)=>{if(!val)return'';const v=String(val).trim().toLowerCase();return list.find(x=>x.toLowerCase()===v)||'';};
+    const fallbackGroupId=gv('bulk-tch-group')||'';
+    // Exact match first, then a small alias table for common short forms/abbreviations so a
+    // spreadsheet that says "Math" or "IT" still lands on the right department instead of
+    // falling through blank.
+    const DEPT_ALIASES={'math':'Mathematics','maths':'Mathematics','it':'ICT','ict':'ICT','computing':'ICT','computer science':'ICT','p.e.':'PE','p.e':'PE','physical education':'PE','islamic studies':'Islamic','social':'Social Studies'};
+    const SECTION_ALIASES={'boy':'Boys','b':'Boys','male':'Boys','m':'Boys','girl':'Girls','g':'Girls','female':'Girls','f':'Girls'};
+    const matchWithAliases=(val,list,aliases)=>{
+      if(!val)return'';
+      const v=String(val).trim().toLowerCase();
+      const exact=list.find(x=>x.toLowerCase()===v);
+      if(exact)return exact;
+      return aliases[v]||'';
+    };
+    const matchDept=val=>matchWithAliases(val,DEPTS,DEPT_ALIASES);
+    const matchSection=val=>matchWithAliases(val,SECTIONS,SECTION_ALIASES);
+    // TLC Groups are typically named after the department they represent (e.g. "English
+    // Department") — auto-place each teacher in whichever group's name contains their
+    // department, so a mixed-department file doesn't dump everyone into one group. Falls back
+    // to the manually chosen dropdown (or nothing) only when no name match is found.
+    const autoMatchGroup=dept=>{
+      if(!dept)return fallbackGroupId;
+      const d=dept.toLowerCase();
+      const found=S.groups.find(g=>(g.name||'').toLowerCase().includes(d));
+      return found?found.id:fallbackGroupId;
+    };
     saveBulkTch.disabled=true;saveBulkTch.textContent='Reading file…';
     if(statusEl)statusEl.textContent='Reading '+file.name+'…';
     try{
@@ -4053,13 +4084,18 @@ function bindEvents(){
       if(rows.length&&rows[0]&&/^name$/i.test(String(rows[0][0]||'').trim())){
         rows=rows.slice(1);
       }
-      const newTeachers=rows.map(r=>({
-        id:uid(),
-        name:String(r[0]||'').trim(),
-        dept:matchExact(r[1],DEPTS),
-        section:matchExact(r[2],SECTIONS),
-        stage:'',grades:[],groupId
-      })).filter(t=>t.name);
+      let unmatchedCount=0;
+      const newTeachers=rows.map(r=>{
+        const dept=matchDept(r[1]);
+        if(r[1]&&!dept)unmatchedCount++;
+        return{
+          id:uid(),
+          name:String(r[0]||'').trim(),
+          dept,
+          section:matchSection(r[2]),
+          stage:'',grades:[],groupId:autoMatchGroup(dept)
+        };
+      }).filter(t=>t.name);
       if(!newTeachers.length){
         showToast('No valid rows found in that file — check it has Name in the first column','error');
         saveBulkTch.disabled=false;saveBulkTch.textContent='Add Teachers';
@@ -4069,7 +4105,7 @@ function bindEvents(){
       S.teachers=[...S.teachers,...newTeachers];
       save('teachers',S.teachers);
       S.modal=null;
-      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓ — edit any of them (✏) to fill in details or allocate Grades');
+      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓'+(unmatchedCount?' — '+unmatchedCount+" had a Department that didn't match exactly (left blank, TLC group left as picked below) — check those via Edit":'')+'. Fill in Grades via ✏ Edit.');
     }catch(e){
       console.warn('Bulk teacher import failed',e);
       showToast('Could not read that file. For .xlsx this needs an internet connection the first time (to load the Excel reader) — if that keeps failing, try saving it as CSV instead.','error');
