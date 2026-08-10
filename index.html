@@ -488,7 +488,7 @@ function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.sect
 // ENTIRE row on save (unknown column = whole write fails), which is exactly what was silently
 // happening every time a user/account was added, edited, or had permissions changed: it never
 // actually reached the database, no matter what the app showed.
-function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null}}
+function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
 function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',comments:r.criteria_comments||{}}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
@@ -527,7 +527,16 @@ async function save(k,v){
     // teacher_id/grades are optional — they only exist after the ALTER TABLE statements shipped
     // with this round are run; sbUpsertResilient retries without them if they're still missing,
     // so saves keep working (minus those specific fields) even before that SQL has been applied.
-    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null})),['username','password','sections','grades','teacher_id']);
+    // NOTE on email: public.users has a NOT NULL "email" column from its original schema (this
+    // app never asked for or displayed an email — only username/password). That's harmless for
+    // EDITS to an existing account, since PostgREST's upsert only overwrites columns actually
+    // present in the payload, so an existing row's real email is left alone as long as we
+    // round-trip whatever mapUser() read back from the DB (u.email). But it was a hard failure
+    // ("null value in column email violates not-null constraint") for adding a BRAND NEW user,
+    // since a fresh insert has no existing row to fall back on. Fill in a clearly-synthetic
+    // placeholder only when there's no real email to preserve, so new accounts can be created
+    // without needing to collect a real email address in the Add User form.
+    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal')})),['username','password','sections','grades','teacher_id']);
     else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',criteria_comments:o.comments||{}};}),['criteria_comments']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}),['grade']);
@@ -1492,7 +1501,67 @@ ${groups.map(g=>{
       ${!ts.length?'<p style="color:var(--muted);font-size:12px;font-style:italic">No teachers in this group</p>':''}
     </div>
   </div>`;
-}).join('')}`
+}).join('')}
+${(()=>{
+  // BUGFIX: the count badge above ("N teachers") always reflects every teacher matching the
+  // current filters, but the section below only ever rendered teachers whose groupId matched
+  // one of the CURRENT TLC Groups — anyone whose groupId was blank, or pointed at a group that
+  // no longer exists, was completely invisible here even though they were saved correctly and
+  // still counted at the top (this is why the header count and what was visibly on screen
+  // never matched). Surface them here instead of silently dropping them.
+  const ungrouped=teachers.filter(t=>!groups.some(g=>g.id===t.groupId));
+  if(!ungrouped.length)return'';
+  const cards=ungrouped.map(t=>{
+    const st=tStats(t);
+    const allObs=S.observations.filter(o=>o.tid===t.id).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const allAvgs=allObs.map(o=>domAvg(o.scores));
+    const overallAvg=allAvgs.length?allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length:0;
+    const shownObs=[];
+    if(allObs.length>=1)shownObs.push({o:allObs[0],lbl:'Initial'});
+    if(allObs.length>=3)shownObs.push({o:allObs[allObs.length-2],lbl:'Prev'});
+    if(allObs.length>=2)shownObs.push({o:allObs[allObs.length-1],lbl:'Latest'});
+    else if(allObs.length===1)shownObs[0]={o:allObs[0],lbl:'Only'};
+    const trend=allObs.length>=2?allAvgs[allAvgs.length-1]-allAvgs[allAvgs.length-2]:null;
+    const trendIcon=trend===null?'':trend>0.15?'📈':trend<-0.15?'📉':'➡️';
+    const trendColor=trend===null?'':trend>0.15?'var(--teal)':trend<-0.15?'var(--red)':'var(--muted)';
+    return `<div style="background:var(--light);border-radius:8px;padding:10px 12px;border:1px solid var(--border)">
+      <div style="font-weight:600;font-size:13px;direction:auto">${esc(t.name)}</div>
+      <div class="text-xs text-muted mt-1">${esc(t.dept)} · ${esc(t.section)} · ${esc(t.stage)}</div>
+      ${(t.grades||[]).length?`<div class="mt-1" style="display:flex;gap:3px;flex-wrap:wrap">${t.grades.map(g=>`<span class="badge badge-gray" style="font-size:9px;padding:1px 5px">${esc(g)}</span>`).join('')}</div>`:''}
+      <div class="flex gap-2 mt-2 items-center flex-wrap">
+        <span class="badge badge-${st.count>0?'green':'gray'}">${st.count} obs</span>
+        ${overallAvg>0?`<span class="badge badge-blue">Avg ${overallAvg.toFixed(1)}/5</span>`:''}
+        ${trend!==null?`<span style="font-size:13px;font-weight:700;color:${trendColor}" title="Progress since last obs">${trendIcon} ${trend>0?'+':''}${trend.toFixed(1)}</span>`:''}
+      </div>
+      ${shownObs.length>0?`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
+        ${shownObs.map(({o,lbl})=>{
+          const da=domAvg(o.scores);
+          const bc=da>=4?'var(--teal)':da>=3?'var(--amber)':da>0?'var(--red)':'#9ca3af';
+          return `<div style="margin-bottom:4px">
+            <div class="flex justify-between items-center">
+              <span style="font-size:10px;color:var(--muted)">${lbl} · ${o.date||'—'}</span>
+              <span style="font-size:11px;font-weight:700;color:${bc}">${da>0?da.toFixed(1)+'/5':'—'}</span>
+            </div>
+            <div class="pbar" style="height:3px;margin-top:2px"><div class="pbar-fill" style="width:${Math.min(100,da/5*100)}%;background:${bc}"></div></div>
+          </div>`;
+        }).join('')}
+      </div>`:''}
+      ${canEdit()?`<div class="flex gap-1 mt-2">
+        <button class="btn btn-sm btn-primary" data-new-obs="${t.id}">+ Obs</button>
+        <button class="btn btn-sm btn-ghost" data-edit-teacher="${t.id}">✏</button>
+        <button class="btn btn-sm btn-danger" data-del-teacher="${t.id}">✕</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+  return `<div class="card" style="border:2px dashed var(--amber)">
+    <div class="flex justify-between items-center mb-3">
+      <div class="card-title" style="margin:0;color:var(--amber)">⚠ Ungrouped (no TLC Group assigned)</div>
+      <span class="badge badge-gray">${ungrouped.length} teachers</span>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin:-6px 0 10px">These teachers are saved and counted above, but aren't linked to any TLC Group so they never showed up in a section before. Use ✏ Edit on each to assign a TLC Group — they'll move up into that section once you do.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">${cards}</div>
+  </div>`;
+})()}`
 }
 
 function renderFieldwork(){
