@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-08-D8-role-sync-guard">
+<meta name="app-build" content="2026-08-10-D16-dup-teacher-guard">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-08-D8-role-sync-guard';
+const BUILD_VERSION='2026-08-10-D16-dup-teacher-guard';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -280,6 +280,10 @@ const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Scien
 const SEED_TEACHERS=[];
 let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
+// Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
+// utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
+// is the same real-world duplicate even though the raw strings differ.
+function normalizeTeacherName(n){return String(n||'').trim().replace(/\s+/g,' ').toLowerCase();}
 
 async function loadAll(){
   await resolveSchoolId();
@@ -488,7 +492,7 @@ function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.sect
 // ENTIRE row on save (unknown column = whole write fails), which is exactly what was silently
 // happening every time a user/account was added, edited, or had permissions changed: it never
 // actually reached the database, no matter what the app showed.
-function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||''}}
+function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
 function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',comments:r.criteria_comments||{}}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
@@ -536,7 +540,12 @@ async function save(k,v){
     // since a fresh insert has no existing row to fall back on. Fill in a clearly-synthetic
     // placeholder only when there's no real email to preserve, so new accounts can be created
     // without needing to collect a real email address in the Add User form.
-    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal')})),['username','password','sections','grades','teacher_id']);
+    // Same story as email, one column over: password_hash is ALSO a NOT NULL leftover from the
+    // original schema (this app's real login check is plaintext username/password, it never
+    // uses password_hash) — invisible for edits to existing rows (their real hash round-trips
+    // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
+    // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
+    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id))})),['username','password','sections','grades','teacher_id']);
     else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',criteria_comments:o.comments||{}};}),['criteria_comments']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}),['grade']);
@@ -1433,6 +1442,7 @@ function renderTeachers(){
     <button class="btn btn-primary" data-modal="teacher">+ Add Teacher</button>
     <button class="btn btn-ghost" data-modal="bulkTeachers">+ Bulk Add</button>
     <button class="btn btn-ghost" data-modal="group">+ Add Group</button>
+    <button class="btn btn-ghost" data-dedupe-teachers title="Find and remove teachers with the exact same name, keeping the older record">🧹 Remove Duplicates</button>
   </div>`:'<div></div>'}
   <div class="flex items-center gap-2">
     <input class="form-control" id="teacher-search-box" placeholder="🔍 Search name or department…" value="${esc(S.teacherSearch||'')}" style="width:220px;padding:5px 9px;font-size:12px">
@@ -4087,6 +4097,10 @@ function bindEvents(){
     if(!name.trim()){showToast('Please enter a name','error');return;}
     const tchGrades=[...document.querySelectorAll('.tch-grade-cb:checked')].map(cb=>cb.value);
     const editId=(document.getElementById('tch-edit-id')||{}).value||'';
+    // No two teachers with the exact same name (case/spacing-insensitive) — excludes the record
+    // currently being edited so re-saving someone's own name doesn't flag itself.
+    const dupTeacher=S.teachers.find(t=>t.id!==editId&&normalizeTeacherName(t.name)===normalizeTeacherName(name));
+    if(dupTeacher){showToast('A teacher named "'+name.trim()+'" already exists — choose a different name, or edit the existing record instead','error');return;}
     if(editId){
       S.teachers=S.teachers.map(t=>t.id===editId
         ?{...t,name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:tchGrades,groupId:gv('tch-group')||t.groupId}
@@ -4180,6 +4194,13 @@ function bindEvents(){
         rows=rows.slice(1);
       }
       let unmatchedCount=0;
+      // Skip anyone whose name (case/spacing-insensitive) already exists as a teacher, OR
+      // appears more than once inside this same file — per request, always keep the OLDER
+      // record and never create a second copy, whether "older" means already in the database
+      // or just earlier in this spreadsheet.
+      let duplicateSkipped=0;
+      const existingNames=new Set(S.teachers.map(t=>normalizeTeacherName(t.name)));
+      const seenInBatch=new Set();
       const newTeachers=rows.map(r=>{
         const rawDept=firstChoice(r[1]);
         const dept=matchDept(rawDept);
@@ -4191,9 +4212,15 @@ function bindEvents(){
           section:matchSection(r[2]),
           stage:'',grades:[],groupId:autoMatchGroup(dept,rawDept)
         };
-      }).filter(t=>t.name);
+      }).filter(t=>{
+        if(!t.name)return false;
+        const norm=normalizeTeacherName(t.name);
+        if(existingNames.has(norm)||seenInBatch.has(norm)){duplicateSkipped++;return false;}
+        seenInBatch.add(norm);
+        return true;
+      });
       if(!newTeachers.length){
-        showToast('No valid rows found in that file — check it has Name in the first column','error');
+        showToast(duplicateSkipped?('All '+duplicateSkipped+' row(s) in that file were duplicates of existing teachers — nothing new to add.'):'No valid rows found in that file — check it has Name in the first column','error');
         saveBulkTch.disabled=false;saveBulkTch.textContent='Add Teachers';
         if(statusEl)statusEl.textContent='';
         return;
@@ -4205,7 +4232,7 @@ function bindEvents(){
       S.teachers=[...S.teachers,...newTeachers];
       save('teachers',S.teachers);
       S.modal=null;
-      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓'+(createdGroups.length?' — created '+createdGroups.length+' new TLC group'+(createdGroups.length!==1?'s':'')+' for departments with no existing match':'')+(unmatchedCount?' — '+unmatchedCount+" had a Department that didn't match an existing option exactly (left blank on the teacher, but still got its own TLC group by name) — check those via Edit":'')+'. Fill in Grades via ✏ Edit.');
+      showToast(newTeachers.length+' teacher'+(newTeachers.length!==1?'s':'')+' added ✓'+(duplicateSkipped?' — skipped '+duplicateSkipped+' duplicate name'+(duplicateSkipped!==1?'s':'')+' (kept the older record)':'')+(createdGroups.length?' — created '+createdGroups.length+' new TLC group'+(createdGroups.length!==1?'s':'')+' for departments with no existing match':'')+(unmatchedCount?' — '+unmatchedCount+" had a Department that didn't match an existing option exactly (left blank on the teacher, but still got its own TLC group by name) — check those via Edit":'')+'. Fill in Grades via ✏ Edit.');
     }catch(e){
       console.warn('Bulk teacher import failed',e);
       showToast('Could not read that file. For .xlsx this needs an internet connection the first time (to load the Excel reader) — if that keeps failing, try saving it as CSV instead.','error');
@@ -4647,6 +4674,32 @@ function bindEvents(){
   document.querySelectorAll('[data-del-teacher]').forEach(el=>{
     el.onclick=()=>{if(!confirm('Are you sure you want to delete this teacher?'))return;const id=el.dataset.delTeacher;S.teachers=S.teachers.filter(o=>o.id!==id);save('teachers',S.teachers);sbRemove('teachers',id);showToast('Deleted');render();};
   });
+  // One-time cleanup: find teachers sharing the exact same name (case/spacing-insensitive) and
+  // remove every copy after the first. "First" here follows the order S.teachers is already in
+  // (the order it loaded from Supabase), so the record kept is whichever one is older/earlier
+  // in that list. Explicitly calls sbRemove per row, same as the single-teacher delete above,
+  // since resaving the trimmed array alone never issues actual DELETEs server-side.
+  const dedupeTch=document.querySelector('[data-dedupe-teachers]');
+  if(dedupeTch)dedupeTch.onclick=async()=>{
+    const seen=new Set();
+    const toKeep=[];
+    const toRemove=[];
+    S.teachers.forEach(t=>{
+      const norm=normalizeTeacherName(t.name);
+      if(seen.has(norm))toRemove.push(t);
+      else{seen.add(norm);toKeep.push(t);}
+    });
+    if(!toRemove.length){showToast('No duplicate teacher names found ✓');return;}
+    const preview=toRemove.slice(0,5).map(t=>t.name).join(', ')+(toRemove.length>5?', …':'');
+    if(!confirm('Found '+toRemove.length+' duplicate teacher record(s) — keeping the older entry for each name and permanently removing the rest:\n\n'+preview+'\n\nThis cannot be undone. Continue?'))return;
+    dedupeTch.disabled=true;dedupeTch.textContent='Removing…';
+    S.teachers=toKeep;
+    save('teachers',S.teachers);
+    await Promise.all(toRemove.map(t=>sbRemove('teachers',t.id)));
+    showToast('Removed '+toRemove.length+' duplicate teacher record(s) ✓');
+    dedupeTch.disabled=false;dedupeTch.textContent='🧹 Remove Duplicates';
+    render();
+  };
   document.querySelectorAll('[data-del-user]').forEach(el=>{
     el.onclick=async()=>{
       if(!confirm('Are you sure you want to delete this user?'))return;
