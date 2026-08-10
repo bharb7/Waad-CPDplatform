@@ -3419,7 +3419,7 @@ function bindEvents(){
       const p=(gv('l-pass')||'').trim();
       const err=g('l-err');
       const found=getAllUsers().find(x=>x.username.toLowerCase()===u.toLowerCase()&&x.password===p);
-      if(found){const sess={name:found.fullName||found.name||found.username,role:found.role||'viewer',depts:found.depts||[],sections:found.sections||[],grades:found.grades||[]};S.session=sess;sset('session',sess);
+      if(found){const sess={id:found.id||null,name:found.fullName||found.name||found.username,role:found.role||'viewer',depts:found.depts||[],sections:found.sections||[],grades:found.grades||[]};S.session=sess;sset('session',sess);
         // Teacher role goes directly to their portal
         if(found.role==='teacher')S.view='myportal';
         logActivity('Signed in');
@@ -3432,6 +3432,7 @@ function bindEvents(){
         // proves nothing about what's actually saved on the server. This guarantees every
         // login shows the true, current server-side permissions, not a stale local copy.
         await refreshLivePermissions();
+        await refreshLiveData();
         render();return;}
       if(err){err.style.display='block';err.textContent='Invalid credentials. Please contact your administrator.';}
     };
@@ -4839,6 +4840,58 @@ async function refreshLivePermissions(){
     }
   }catch(e){/* best-effort — silent */}
 }
+// Broader live-sync: Role Permissions (above) only covers the SHARED settings of a role (e.g.
+// "what can any CPD Lead see"). Two other things were still only ever fetched once, at page
+// load (loadAll), and never refreshed while a tab stayed open:
+//   1) Teachers / TLC Groups — this is why the same school could show 93 teachers on a device
+//      that was reopened recently and only 64 on a tab that had been sitting open since before
+//      a bulk import: both were "correct" for the moment they last loaded, but only one was
+//      still looking at the live database.
+//   2) An individual PERSON's own account — if an admin changes what THEY specifically are
+//      assigned (their role, or their department/section/grade for scoping, e.g. Saad's
+//      custom access), that person's already-open tab kept using the snapshot taken at their
+//      own login until they logged out and back in. Role Permissions syncing alone couldn't
+//      catch this because it's a per-user change, not a per-role one.
+// Runs on the same ~30s heartbeat, skipped entirely while a modal is open, and only touches
+// state (and re-renders) when something actually changed — so it never disrupts anyone mid-edit
+// and doesn't cause needless re-renders on every tick.
+async function refreshLiveData(){
+  if(!S.session||!SCHOOL_ID||S.modal)return;
+  try{
+    const sid='school_id=eq.'+SCHOOL_ID;
+    const [teachers,groups,usersDb]=await Promise.all([
+      sbGet('teachers',sid+'&select=*'),
+      sbGet('tlc_groups',sid+'&select=*'),
+      sbGet('users',sid+'&select=*'),
+    ]);
+    let changed=false;
+    if(teachers&&Array.isArray(teachers)){
+      const mapped=teachers.map(mapTeacher);
+      if(JSON.stringify(mapped)!==JSON.stringify(S.teachers)){S.teachers=mapped;sset('teachers',S.teachers);changed=true;}
+    }
+    if(groups&&Array.isArray(groups)){
+      const mapped=groups.map(mapGroup);
+      if(JSON.stringify(mapped)!==JSON.stringify(S.groups)){S.groups=mapped;sset('groups',S.groups);changed=true;}
+    }
+    if(usersDb&&Array.isArray(usersDb)){
+      const mapped=usersDb.map(mapUser);
+      if(JSON.stringify(mapped)!==JSON.stringify(S.users)){S.users=mapped;sset('users',S.users);changed=true;}
+    }
+    // Pick up changes to the logged-in person's OWN account (role, or dept/section/grade
+    // scoping) without requiring them to log out and back in. Admin accounts aren't stored as
+    // an editable user row, so this only applies to everyone else.
+    if(!isAdmin()&&S.session.id){
+      const me=getAllUsers().find(u=>u.id===S.session.id);
+      if(me){
+        const fresh={role:me.role||'viewer',depts:me.depts||[],sections:me.sections||[],grades:me.grades||[]};
+        if(fresh.role!==S.session.role||JSON.stringify(fresh.depts)!==JSON.stringify(S.session.depts)||JSON.stringify(fresh.sections)!==JSON.stringify(S.session.sections)||JSON.stringify(fresh.grades)!==JSON.stringify(S.session.grades)){
+          S.session={...S.session,...fresh};sset('session',S.session);changed=true;
+        }
+      }
+    }
+    if(changed)render();
+  }catch(e){/* best-effort — silent, never blocks the rest of the app */}
+}
 // Self-healing fix for "I changed a role's permissions and it works on my device but not on
 // theirs": that symptom is caused by the OTHER person's browser tab still running an OLDER
 // cached copy of this whole page (from before the latest deploy) — refreshLivePermissions()
@@ -4869,6 +4922,7 @@ function startHeartbeat(){
     if(!S.session||!SCHOOL_ID)return;
     updateOnlinePresence(false);
     refreshLivePermissions();
+    refreshLiveData();
     checkForNewVersion();
   },HEARTBEAT_MS);
 }
