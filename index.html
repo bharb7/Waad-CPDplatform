@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-11-D18-visibility-resync">
+<meta name="app-build" content="2026-08-11-D19-sched-time-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-11-D18-visibility-resync';
+const BUILD_VERSION='2026-08-11-D19-sched-time-fix';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -499,6 +499,12 @@ function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cy
 function mapLW(r){const _prevLw=(sget('lwalks')||[]).find(x=>x.id===r.id)||{};return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',grade:r.grade||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||'',mediaImages:_prevLw.mediaImages||[],mediaVideos:_prevLw.mediaVideos||[]}}
 function mapCPD(r){const _prevCpd=(sget('cpd')||[]).find(x=>x.id===r.id)||{};return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active',venue:_prevCpd.venue||'',timeFrom:_prevCpd.timeFrom||'',timeTo:_prevCpd.timeTo||'',mediaImages:_prevCpd.mediaImages||[],mediaVideos:_prevCpd.mediaVideos||[]}}
 function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
+// Every place that displays a schedule row's time was reading the legacy single r.time field
+// (sourced from an old time_slot column) — but the Add/Edit form has always captured a
+// From/To range into timeFrom/timeTo instead, and nothing actually saved to time_slot. So even
+// once time_from/time_to are correctly saved, the table/print/CSV views still need to read
+// THESE fields to actually show what was entered, not the legacy one that was never written to.
+function schedTimeLabel(r){if(r.timeFrom&&r.timeTo)return r.timeFrom+'–'+r.timeTo;return r.timeFrom||r.time||'';}
 function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',tripletId:r.linked_triplet_id||'',teacherResponses:r.teacher_responses||{}}}
 function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
 function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.stage_scores||{},folderLink:r.folder_link||''}}
@@ -552,8 +558,14 @@ async function save(k,v){
     else if(k==='cpd') return await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
     else if(k==='sched'){
       const _uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null}));
-      if(_dbRows.length) return await sbUpsert('schedule_rows',_dbRows);
+      // BUGFIX: this mapping never included time_from/time_to/cost at all, even though the
+      // Add/Edit Schedule Entry form always captured them correctly — so a saved time looked
+      // fine for the rest of that session (optimistic local state) but silently reverted to
+      // blank on the next sync or reload, for every department, not just IT. sbUpsertResilient
+      // (rather than plain sbUpsert) means if these columns somehow don't exist in Supabase yet,
+      // the rest of the row still saves and you get one clear error instead of losing it all.
+      const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null,time_from:r.timeFrom||r.time||null,time_to:r.timeTo||null,cost:r.cost||''}));
+      if(_dbRows.length) return await sbUpsertResilient('schedule_rows',_dbRows,['time_from','time_to','cost']);
       return true;
     }
     else if(k==='impacts') return await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
@@ -588,10 +600,11 @@ async function saveSchedRecord(row,fullArray){
   if(!SCHOOL_ID)return true;
   const uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if(!uuidRe.test(row.id))return true; // seed/local-only row, nothing to persist
-  return await sbUpsert('schedule_rows',[{id:row.id,school_id:SCHOOL_ID,category:row.category||'',program:row.program||'',
+  // Same time_from/time_to/cost omission as the save('sched',...) branch above — fixed the same way.
+  return await sbUpsertResilient('schedule_rows',[{id:row.id,school_id:SCHOOL_ID,category:row.category||'',program:row.program||'',
     facilitator:row.facilitator||'',delivery:row.delivery||'',type:row.type||'',duration:row.duration||'',month:row.month||'',
     start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
-    status:row.status||'planned',cpd_id:row.cpdId||null}]);
+    status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||''}],['time_from','time_to','cost']);
 }
 async function saveTlcTeacherResponse(tlcId,teacherId,text){
   const g=S.deptTLC.find(x=>x.id===tlcId);
@@ -1409,7 +1422,7 @@ ${cats.map(cat=>{
         <td style="font-weight:600;direction:auto">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}${conflicts.has(r.id)?'<span class="badge badge-amber ml-1" style="font-size:10px">⚠ conflict</span>':''}</td>
         <td class="text-xs">${esc(r.facilitator||'—')}</td>
         <td><span class="badge badge-${r.type==='Cambridge'?'purple':r.type==='External'?'amber':r.type==='COBIS'?'green':'blue'}">${esc(r.type||'—')}</span></td>
-        <td class="text-xs">${esc(r.time||'—')}</td>
+        <td class="text-xs">${esc(schedTimeLabel(r)||'—')}</td>
         <td class="text-xs">${esc(r.duration||'—')}</td>
         <td class="text-xs">${r.startDate||'—'}</td>
         <td class="text-xs">${r.endDate||'—'}</td>
@@ -1998,7 +2011,7 @@ ${tab==='schedule'?`
         // Details grid
         +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📅 Date</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.startDate||'—')+(r.endDate&&r.endDate!==r.startDate?'<br><span style="color:var(--muted)">→ '+r.endDate+'</span>':'')+'</div></div>'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🕐 Time</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.time||'—')+'</div></div>'
+        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🕐 Time</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(schedTimeLabel(r)||'—')+'</div></div>'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📍 Venue</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.venue||'TBC')+'</div></div>'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">⏱ Duration</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.duration||'—')+'</div></div>'
         +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🎤 Facilitator</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.facilitator||'—')+'</div></div>'
@@ -5298,7 +5311,7 @@ function printSchedule(){
     const catRows=rows.filter(r=>r.category===cat).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
     if(!catRows.length)return;
     html+='<div class="cat">'+safe(cat)+' ('+catRows.length+')</div><table><thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Venue</th><th>Target</th><th>Cost</th><th>Status</th></tr></thead><tbody>';
-    catRows.forEach(r=>{const sc=scColor(r.status);const sb=scBg(r.status);html+='<tr><td style="font-weight:600">'+safe(r.program)+'</td><td>'+safe(r.facilitator||'—')+'</td><td>'+safe(r.type||'—')+'</td><td>'+safe(r.time||'—')+'</td><td>'+safe(r.duration||'—')+'</td><td>'+safe(r.startDate||'—')+'</td><td>'+safe(r.endDate||'—')+'</td><td>'+safe(r.venue||'—')+'</td><td>'+safe(r.target||'—')+'</td><td>'+safe(r.cost||'—')+'</td><td><span class="pill" style="background:'+sb+';color:'+sc+'">'+safe(r.status)+'</span></td></tr>';});
+    catRows.forEach(r=>{const sc=scColor(r.status);const sb=scBg(r.status);html+='<tr><td style="font-weight:600">'+safe(r.program)+'</td><td>'+safe(r.facilitator||'—')+'</td><td>'+safe(r.type||'—')+'</td><td>'+safe(schedTimeLabel(r)||'—')+'</td><td>'+safe(r.duration||'—')+'</td><td>'+safe(r.startDate||'—')+'</td><td>'+safe(r.endDate||'—')+'</td><td>'+safe(r.venue||'—')+'</td><td>'+safe(r.target||'—')+'</td><td>'+safe(r.cost||'—')+'</td><td><span class="pill" style="background:'+sb+';color:'+sc+'">'+safe(r.status)+'</span></td></tr>';});
     html+='</tbody></table>';
   });
   html+='<div style="margin-top:14px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy School Improvement Platform · Annual Schedule · '+new Date().toLocaleDateString()+'</div></body></html>';
@@ -5313,7 +5326,7 @@ function exportScheduleExcel(){
   if(dt)rows=rows.filter(r=>(r.startDate||'')<=dt);
   rows.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const header=['Category','Programme','Facilitator','Type','Delivery','Time','Duration','Start Date','End Date','Month','Venue','Target Audience','Cost','Status'];
-  const data=rows.map(r=>[r.category||'',r.program||'',r.facilitator||'',r.type||'',r.delivery||'',r.time||'',r.duration||'',r.startDate||'',r.endDate||'',r.month||'',r.venue||'',r.target||'',r.cost||'',r.status||'']);
+  const data=rows.map(r=>[r.category||'',r.program||'',r.facilitator||'',r.type||'',r.delivery||'',schedTimeLabel(r)||'',r.duration||'',r.startDate||'',r.endDate||'',r.month||'',r.venue||'',r.target||'',r.cost||'',r.status||'']);
   const filterLabel=[mf?'Month: '+mf:'',df?'From: '+df:'',dt?'To: '+dt:''].filter(Boolean).join(' | ')||'All Programmes';
   const summaryRows=[['Waad Academy — Annual CPD & Training Schedule','','','','','','','','','','','','',''],[ filterLabel,'','Total: '+rows.length,'','','','','','','','','','',''],['Printed: '+new Date().toLocaleDateString(),'','','','','','','','','','','','',''],['','','','','','','','','','','','','',''],header];
   const allRows=[...summaryRows,...data];
