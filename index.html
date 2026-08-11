@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-10-D17-scope-view-guard">
+<meta name="app-build" content="2026-08-11-D18-visibility-resync">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-10-D17-scope-view-guard';
+const BUILD_VERSION='2026-08-11-D18-visibility-resync';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -5339,6 +5339,29 @@ async function refreshFromDB(){
   showToast('Refreshing from database...');
   await loadAll();render();showToast('Data refreshed ✓');
 }
+// Root cause of "it works when I log in fresh / switch accounts on my own device, but the
+// actual person's own device still shows the old permissions": browsers throttle — or fully
+// suspend — setInterval timers in a tab that isn't visible/focused (backgrounded, laptop
+// asleep, switched away to another app for a while), to save battery/CPU. So the 30s heartbeat
+// isn't reliably running "every 30s" on a device that's just been sitting open in the
+// background; it can silently stall far longer than that, leaving that device on a genuinely
+// stale copy of Role Permissions, Teachers, Users, etc. — even though every fix so far to make
+// that heartbeat itself correct has been working exactly as designed. This catches it up the
+// instant the tab is looked at again, instead of waiting on however long the throttled timer
+// takes to fire next.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'||!S.session)return;
+  refreshLivePermissions();
+  refreshLiveData();
+  updateOnlinePresence(false);
+  checkForNewVersion();
+});
+window.addEventListener('focus',()=>{
+  if(!S.session)return;
+  refreshLivePermissions();
+  refreshLiveData();
+  updateOnlinePresence(false);
+});
 async function boot(){
   document.getElementById('app').innerHTML=`
     <div style="min-height:100vh;background:#163A5F;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
