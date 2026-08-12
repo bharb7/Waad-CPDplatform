@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-11-D19-sched-time-fix">
+<meta name="app-build" content="2026-08-12-D20-seed-migrate">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-11-D19-sched-time-fix';
+const BUILD_VERSION='2026-08-12-D20-seed-migrate';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -4282,7 +4282,7 @@ function bindEvents(){
   };
 
   const saveUser=document.querySelector('[data-save-user]');
-  if(saveUser)saveUser.onclick=()=>{
+  if(saveUser)saveUser.onclick=async()=>{
     const editId=(document.getElementById('u-edit-id')||{}).value||'';
     const name=gv('u-name'),uname=gv('u-user'),pass=gv('u-pass'),role=gv('u-role');
     const depts=[...document.querySelectorAll('#u-depts option:checked')].map(o=>o.value);
@@ -4294,12 +4294,32 @@ function bindEvents(){
       const allUsers=getAllUsers();
       const existing=allUsers.find(u=>u.id===editId);
       if(!existing){showToast('User not found','error');return;}
-      const updated={...existing,name,fullName:name,username:uname,role,depts,sections:sections.length?sections:[],grades:grades.length?grades:[]};
+      // Seed accounts (shown with a "seed" badge in the list) only ever existed as hardcoded
+      // demo data baked into this file — never a real row in Supabase — so their id is a made-up
+      // string, not a real UUID. The users table's id column requires a real UUID, so saving any
+      // edit to one of these (grades, section, role, anything) always failed outright with
+      // "invalid input syntax for type uuid" — and since that failure happened after the screen
+      // had already optimistically shown the change, it looked like the edit worked and then
+      // mysteriously reverted on the next sync. Fix: the moment a seed account is edited,
+      // transparently migrate it into a real database row with a brand-new UUID, carrying over
+      // the exact same name/username/password so their login is completely unaffected, and
+      // tombstone the old synthetic id (same mechanism already used for deleted seed accounts)
+      // so it doesn't also keep showing up as a duplicate.
+      const _uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const needsMigration=!_uuidRe.test(editId);
+      const newId=needsMigration?uid():editId;
+      const updated={...existing,id:newId,name,fullName:name,username:uname,role,depts,sections:sections.length?sections:[],grades:grades.length?grades:[]};
       if(pass)updated.password=pass;
-      const localIdx=S.users.findIndex(u=>u.id===editId);
-      if(localIdx>=0){S.users[localIdx]=updated;}else{S.users=[...S.users,updated];}
-      save('users',S.users);
-      S.modal=null;showToast('User updated ✓ — saved to the database, will apply on their next login/refresh');
+      if(needsMigration){
+        await updateDeletedSeedUsers(list=>[...new Set([...list,editId])]);
+        S.users=[...S.users.filter(u=>u.id!==editId),updated];
+      }else{
+        const localIdx=S.users.findIndex(u=>u.id===editId);
+        if(localIdx>=0){S.users[localIdx]=updated;}else{S.users=[...S.users,updated];}
+      }
+      await save('users',S.users);
+      S.modal=null;
+      showToast(needsMigration?'User updated ✓ — this was a seed account, now moved into the real database so future edits (including scope) will save correctly':'User updated ✓ — saved to the database, will apply on their next login/refresh');
     }else{
       if(getAllUsers().find(u=>u.username.toLowerCase()===uname.toLowerCase())){showToast('Username already exists','error');return;}
       const u={id:uid(),name,fullName:name,username:uname,password:pass,role,depts,sections:sections.length?sections:[],grades:grades.length?grades:[]};
@@ -5071,10 +5091,19 @@ async function refreshLiveData(){
     // scoping) without requiring them to log out and back in. Admin accounts aren't stored as
     // an editable user row, so this only applies to everyone else.
     if(!isAdmin()&&S.session.id){
-      const me=getAllUsers().find(u=>u.id===S.session.id);
+      // Falls back to matching by username if the id lookup misses — this covers someone who's
+      // actively logged in on their own device at the exact moment a seed account they're using
+      // gets auto-migrated to a real UUID (see data-save-user): their session otherwise keeps
+      // pointing at the now-tombstoned old id and would silently stop picking up further scope
+      // changes until they logged out and back in.
+      const all=getAllUsers();
+      let me=all.find(u=>u.id===S.session.id);
+      if(!me&&S.session.name){
+        me=all.find(u=>(u.fullName||u.name)===S.session.name&&u.role===S.session.role);
+      }
       if(me){
-        const fresh={role:me.role||'viewer',depts:me.depts||[],sections:me.sections||[],grades:me.grades||[]};
-        if(fresh.role!==S.session.role||JSON.stringify(fresh.depts)!==JSON.stringify(S.session.depts)||JSON.stringify(fresh.sections)!==JSON.stringify(S.session.sections)||JSON.stringify(fresh.grades)!==JSON.stringify(S.session.grades)){
+        const fresh={id:me.id,role:me.role||'viewer',depts:me.depts||[],sections:me.sections||[],grades:me.grades||[]};
+        if(fresh.id!==S.session.id||fresh.role!==S.session.role||JSON.stringify(fresh.depts)!==JSON.stringify(S.session.depts)||JSON.stringify(fresh.sections)!==JSON.stringify(S.session.sections)||JSON.stringify(fresh.grades)!==JSON.stringify(S.session.grades)){
           S.session={...S.session,...fresh};sset('session',S.session);changed=true;
         }
       }
