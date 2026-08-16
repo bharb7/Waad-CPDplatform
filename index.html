@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-12-D20-seed-migrate">
+<meta name="app-build" content="2026-08-16-D21-teacher-email-print">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-12-D20-seed-migrate';
+const BUILD_VERSION='2026-08-16-D21-teacher-email-print';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -484,7 +484,12 @@ async function updateDeletedSeedUsers(mutatorFn){
   return await save('deletedSeedUsers',S.deletedSeedUsers);
 }
 
-function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||''}}
+function mapTeacher(r){return{id:r.id,name:r.name,dept:r.dept||'',section:r.section||'',stage:r.stage||'',grades:r.grades||[],groupId:r.group_id||'',email:r.email||''}}
+// Looks up a teacher's real contact email from their linked teacher record — used when
+// printing/displaying credentials for a generated login account (u.teacherId), since the
+// login account's own "email" field is an internal placeholder (see save()'s 'users' branch),
+// never the teacher's actual email address.
+function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u.teacherId):null;return t?t.email||'':'';}
 // IMPORTANT: the real public.users table's role column is named role_key (NOT role — that name
 // is only taken by Supabase's own internal auth.users.role and doesn't exist on this table). It
 // also has no username/password/sections/teacher_id/grades columns yet — see the ALTER TABLE
@@ -531,7 +536,7 @@ async function save(k,v){
     // don't actually know — those still show blank until fixed via Edit, which is correct: this
     // value matters for the Head of Section scoping feature, so silently guessing wrong would be
     // worse than leaving it blank.
-    if(k==='teachers') return await sbUpsertResilient('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:SECTIONS.includes(t.section)?t.section:null,stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null})),['grades']);
+    if(k==='teachers') return await sbUpsertResilient('teachers',v.map(t=>({id:t.id,school_id:sid,name:t.name,dept:t.dept||'',section:SECTIONS.includes(t.section)?t.section:null,stage:t.stage||'',grades:t.grades||[],group_id:t.groupId||null,email:t.email||''})),['grades','email']);
     else if(k==='groups') return await sbUpsert('tlc_groups',v.map(g=>({id:g.id,school_id:sid,name:g.name,color:g.color||'#1F4E79'})));
     // role_key (not "role") is the real column name on public.users. username/password/sections/
     // teacher_id/grades are optional — they only exist after the ALTER TABLE statements shipped
@@ -2876,7 +2881,7 @@ function renderSettings(){
       <div class="card-title" style="margin:0">👥 Users (${users.length})</div>
       <div class="flex gap-2">
         ${canEdit()?`<button class="btn btn-success btn-sm" data-modal="genTeachers">🧑‍🏫 Generate Teacher Accounts</button>`:''}
-        ${isAdmin()?`<button class="btn btn-ghost btn-sm" onclick="printAllTeacherCredentials()" title="Print every teacher's username &amp; password">🖨 Print Teacher Logins</button>`:''}
+        ${isAdmin()?`<button class="btn btn-ghost btn-sm" onclick="S.allCredsDept='';S.modal=renderModal('allTeacherCreds');render()" title="Print teacher logins — filterable by department">🖨 Print Teacher Logins</button>`:''}
         ${canEdit()?`<button class="btn btn-ghost btn-sm" onclick="exportUsersForGitHub()" title="Optional manual backup — accounts already sync live to the database">⬆ Backup / Export</button>`:''}
       </div>
     </div>
@@ -3286,6 +3291,7 @@ function renderModal(type, data={}){
     const tGrades=data.grades||[];
     return M((isTchEdit?'✏ Edit Teacher':'👩‍🏫 Add Teacher'),
       FI('tch-name','Full Name (Arabic/English)',data.name||'','text','Teacher name')+
+      FI('tch-email','Email (optional)',data.email||'','email','teacher@school.edu')+
       G2(FS('tch-dept','Department',DEPTS,data.dept||DEPTS[0]),FS('tch-sect','Section',SECTIONS,data.section||SECTIONS[0]))+
       G2(FS('tch-stage','Stage',STAGES,data.stage||STAGES[0]),
          FS('tch-group','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],data.groupId||''))+
@@ -3310,6 +3316,7 @@ function renderModal(type, data={}){
   }
 
   if(type==='genTeachers'){
+    S.genTeacherSelected=S.genTeacherSelected||[];
     const existingTeacherIds=new Set(getAllUsers().filter(u=>u.role==='teacher'&&u.teacherId).map(u=>u.teacherId));
     let avail=S.teachers.filter(t=>!existingTeacherIds.has(t.id));
     const gd=S.genTeacherDepts||[];
@@ -3318,19 +3325,22 @@ function renderModal(type, data={}){
       const q=S.genTeacherSearch.toLowerCase();
       avail=avail.filter(t=>t.name.toLowerCase().includes(q));
     }
+    const sel=S.genTeacherSelected;
+    const allFilteredSelected=avail.length>0&&avail.every(t=>sel.includes(t.id));
     return M('🧑‍🏫 Generate Teacher Accounts',
-      `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Pick teachers below and a username + password will be generated automatically for each — no need to type them one by one. Only teachers without an existing account are shown.</p>
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Pick teachers below and a username + password will be generated automatically for each — no need to type them one by one. Only teachers without an existing account are shown. Your selection is kept even if you change the filter below.</p>
       <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-        <div class="pill-opt ${gd.length===0?'sel':''}" onclick="S.genTeacherDepts=[];render()">All</div>
-        ${DEPTS.map(d=>`<div class="pill-opt ${gd.includes(d)?'sel':''}" onclick="const i=S.genTeacherDepts.indexOf('${d}');if(i>=0)S.genTeacherDepts.splice(i,1);else S.genTeacherDepts.push('${d}');render()">${d}</div>`).join('')}
+        <div class="pill-opt ${gd.length===0?'sel':''}" onclick="S.genTeacherDepts=[];S.modal=renderModal('genTeachers');render()">All</div>
+        ${DEPTS.map(d=>`<div class="pill-opt ${gd.includes(d)?'sel':''}" onclick="const i=S.genTeacherDepts.indexOf('${d}');if(i>=0)S.genTeacherDepts.splice(i,1);else S.genTeacherDepts.push('${d}');S.modal=renderModal('genTeachers');render()">${d}</div>`).join('')}
       </div>
       <input class="form-control mb-2" id="gen-teacher-search" placeholder="🔍 Search name…" value="${esc(S.genTeacherSearch||'')}">
       <div class="flex justify-between items-center mb-2">
-        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="gen-select-all"> Select all filtered (${avail.length})</label>
+        <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="gen-select-all" ${allFilteredSelected?'checked':''}> Select all filtered (${avail.length})</label>
+        <span style="font-size:11px;color:var(--muted)">${sel.length} selected total</span>
       </div>
       <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
       ${avail.length?avail.map(t=>`<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #f1f1f1;font-size:12.5px;cursor:pointer">
-        <input type="checkbox" class="gen-teacher-cb" value="${t.id}"> ${esc(t.name)} <span class="badge badge-blue" style="font-size:9px">${esc(t.dept)}</span>
+        <input type="checkbox" class="gen-teacher-cb" value="${t.id}" ${sel.includes(t.id)?'checked':''} onchange="const i=S.genTeacherSelected.indexOf('${t.id}');if(this.checked){if(i<0)S.genTeacherSelected.push('${t.id}')}else{if(i>=0)S.genTeacherSelected.splice(i,1)}"> ${esc(t.name)} <span class="badge badge-blue" style="font-size:9px">${esc(t.dept)}</span>${t.email?` <span style="font-size:10px;color:var(--muted)">${esc(t.email)}</span>`:''}
       </label>`).join(''):'<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;font-style:italic">No teachers available (either none match the filter, or all already have accounts).</div>'}
       </div>`,
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-gen-teacher-accounts>Generate Accounts</button>`
@@ -3339,13 +3349,43 @@ function renderModal(type, data={}){
 
   if(type==='genTeachersResult'){
     const created=data.created||[];
+    const gfd=S.genResultDept||'';
+    const filtered=gfd?created.filter(u=>u.dept===gfd):created;
+    const deptsPresent=[...new Set(created.map(u=>u.dept).filter(Boolean))];
     return M('✅ Teacher Accounts Created',
       `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Share these credentials with each teacher. These accounts are already saved to the database — you can also print or copy every teacher's login anytime from Settings → 🖨 Print Teacher Logins.</p>
+      ${deptsPresent.length>1?`<div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+        <div class="pill-opt ${!gfd?'sel':''}" onclick="S.genResultDept='';S.modal=renderModal('genTeachersResult',window.__genTeachersResultData);render()">All (${created.length})</div>
+        ${deptsPresent.map(d=>`<div class="pill-opt ${gfd===d?'sel':''}" onclick="S.genResultDept='${esc(d)}';S.modal=renderModal('genTeachersResult',window.__genTeachersResultData);render()">${esc(d)}</div>`).join('')}
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="printGenTeachersResult()" title="Print ${gfd?esc(gfd):'this list'}">🖨 ${gfd?'Print '+esc(gfd):'Print filtered'}</button>
+      </div>`:''}
       <table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Name</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Username</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Password</th></tr></thead>
-        <tbody>${created.map(u=>`<tr><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u.name)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.username)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.password)}</td></tr>`).join('')}</tbody>
+        <thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Name</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Dept</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Email</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Username</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border)">Password</th></tr></thead>
+        <tbody>${filtered.map(u=>`<tr><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u.name)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u.dept||'—')}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u.teacherEmail||'—')}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.username)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.password)}</td></tr>`).join('')}</tbody>
       </table>`,
-      `<button class="btn btn-ghost" onclick="printTeacherCredentials()">🖨 Print</button><button class="btn btn-primary" data-close-modal>Done</button>`
+      `<button class="btn btn-ghost" onclick="printTeacherCredentials()">🖨 Print All</button><button class="btn btn-primary" data-close-modal>Done</button>`
+    );
+  }
+
+  if(type==='allTeacherCreds'){
+    const gfd=S.allCredsDept||'';
+    const withMeta=getAllUsers().filter(u=>u.role==='teacher').map(u=>({...u,_dept:u.dept||(u.depts&&u.depts[0])||'',_email:u.teacherEmail||teacherEmailFor(u)||''}));
+    const deptsPresent=[...new Set(withMeta.map(u=>u._dept).filter(Boolean))].sort();
+    const filtered=(gfd?withMeta.filter(u=>u._dept===gfd):withMeta).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    return M('🖨 All Teacher Account Credentials',
+      `<p style="font-size:12px;color:var(--muted);margin-bottom:10px">Filter by department, then print just that department's logins — e.g. filter to Mathematics to hand only the Math HOD their team's credentials.</p>
+      <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+        <div class="pill-opt ${!gfd?'sel':''}" onclick="S.allCredsDept='';S.modal=renderModal('allTeacherCreds');render()">All (${withMeta.length})</div>
+        ${deptsPresent.map(d=>`<div class="pill-opt ${gfd===d?'sel':''}" onclick="S.allCredsDept='${esc(d)}';S.modal=renderModal('allTeacherCreds');render()">${esc(d)}</div>`).join('')}
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="printAllTeacherCredsFiltered()" title="Print ${gfd?esc(gfd):'all'}">🖨 ${gfd?'Print '+esc(gfd):'Print All'}</button>
+      </div>
+      <div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border);background:var(--light)">Name</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border);background:var(--light)">Dept</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border);background:var(--light)">Email</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border);background:var(--light)">Username</th><th style="text-align:left;padding:6px;border-bottom:2px solid var(--border);background:var(--light)">Password</th></tr></thead>
+        <tbody>${filtered.length?filtered.map(u=>`<tr><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u.name||u.fullName||'')}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u._dept||'—')}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1">${esc(u._email||'—')}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.username)}</td><td style="padding:6px;border-bottom:1px solid #f1f1f1;font-family:monospace">${esc(u.password)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;font-style:italic">No teacher accounts match this filter.</td></tr>'}</tbody>
+      </table>
+      </div>`,
+      `<button class="btn btn-primary" data-close-modal>Close</button>`
     );
   }
 
@@ -3581,14 +3621,20 @@ function bindEvents(){
   if(userZoneSearchBox)userZoneSearchBox.oninput=()=>{S.userZoneSearch=userZoneSearchBox.value;render();};
   // ── Generate Teacher Accounts ────────────────────────────────────────────
   const genTeacherSearchBox=document.getElementById('gen-teacher-search');
-  if(genTeacherSearchBox)genTeacherSearchBox.oninput=()=>{S.genTeacherSearch=genTeacherSearchBox.value;render();};
+  if(genTeacherSearchBox)genTeacherSearchBox.oninput=()=>{S.genTeacherSearch=genTeacherSearchBox.value;S.modal=renderModal('genTeachers');render();};
   const genSelectAll=document.getElementById('gen-select-all');
   if(genSelectAll)genSelectAll.onchange=()=>{
-    document.querySelectorAll('.gen-teacher-cb').forEach(cb=>{cb.checked=genSelectAll.checked;});
+    S.genTeacherSelected=S.genTeacherSelected||[];
+    document.querySelectorAll('.gen-teacher-cb').forEach(cb=>{
+      cb.checked=genSelectAll.checked;
+      const i=S.genTeacherSelected.indexOf(cb.value);
+      if(genSelectAll.checked){if(i<0)S.genTeacherSelected.push(cb.value);}
+      else{if(i>=0)S.genTeacherSelected.splice(i,1);}
+    });
   };
   const genBtn=document.querySelector('[data-gen-teacher-accounts]');
   if(genBtn)genBtn.onclick=()=>{
-    const ids=Array.from(document.querySelectorAll('.gen-teacher-cb:checked')).map(cb=>cb.value);
+    const ids=(S.genTeacherSelected&&S.genTeacherSelected.length)?S.genTeacherSelected.slice():Array.from(document.querySelectorAll('.gen-teacher-cb:checked')).map(cb=>cb.value);
     if(!ids.length){showToast('Select at least one teacher','error');return;}
     const created=[];
     ids.forEach(tid=>{
@@ -3596,13 +3642,19 @@ function bindEvents(){
       if(!t)return;
       const username=generateUsername(t.name);
       const password=generateTeacherPassword();
-      const u={id:uid(),name:t.name,fullName:t.name,username,password,role:'teacher',depts:[t.dept],sections:[],teacherId:t.id};
+      // teacherEmail/dept are display-only conveniences for the credentials list/print — save()'s
+      // 'users' upsert only picks known fields (see line ~559), so these are never sent to Supabase
+      // and never collide with the unrelated internal placeholder u.email used for the NOT NULL column.
+      const u={id:uid(),name:t.name,fullName:t.name,username,password,role:'teacher',depts:[t.dept],sections:[],teacherId:t.id,dept:t.dept,teacherEmail:t.email||''};
       S.users=[...S.users,u];
       created.push(u);
     });
     save('users',S.users);
     window.__lastGenerated=created;
-    S.modal=renderModal('genTeachersResult',{created});
+    window.__genTeachersResultData={created};
+    S.genTeacherSelected=[];
+    S.genResultDept='';
+    S.modal=renderModal('genTeachersResult',window.__genTeachersResultData);
     render();
     showToast(created.length+' teacher account(s) created ✓ and saved to the database');
   };
@@ -4141,15 +4193,16 @@ function bindEvents(){
     // currently being edited so re-saving someone's own name doesn't flag itself.
     const dupTeacher=S.teachers.find(t=>t.id!==editId&&normalizeTeacherName(t.name)===normalizeTeacherName(name));
     if(dupTeacher){showToast('A teacher named "'+name.trim()+'" already exists — choose a different name, or edit the existing record instead','error');return;}
+    const tchEmail=gv('tch-email').trim();
     if(editId){
       S.teachers=S.teachers.map(t=>t.id===editId
-        ?{...t,name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:tchGrades,groupId:gv('tch-group')||t.groupId}
+        ?{...t,name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:tchGrades,groupId:gv('tch-group')||t.groupId,email:tchEmail}
         :t);
       save('teachers',S.teachers);
       S.modal=null;S.editingId=null;
       showToast('Teacher updated ✓');
     }else{
-      const t={id:uid(),name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:tchGrades,groupId:gv('tch-group')||S.groups[0]?.id};
+      const t={id:uid(),name,dept:gv('tch-dept'),section:gv('tch-sect'),stage:gv('tch-stage'),grades:tchGrades,groupId:gv('tch-group')||S.groups[0]?.id,email:tchEmail};
       S.teachers=[...S.teachers,t];
       save('teachers',S.teachers);
       S.modal=null;
@@ -5276,8 +5329,12 @@ function printTLC(id){
   +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+'</div></body></html>');
   w.document.close();setTimeout(()=>w.print(),400);
 }
+// extraCol accepts either a single {label,get} column (original signature — still fully
+// supported so nothing that already calls this breaks) or an array of such columns, e.g.
+// [{label:'Department',get:...},{label:'Email',get:...}] for the newer filtered-print views.
 function printCredentialsList(list,title,extraCol){
   if(!list||!list.length)return;
+  const cols=Array.isArray(extraCol)?extraCol:(extraCol?[extraCol]:[]);
   const safe=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const w=window.open('','_blank','width=800,height=1000');
   w.document.write('<!DOCTYPE html><html><head><title>'+safe(title)+'</title>'
@@ -5287,20 +5344,39 @@ function printCredentialsList(list,title,extraCol){
   +'td{font-family:monospace}@media print{button{display:none!important}}</style></head><body>'
   +'<div style="display:flex;justify-content:space-between;align-items:start"><h1>🔑 '+safe(title)+'</h1>'
   +'<button onclick="window.print()" style="padding:6px 14px;background:#163A5F;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer">🖨 Print</button></div>'
-  +'<table><thead><tr><th>Name</th>'+(extraCol?'<th>'+safe(extraCol.label)+'</th>':'')+'<th>Username</th><th>Password</th></tr></thead><tbody>'
-  +list.map(u=>'<tr><td style="font-family:inherit">'+safe(u.name)+'</td>'+(extraCol?'<td style="font-family:inherit">'+safe(extraCol.get(u))+'</td>':'')+'<td>'+safe(u.username)+'</td><td>'+safe(u.password)+'</td></tr>').join('')
+  +'<table><thead><tr><th>Name</th>'+cols.map(c=>'<th>'+safe(c.label)+'</th>').join('')+'<th>Username</th><th>Password</th></tr></thead><tbody>'
+  +list.map(u=>'<tr><td style="font-family:inherit">'+safe(u.name)+'</td>'+cols.map(c=>'<td style="font-family:inherit">'+safe(c.get(u))+'</td>').join('')+'<td>'+safe(u.username)+'</td><td>'+safe(u.password)+'</td></tr>').join('')
   +'</tbody></table><div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Generated '+new Date().toLocaleDateString()+'</div></body></html>');
   w.document.close();setTimeout(()=>w.print(),400);
 }
 function printTeacherCredentials(){
-  printCredentialsList(window.__lastGenerated||[],'Teacher Account Credentials');
+  printCredentialsList(window.__lastGenerated||[],'Teacher Account Credentials',[{label:'Department',get:u=>u.dept||(u.depts&&u.depts[0])||'—'},{label:'Email',get:u=>u.teacherEmail||teacherEmailFor(u)||'—'}]);
+}
+// Prints only the department currently filtered in the "Teacher Accounts Created" modal
+// (window.__genTeachersResultData / S.genResultDept) — used by the print icon beside that
+// modal's department pills so e.g. only Mathematics accounts get printed for the Math HOD.
+function printGenTeachersResult(){
+  const created=(window.__genTeachersResultData&&window.__genTeachersResultData.created)||[];
+  const gfd=S.genResultDept||'';
+  const filtered=gfd?created.filter(u=>u.dept===gfd):created;
+  printCredentialsList(filtered,'Teacher Account Credentials'+(gfd?' — '+gfd:''),[{label:'Department',get:u=>u.dept||'—'},{label:'Email',get:u=>u.teacherEmail||'—'}]);
 }
 // Admin-only: print/export username+password for every teacher account currently on file
 // (not just the ones just generated) — so accounts created previously aren't stuck unprintable.
 function printAllTeacherCredentials(){
   const list=getAllUsers().filter(u=>u.role==='teacher').slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   if(!list.length){showToast('No teacher accounts yet — use "Generate Teacher Accounts" first','error');return;}
-  printCredentialsList(list,'All Teacher Account Credentials ('+list.length+')',{label:'Department',get:u=>(u.depts&&u.depts[0])||'—'});
+  printCredentialsList(list,'All Teacher Account Credentials ('+list.length+')',[{label:'Department',get:u=>u.dept||(u.depts&&u.depts[0])||'—'},{label:'Email',get:u=>u.teacherEmail||teacherEmailFor(u)||'—'}]);
+}
+// Prints only the department currently filtered in the "All Teacher Account Credentials" modal.
+function printAllTeacherCredsFiltered(){
+  const gfd=S.allCredsDept||'';
+  const list=getAllUsers().filter(u=>u.role==='teacher')
+    .map(u=>({...u,_dept:u.dept||(u.depts&&u.depts[0])||'',_email:u.teacherEmail||teacherEmailFor(u)||''}))
+    .filter(u=>!gfd||u._dept===gfd)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  if(!list.length){showToast('No teacher accounts match this filter','error');return;}
+  printCredentialsList(list,'Teacher Account Credentials'+(gfd?' — '+gfd:' (All)'),[{label:'Department',get:u=>u._dept||'—'},{label:'Email',get:u=>u._email||'—'}]);
 }
 function printCPD(id){
   const c=S.cpd.find(x=>x.id===id);if(!c)return;
