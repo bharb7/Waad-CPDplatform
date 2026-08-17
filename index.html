@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-16-D22-tlc-resources-sched-obs">
+<meta name="app-build" content="2026-08-16-D24-lw-cpd-media-sync">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-16-D22-tlc-resources-sched-obs';
+const BUILD_VERSION='2026-08-16-D24-lw-cpd-media-sync';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -124,6 +124,25 @@ async function resolveSchoolId(){sset('school_id',SCHOOL_ID);}
 // "Junaid's device shows old permissions" (that turned out to be the whole app page itself being
 // served from cache — see vercel.json), but it removes one more possible source of stale reads.
 async function sbGet(table,params=''){try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:{...SB_HEADERS,'Prefer':'count=none'},cache:'no-store'});if(!r.ok){const e=await r.text();console.warn('sbGet failed',table,r.status,e);return null;}return await r.json();}catch(e){console.warn('sbGet error',table,e);return null;}}
+const SB_BUCKET='media';
+// Uploads a File straight to the public Supabase Storage bucket and returns its permanent public
+// URL (or null on failure). Replaces the old approach of base64-encoding whole files into database
+// columns — the ~500MB free-tier DATABASE limit stays free for actual data, since Storage is a
+// separate, much larger quota built for exactly this. Every media/attachment upload in the app
+// (Learning Walks, CPD, Dept TLC) goes through this one function.
+async function sbUploadFile(file,folder){
+  try{
+    const safeName=(file.name||'file').replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path=folder+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'_'+safeName;
+    const r=await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream'},
+      body:file,cache:'no-store'
+    });
+    if(!r.ok){const e=await r.text();console.warn('sbUploadFile failed',path,r.status,e);return null;}
+    return SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+path;
+  }catch(e){console.warn('sbUploadFile error',e);return null;}
+}
 let LAST_DB_ERROR='';
 async function sbUpsert(table,data,opts={}){if(!data||!data.length)return true;try{const r=await fetch(SB_URL+'/rest/v1/'+table+'?on_conflict=id',{method:'POST',headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(Array.isArray(data)?data:[data]),cache:'no-store'});if(!r.ok){const e=await r.text();console.warn('sbUpsert failed',table,r.status,e);LAST_DB_ERROR=table+': '+r.status+' '+e.slice(0,300);if(!opts.silent)showToast('DB save error ('+table+'): '+r.status+' '+e.slice(0,300),'error');return false;}return true;}catch(e){console.warn('sbUpsert error',table,e);LAST_DB_ERROR=table+': network/exception — '+e.message;if(!opts.silent)showToast('DB save error ('+table+'): could not reach the server','error');return false;}}
 // Some columns (teacher_responses on dept_tlc_groups, criteria_comments on observations) were
@@ -501,8 +520,17 @@ function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
 function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
-function mapLW(r){const _prevLw=(sget('lwalks')||[]).find(x=>x.id===r.id)||{};return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',grade:r.grade||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||'',mediaImages:_prevLw.mediaImages||[],mediaVideos:_prevLw.mediaVideos||[]}}
-function mapCPD(r){const _prevCpd=(sget('cpd')||[]).find(x=>x.id===r.id)||{};return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active',venue:_prevCpd.venue||'',timeFrom:_prevCpd.timeFrom||'',timeTo:_prevCpd.timeTo||'',mediaImages:_prevCpd.mediaImages||[],mediaVideos:_prevCpd.mediaVideos||[]}}
+// mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
+// never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
+// photos/videos into the database was exactly the storage-bloat risk this round's Storage-bucket
+// migration was built to avoid. Now that these fields hold small Storage URLs instead, it's safe
+// to read them straight from the server like every other field, so evidence actually syncs across
+// devices instead of only ever being visible on the browser it was uploaded from.
+function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section:r.section||'',dept:r.dept||'',grade:r.grade||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',strengths:r.strengths||'',afd:r.afd||'',focusArea:r.focus_area||'',mediaImages:r.media_images||[],mediaVideos:r.media_videos||[]}}
+// venue/timeFrom/timeTo are a separate, pre-existing local-cache-only quirk unrelated to media
+// storage — left untouched here (not part of this round's ask). mediaImages/mediaVideos now read
+// straight from the server like attachments already do, for the same reason as mapLW above.
+function mapCPD(r){const _prevCpd=(sget('cpd')||[]).find(x=>x.id===r.id)||{};return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active',venue:_prevCpd.venue||'',timeFrom:_prevCpd.timeFrom||'',timeTo:_prevCpd.timeTo||'',mediaImages:r.media_images||[],mediaVideos:r.media_videos||[],attachments:r.attachments||[]}}
 function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
 // Every place that displays a schedule row's time was reading the legacy single r.time field
 // (sourced from an old time_slot column) — but the Add/Edit form has always captured a
@@ -559,8 +587,8 @@ async function save(k,v){
     else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id))})),['username','password','sections','grades','teacher_id']);
     else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
-    else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||''};}),['grade']);
-    else if(k==='cpd') return await sbUpsert('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active'};}));
+    else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
+    else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
     else if(k==='sched'){
       const _uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       // BUGFIX: this mapping never included time_from/time_to/cost at all, even though the
@@ -595,10 +623,11 @@ async function saveCpdRecord(cpd,fullArray){
   sset('cpd',fullArray); // keep the full local cache in sync for offline fallback
   if(!SCHOOL_ID)return true;
   const tech=cpd.bio||cpd.customTech||'';
-  return await sbUpsert('cpd_sessions',[{id:cpd.id,school_id:SCHOOL_ID,title:cpd.title||'',date:cpd.date||null,
+  return await sbUpsertResilient('cpd_sessions',[{id:cpd.id,school_id:SCHOOL_ID,title:cpd.title||'',date:cpd.date||null,
     facilitator:cpd.facilitator||'',audience:cpd.audience||'',type:cpd.type||'Internal',delivery:cpd.delivery||'Workshop',
     month:cpd.month||'',techniques:tech?[tech]:[],before_text:cpd.before||'',during_text:cpd.during||'',
-    after_text:cpd.after||'',status:cpd.status||'active'}]);
+    after_text:cpd.after||'',status:cpd.status||'active',attachments:cpd.attachments||[],
+    media_images:cpd.mediaImages||[],media_videos:cpd.mediaVideos||[]}],['attachments','media_images','media_videos']);
 }
 async function saveSchedRecord(row,fullArray){
   sset('sched',fullArray); // keep the full local cache in sync for offline fallback
@@ -929,11 +958,26 @@ function tlcAttIcon(a){return a.kind==='pdf'?'📄':a.kind==='ppt'?'📊':a.kind
 function tlcAttChip(a,idx){return `<span class="badge badge-gray" style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;font-size:11px">${tlcAttIcon(a)} ${esc(a.name)} <span style="cursor:pointer;font-weight:700;color:#dc2626" onclick="removeTlcAttachment(${idx})">✕</span></span>`;}
 function renderTlcAttWrap(){const atts=window.__tlcAttachments||[];const wrap=document.getElementById('tlc-att-wrap');if(wrap)wrap.innerHTML=atts.map(tlcAttChip).join('');}
 function removeTlcAttachment(idx){(window.__tlcAttachments||[]).splice(idx,1);renderTlcAttWrap();}
+// Same "Additional Files" pattern as Dept TLC, applied to CPD sessions — separate window var/DOM
+// id so the two forms never collide, but reuses tlcAttIcon/tlcAttDisplayList since the icon and
+// read-only display logic isn't feature-specific.
+function cpdAttChip(a,idx){return `<span class="badge badge-gray" style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;font-size:11px">${tlcAttIcon(a)} ${esc(a.name)} <span style="cursor:pointer;font-weight:700;color:#dc2626" onclick="removeCpdAttachment(${idx})">✕</span></span>`;}
+function renderCpdAttWrap(){const atts=window.__cpdAttachments||[];const wrap=document.getElementById('cpd-att-wrap');if(wrap)wrap.innerHTML=atts.map(cpdAttChip).join('');}
+function removeCpdAttachment(idx){(window.__cpdAttachments||[]).splice(idx,1);renderCpdAttWrap();}
 // Read-only "download this file" list shown on TLC cards (admin view, teacher portal, print) —
 // each attachment is stored as a base64 data URL, so a plain <a download> link works with no server.
 function tlcAttDisplayList(atts){
   if(!atts||!atts.length)return '';
-  return '<div class="mb-2" style="display:flex;gap:6px;flex-wrap:wrap">'+atts.map(a=>'<a href="'+a.dataUrl+'" download="'+esc(a.name)+'" class="badge badge-blue" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;font-size:11px">'+tlcAttIcon(a)+' '+esc(a.name)+' ⬇</a>').join('')+'</div>';
+  return '<div class="mb-2" style="display:flex;gap:6px;flex-wrap:wrap">'+atts.map(a=>'<a href="'+(a.url||a.dataUrl)+'" target="_blank" rel="noopener" download="'+esc(a.name)+'" class="badge badge-blue" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;font-size:11px">'+tlcAttIcon(a)+' '+esc(a.name)+' ⬇</a>').join('')+'</div>';
+}
+// Read-only photo/video evidence display — used on Learning Walk and CPD cards now that this
+// media actually syncs to the database (see mapLW/mapCPD notes) instead of staying local-only.
+function mediaEvidenceDisplay(images,videos){
+  if((!images||!images.length)&&(!videos||!videos.length))return '';
+  return '<div class="mt-1 mb-1" style="display:flex;gap:6px;flex-wrap:wrap">'
+    +(images||[]).map(src=>'<a href="'+src+'" target="_blank" rel="noopener"><img src="'+src+'" style="max-height:70px;border-radius:5px;border:1px solid var(--border)"></a>').join('')
+    +(videos||[]).map(src=>'<video src="'+src+'" controls style="max-height:70px;max-width:120px;border-radius:5px;border:1px solid var(--border)"></video>').join('')
+    +'</div>';
 }
 function schedRealVal(v){return !!(v&&v.trim()&&v.trim()!=='—'&&v.trim().toLowerCase()!=='tbc');}
 function schedRowsConflict(r,r2){
@@ -1782,6 +1826,7 @@ ${tab==='lw'?`
     ${lw.strengths?'<div class="text-xs mb-1"><strong>Strengths:</strong> '+lw.strengths+'</div>':''}
     ${lw.afd?'<div class="text-xs mb-1"><strong>AFD:</strong> '+lw.afd+'</div>':''}
     ${lw.focusArea?'<div class="text-xs mb-1"><strong>Focus:</strong> '+lw.focusArea+'</div>':''}
+    ${mediaEvidenceDisplay(lw.mediaImages,lw.mediaVideos)}
   </div>`).join('')}
   ${!lws.filter(l=>!isDomainLW(l)).length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No learning walks yet.</div>':''}
 `:''}
@@ -2485,6 +2530,8 @@ ${(()=>{
         ${c.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(c.during)+'</div>':''}
         ${c.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(c.after)+'</div>':''}
       </div>`:''}
+    ${mediaEvidenceDisplay(c.mediaImages,c.mediaVideos)}
+    ${tlcAttDisplayList(c.attachments)}
   </div>
 `).join('')
     +(!filtCPD.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(S.cpd.length?'No sessions match current filters.':'No CPD sessions yet.')+'</div>':'');
@@ -3200,6 +3247,7 @@ function renderModal(type, data={}){
     const cpdPersonChip=(nm)=>`<span class="badge badge-blue cpd-aud-person" data-name="${esc(nm)}" style="gap:5px">${esc(nm)} <span style="cursor:pointer;font-weight:700" onclick="this.closest('.cpd-aud-person').remove()">✕</span></span>`;
     const _cpdImgs=window.__cpdMediaImages||[];
     const _cpdVids=window.__cpdMediaVideos||[];
+    const _cpdAtts=window.__cpdAttachments||[];
     const cpdImgChip=(src,idx)=>`<span class="cpd-media-img-item" style="position:relative;display:inline-block"><img src="${src}" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeCpdMediaImage(${idx})">✕</button></span>`;
     const cpdVidChip=(src,idx)=>`<span class="cpd-media-vid-item" style="position:relative;display:inline-block"><video src="${src}" controls style="max-height:100px;max-width:160px;border-radius:6px;border:1px solid var(--border)"></video><button type="button" class="btn btn-ghost btn-sm" style="position:absolute;top:-8px;right:-8px;background:#fff;border-radius:50%;padding:0 5px;line-height:18px" onclick="removeCpdMediaVideo(${idx})">✕</button></span>`;
     return M((isCpdEdit?'✏ Edit':'📚 New')+' CPD Session',
@@ -3240,7 +3288,12 @@ function renderModal(type, data={}){
         <div class="text-xs text-muted mb-1" style="margin-top:8px">Videos (max 20MB each)</div>
         <input type="file" accept="video/*" multiple id="cpd-media-video-file">
         <div id="cpd-media-videos-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_cpdVids.map(cpdVidChip).join('')}</div>
-      </div>`,
+      </div>`+
+      `<div class="form-group"><label class="form-label">Additional Files (PDF, PowerPoint, or Video)</label>
+      <div class="text-xs text-muted mb-1">PDF/PowerPoint up to 12MB each, video up to 20MB each</div>
+      <input type="file" accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,video/*" multiple id="cpd-att-file">
+      <div id="cpd-att-status" class="text-xs text-muted mt-1"></div>
+      <div id="cpd-att-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_cpdAtts.map(cpdAttChip).join('')}</div></div>`,
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-cpd>${isCpdEdit?'Update Session':'Save Session'}</button>`
     );
   }
@@ -3294,6 +3347,7 @@ function renderModal(type, data={}){
       `<div class="form-group"><label class="form-label">Additional Files (PDF, PowerPoint, or Video)</label>
       <div class="text-xs text-muted mb-1">PDF/PowerPoint up to 12MB each, video up to 20MB each</div>
       <input type="file" accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,video/*" multiple id="tlc-att-file">
+      <div id="tlc-att-status" class="text-xs text-muted mt-1"></div>
       <div id="tlc-att-wrap" class="flex gap-2 mt-2" style="flex-wrap:wrap">${_tlcAtts.map(tlcAttChip).join('')}</div></div>`+
       FTA('tlc-focus-feed','Focus Feed into Coaching Triplet <span style="color:#dc2626">*required</span>',data.focusFeed||'',3),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-tlc>${isTlcEdit?'Update Session':'Save Session'}</button>`
@@ -3688,7 +3742,7 @@ function bindEvents(){
   document.querySelectorAll('[data-modal]').forEach(el=>{
     el.onclick=()=>{
       if(el.dataset.modal==='tlc'){window.__tlcArtifactData='';window.__tlcAttachments=[];}
-      if(el.dataset.modal==='cpd'){window.__cpdMediaImages=[];window.__cpdMediaVideos=[];}
+      if(el.dataset.modal==='cpd'){window.__cpdMediaImages=[];window.__cpdMediaVideos=[];window.__cpdAttachments=[];}
       if(el.dataset.modal==='lw'){window.__lwMediaImages=[];window.__lwMediaVideos=[];}
       openModal(el.dataset.modal);
     };
@@ -4025,27 +4079,27 @@ function bindEvents(){
   window.removeLwMediaVideo=(idx)=>{(window.__lwMediaVideos||[]).splice(idx,1);renderLwMediaPreviews();};
   const lwMediaImageFile=document.getElementById('lw-media-image-file');
   if(lwMediaImageFile){
-    lwMediaImageFile.onchange=(e)=>{
+    lwMediaImageFile.onchange=async(e)=>{
       const files=Array.from(e.target.files||[]);
-      files.forEach(file=>{
-        if(file.size>4*1024*1024){showToast('Image "'+file.name+'" too large — please use a photo under 4MB','error');return;}
-        const reader=new FileReader();
-        reader.onload=()=>{window.__lwMediaImages=window.__lwMediaImages||[];window.__lwMediaImages.push(reader.result);renderLwMediaPreviews();};
-        reader.readAsDataURL(file);
-      });
+      for(const file of files){
+        if(file.size>4*1024*1024){showToast('Image "'+file.name+'" too large — please use a photo under 4MB','error');continue;}
+        const url=await sbUploadFile(file,'lw');
+        if(!url){showToast('"'+file.name+'" failed to upload — check your connection and try again','error');continue;}
+        window.__lwMediaImages=window.__lwMediaImages||[];window.__lwMediaImages.push(url);renderLwMediaPreviews();
+      }
       lwMediaImageFile.value='';
     };
   }
   const lwMediaVideoFile=document.getElementById('lw-media-video-file');
   if(lwMediaVideoFile){
-    lwMediaVideoFile.onchange=(e)=>{
+    lwMediaVideoFile.onchange=async(e)=>{
       const files=Array.from(e.target.files||[]);
-      files.forEach(file=>{
-        if(file.size>20*1024*1024){showToast('Video "'+file.name+'" too large — please keep videos under 20MB','error');return;}
-        const reader=new FileReader();
-        reader.onload=()=>{window.__lwMediaVideos=window.__lwMediaVideos||[];window.__lwMediaVideos.push(reader.result);renderLwMediaPreviews();};
-        reader.readAsDataURL(file);
-      });
+      for(const file of files){
+        if(file.size>20*1024*1024){showToast('Video "'+file.name+'" too large — please keep videos under 20MB','error');continue;}
+        const url=await sbUploadFile(file,'lw');
+        if(!url){showToast('"'+file.name+'" failed to upload — check your connection and try again','error');continue;}
+        window.__lwMediaVideos=window.__lwMediaVideos||[];window.__lwMediaVideos.push(url);renderLwMediaPreviews();
+      }
       lwMediaVideoFile.value='';
     };
   }
@@ -4108,28 +4162,55 @@ function bindEvents(){
   window.removeCpdMediaVideo=(idx)=>{(window.__cpdMediaVideos||[]).splice(idx,1);renderCpdMediaPreviews();};
   const cpdMediaImageFile=document.getElementById('cpd-media-image-file');
   if(cpdMediaImageFile){
-    cpdMediaImageFile.onchange=(e)=>{
+    cpdMediaImageFile.onchange=async(e)=>{
       const files=Array.from(e.target.files||[]);
-      files.forEach(file=>{
-        if(file.size>4*1024*1024){showToast('Image "'+file.name+'" too large — please use a photo under 4MB','error');return;}
-        const reader=new FileReader();
-        reader.onload=()=>{window.__cpdMediaImages=window.__cpdMediaImages||[];window.__cpdMediaImages.push(reader.result);renderCpdMediaPreviews();};
-        reader.readAsDataURL(file);
-      });
+      for(const file of files){
+        if(file.size>4*1024*1024){showToast('Image "'+file.name+'" too large — please use a photo under 4MB','error');continue;}
+        const url=await sbUploadFile(file,'cpd');
+        if(!url){showToast('"'+file.name+'" failed to upload — check your connection and try again','error');continue;}
+        window.__cpdMediaImages=window.__cpdMediaImages||[];window.__cpdMediaImages.push(url);renderCpdMediaPreviews();
+      }
       cpdMediaImageFile.value='';
     };
   }
   const cpdMediaVideoFile=document.getElementById('cpd-media-video-file');
   if(cpdMediaVideoFile){
-    cpdMediaVideoFile.onchange=(e)=>{
+    cpdMediaVideoFile.onchange=async(e)=>{
       const files=Array.from(e.target.files||[]);
-      files.forEach(file=>{
-        if(file.size>20*1024*1024){showToast('Video "'+file.name+'" too large — please keep videos under 20MB','error');return;}
-        const reader=new FileReader();
-        reader.onload=()=>{window.__cpdMediaVideos=window.__cpdMediaVideos||[];window.__cpdMediaVideos.push(reader.result);renderCpdMediaPreviews();};
-        reader.readAsDataURL(file);
-      });
+      for(const file of files){
+        if(file.size>20*1024*1024){showToast('Video "'+file.name+'" too large — please keep videos under 20MB','error');continue;}
+        const url=await sbUploadFile(file,'cpd');
+        if(!url){showToast('"'+file.name+'" failed to upload — check your connection and try again','error');continue;}
+        window.__cpdMediaVideos=window.__cpdMediaVideos||[];window.__cpdMediaVideos.push(url);renderCpdMediaPreviews();
+      }
       cpdMediaVideoFile.value='';
+    };
+  }
+  // ── CPD: additional file attachments (PDF/PowerPoint/Video) — go straight to
+  // Supabase Storage and the URL is saved to the database (unlike the photo/video evidence above,
+  // which has historically been kept local-only — see save()'s 'cpd' branch for that history).
+  const cpdAttFile=document.getElementById('cpd-att-file');
+  if(cpdAttFile){
+    cpdAttFile.onchange=async(e)=>{
+      const files=Array.from(e.target.files||[]);
+      if(!files.length)return;
+      window.__cpdAttachments=window.__cpdAttachments||[];
+      const statusEl=document.getElementById('cpd-att-status');
+      for(const file of files){
+        const isVideo=file.type.startsWith('video/');
+        const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
+        const isPpt=/\.pptx?$/i.test(file.name)||file.type.includes('presentation')||file.type==='application/vnd.ms-powerpoint';
+        const kind=isVideo?'video':isPdf?'pdf':isPpt?'ppt':'other';
+        const limit=isVideo?20*1024*1024:12*1024*1024;
+        if(file.size>limit){showToast('"'+file.name+'" is too large — please keep '+(isVideo?'videos under 20MB':'PDF/PowerPoint files under 12MB'),'error');continue;}
+        if(statusEl)statusEl.textContent='Uploading "'+file.name+'"…';
+        const url=await sbUploadFile(file,'cpd');
+        if(!url){showToast('"'+file.name+'" failed to upload — check your connection and try again','error');continue;}
+        window.__cpdAttachments.push({name:file.name,mime:file.type||'',kind,url});
+        renderCpdAttWrap();
+      }
+      if(statusEl)statusEl.textContent='';
+      cpdAttFile.value='';
     };
   }
 
@@ -4159,7 +4240,8 @@ function bindEvents(){
       type:gv('cpd-type'),delivery:gv('cpd-del'),month,bio:cpdBio,customTech:cpdCustomTech||'',
       before:gv('cpd-bef'),during:gv('cpd-dur'),after:gv('cpd-aft'),status:'active',
       venue,timeFrom,timeTo,
-      mediaImages:(window.__cpdMediaImages||[]).slice(),mediaVideos:(window.__cpdMediaVideos||[]).slice()};
+      mediaImages:(window.__cpdMediaImages||[]).slice(),mediaVideos:(window.__cpdMediaVideos||[]).slice(),
+      attachments:(window.__cpdAttachments||[]).slice()};
     S.cpd=editId?S.cpd.map(c=>c.id===editId?cpd:c):[...S.cpd,cpd];
     const cpdSaveOk=await saveCpdRecord(cpd,S.cpd);
     if(!cpdSaveOk){
@@ -4199,43 +4281,45 @@ function bindEvents(){
     showToast(editId?'Coaching triplet updated ✓':'Coaching triplet saved ✓');
   };
 
-  // ── Department TLC: artifact upload ──────────────────────────────────────
+  // ── Department TLC: artifact upload (goes to Supabase Storage, not the DB) ─
   const tlcArtifactFile=document.getElementById('tlc-artifact-file');
   if(tlcArtifactFile){
-    tlcArtifactFile.onchange=(e)=>{
+    tlcArtifactFile.onchange=async(e)=>{
       const file=e.target.files[0];
       if(!file)return;
-      if(file.size>4*1024*1024){showToast('Image too large — please use a photo under 4MB','error');return;}
-      const reader=new FileReader();
-      reader.onload=()=>{
-        window.__tlcArtifactData=reader.result;
-        const wrap=document.getElementById('tlc-artifact-preview-wrap');
-        if(wrap)wrap.innerHTML='<img src="'+reader.result+'" style="max-height:120px;border-radius:6px;border:1px solid var(--border)"><br><button type="button" class="btn btn-ghost btn-sm mt-1" onclick="window.__tlcArtifactData=\'\';document.getElementById(\'tlc-artifact-preview-wrap\').innerHTML=\'\'">Remove photo</button>';
-      };
-      reader.readAsDataURL(file);
+      if(file.size>4*1024*1024){showToast('Image too large — please use a photo under 4MB','error');tlcArtifactFile.value='';return;}
+      const wrap=document.getElementById('tlc-artifact-preview-wrap');
+      if(wrap)wrap.innerHTML='<div class="text-xs text-muted">Uploading…</div>';
+      const url=await sbUploadFile(file,'tlc');
+      tlcArtifactFile.value='';
+      if(!url){showToast('Upload failed — check your connection and try again','error');if(wrap)wrap.innerHTML='';return;}
+      window.__tlcArtifactData=url;
+      if(wrap)wrap.innerHTML='<img src="'+url+'" style="max-height:120px;border-radius:6px;border:1px solid var(--border)"><br><button type="button" class="btn btn-ghost btn-sm mt-1" onclick="window.__tlcArtifactData=\'\';document.getElementById(\'tlc-artifact-preview-wrap\').innerHTML=\'\'">Remove photo</button>';
     };
   }
-  // ── Department TLC: additional file attachments (PDF/PowerPoint/Video) ───
+  // ── Department TLC: additional file attachments (PDF/PowerPoint/Video) —
+  // also go straight to Supabase Storage rather than being base64-encoded into the database.
   const tlcAttFile=document.getElementById('tlc-att-file');
   if(tlcAttFile){
-    tlcAttFile.onchange=(e)=>{
+    tlcAttFile.onchange=async(e)=>{
       const files=Array.from(e.target.files||[]);
       if(!files.length)return;
       window.__tlcAttachments=window.__tlcAttachments||[];
-      files.forEach(file=>{
+      const statusEl=document.getElementById('tlc-att-status');
+      for(const file of files){
         const isVideo=file.type.startsWith('video/');
         const isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
         const isPpt=/\.pptx?$/i.test(file.name)||file.type.includes('presentation')||file.type==='application/vnd.ms-powerpoint';
         const kind=isVideo?'video':isPdf?'pdf':isPpt?'ppt':'other';
         const limit=isVideo?20*1024*1024:12*1024*1024;
-        if(file.size>limit){showToast('"'+file.name+'" is too large — please keep '+(isVideo?'videos under 20MB':'PDF/PowerPoint files under 12MB'),'error');return;}
-        const reader=new FileReader();
-        reader.onload=()=>{
-          window.__tlcAttachments.push({name:file.name,mime:file.type||'',kind,dataUrl:reader.result});
-          renderTlcAttWrap();
-        };
-        reader.readAsDataURL(file);
-      });
+        if(file.size>limit){showToast('"'+file.name+'" is too large — please keep '+(isVideo?'videos under 20MB':'PDF/PowerPoint files under 12MB'),'error');continue;}
+        if(statusEl)statusEl.textContent='Uploading "'+file.name+'"…';
+        const url=await sbUploadFile(file,'tlc');
+        if(!url){showToast('"'+file.name+'" failed to upload — check your connection and try again','error');continue;}
+        window.__tlcAttachments.push({name:file.name,mime:file.type||'',kind,url});
+        renderTlcAttWrap();
+      }
+      if(statusEl)statusEl.textContent='';
       tlcAttFile.value='';
     };
   }
@@ -4788,7 +4872,7 @@ function bindEvents(){
   document.querySelectorAll('[data-edit-cpd]').forEach(el=>{
     el.onclick=()=>{
       const c=S.cpd.find(c=>c.id===el.dataset.editCpd);
-      if(c){window.__cpdMediaImages=(c.mediaImages||[]).slice();window.__cpdMediaVideos=(c.mediaVideos||[]).slice();S.editingId={type:'cpd',id:c.id};S.modal=renderModal('cpd',c);render();}
+      if(c){window.__cpdMediaImages=(c.mediaImages||[]).slice();window.__cpdMediaVideos=(c.mediaVideos||[]).slice();window.__cpdAttachments=(c.attachments||[]).slice();S.editingId={type:'cpd',id:c.id};S.modal=renderModal('cpd',c);render();}
     };
   });
   // ── Edit Trip ────────────────────────────────────────────────────────────
@@ -5537,6 +5621,8 @@ function printCPD(id){
   +(c.before?'<div class="section before"><div class="section-title" style="color:#1e40af">📋 Before — Planned Outcomes</div>'+safe(c.before)+'</div>':'')
   +(c.during?'<div class="section during"><div class="section-title" style="color:#d97706">⚡ During — Activities</div>'+safe(c.during)+'</div>':'')
   +(c.after?'<div class="section after"><div class="section-title" style="color:#059669">✅ After — Implementation &amp; Monitoring</div>'+safe(c.after)+'</div>':'')
+  +mediaEvidenceDisplay(c.mediaImages,c.mediaVideos)
+  +tlcAttDisplayList(c.attachments)
   +'<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Waad Academy CPD Programme &middot; Printed '+new Date().toLocaleDateString()+' &middot; Session ID: '+safe(id)+'</div></body></html>');
   w.document.close();setTimeout(()=>w.print(),400);
 }
