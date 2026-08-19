@@ -1066,7 +1066,7 @@ function scopedLwalks(){if(!isScoped())return S.lwalks;return S.lwalks.filter(lw
 function myTeacherRecord(){
   if(S.session?.role!=='teacher')return null;
   const myName=(S.session?.name||'').toLowerCase();
-  return S.teachers.find(t=>t.name.toLowerCase()===myName||t.name.toLowerCase().includes(myName.split(' ')[0]))||null;
+  return S.teachers.find(t=>t.name.toLowerCase()===myName)||null;
 }
 // Resources with no department set (dept==='') are "General" — visible to everyone. A resource
 // tagged to a department is only visible to that department's teachers and their HOD (dept-scoped
@@ -1889,7 +1889,7 @@ ${tab==='cpd'?`
 function renderMyPortal(){
   // Find the teacher record linked to this session by name match
   const myName=(S.session?.name||'').toLowerCase();
-  const me=S.teachers.find(t=>t.name.toLowerCase()===myName||t.name.toLowerCase().includes(myName.split(' ')[0]));
+  const me=S.teachers.find(t=>t.name.toLowerCase()===myName);
   const myObs=me?S.observations.filter(o=>o.tid===me.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')):[];
   const myTrips=me?S.triplets.filter(t=>t.oid===me.id||t.cid===me.id||t.fid===me.id):[];
   const dept=me?.dept||'';
