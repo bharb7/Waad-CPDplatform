@@ -598,7 +598,7 @@ async function save(k,v){
       // (rather than plain sbUpsert) means if these columns somehow don't exist in Supabase yet,
       // the rest of the row still saves and you get one clear error instead of losing it all.
       const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null,time_from:r.timeFrom||r.time||null,time_to:r.timeTo||null,cost:r.cost||'',cpd_cache:r.cpdCache||null,teacher_insights:r.teacherInsights||{}}));
-      if(_dbRows.length) return await sbUpsertResilient('schedule_rows',_dbRows,['time_from','time_to','cost']);
+      if(_dbRows.length) return await sbUpsertResilient('schedule_rows',_dbRows,['time_from','time_to','cost','cpd_cache','teacher_insights']);
       return true;
     }
     else if(k==='impacts') return await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
@@ -2093,6 +2093,10 @@ ${tab==='tlc'?`
 
 ${tab==='schedule'?`
   <div class="card mb-3" style="padding:10px 14px">
+    <div class="flex justify-between items-center mb-2">
+      <span style="font-size:12px;font-weight:700;color:var(--navy)">&#128200; My CPD Schedule</span>
+      <button class="btn btn-ghost btn-sm" onclick="printPortalSchedule(${JSON.stringify(mySchedule.filter(r=>r.status==='done'))},${JSON.stringify(S.session?.name||'')},${JSON.stringify(dept)})" style="font-size:11px">&#128424; Print Done Sessions</button>
+    </div>
     <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
       <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Month:</span>
       <div class="pill-opt ${(S.portalSchedMonth||'')==''?'sel':''}" data-portal-month="">All</div>
@@ -2469,7 +2473,9 @@ function printObs(id){
   html+='.cnf .sh{background:#ede9fe;color:#5b21b6}.cnf .sb{background:#faf5ff;border:1px solid #ddd6fe;border-top:none;border-radius:0 0 8px 8px}';
   html+='.ftr{margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}';
   html+='@media print{.noprint{display:none!important}}</style></head><body>';
-  html+='<div class="hdr"><div>';
+  html+='<div class="hdr">';
+  html+=(S.branding&&S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0" onerror="this.style.display=\'none\'">' : '<img src="'+WAAD_LOGO_IMG+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0;border-radius:4px">');
+  html+='<div>';
   html+='<h1>&#127983; Waad Academy &mdash; Observation Record</h1>';
   html+='<div class="meta">Teacher: <strong>'+tName+'</strong>'+(t?' &nbsp;&middot;&nbsp; <strong>'+safe(t.dept)+'</strong> &nbsp;&middot;&nbsp; '+safe(t.section)+' &nbsp;&middot;&nbsp; '+safe(t.stage):'')+'</div>';
   html+='<div class="meta">Observer: <strong>'+safe(o.observer||'&mdash;')+'</strong> &nbsp; Date: <strong>'+safe(o.date||'&mdash;')+'</strong>';
@@ -4023,7 +4029,23 @@ function bindEvents(){
     el.onchange=()=>{
       const id=el.dataset.statusSched;
       const row=S.schedule.find(r=>r.id===id);
-      if(row){row.status=el.value;if(el.value==='done'&&row.cpdId){const _cpd=S.cpd.find(c=>c.id===row.cpdId);if(_cpd)row.cpdCache={before:_cpd.before||'',during:_cpd.during||'',after:_cpd.after||'',attachments:_cpd.attachments||[],mediaImages:_cpd.mediaImages||[],mediaVideos:_cpd.mediaVideos||[]};}save('sched',S.schedule);saveSchedRecord(row,S.schedule);showToast('Status updated ✓');}
+      if(row){
+        row.status=el.value;
+        if(el.value==='done'&&row.cpdId){const _cpd=S.cpd.find(c=>c.id===row.cpdId);if(_cpd)row.cpdCache={before:_cpd.before||'',during:_cpd.during||'',after:_cpd.after||'',attachments:_cpd.attachments||[],mediaImages:_cpd.mediaImages||[],mediaVideos:_cpd.mediaVideos||[]};}
+        // If this is a seed/local row (non-UUID id), migrate it to a real UUID so it can be written to Supabase
+        const _schedUuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if(!_schedUuidRe.test(row.id)){
+          const _newId=uid();
+          const _migratedRow={...row,id:_newId};
+          S.schedule=S.schedule.map(r=>r.id===row.id?_migratedRow:r);
+          const _delSeeds=sget('deletedSeeds')||[];
+          if(!_delSeeds.includes(row.id)){sset('deletedSeeds',[..._delSeeds,row.id]);}
+          S.deletedSeeds=[...(S.deletedSeeds||[]),row.id];
+          save('sched',S.schedule);saveSchedRecord(_migratedRow,S.schedule);showToast('Status updated ✓ — session saved to database');
+        } else {
+          save('sched',S.schedule);saveSchedRecord(row,S.schedule);showToast('Status updated ✓');
+        }
+      }
     };
   });
 
@@ -5595,6 +5617,7 @@ function printTLC(id){
   +'img{max-width:100%;border-radius:6px;margin-bottom:14px}'
   +'@media print{button{display:none!important}}</style></head><body>'
   +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +(S.branding&&S.branding.logo?'<img src="'+S.branding.logo+'" style="height:48px;object-fit:contain;margin-right:14px;flex-shrink:0" onerror="this.style.display=\'none\'">':'<img src="'+WAAD_LOGO_IMG+'" style="height:48px;object-fit:contain;margin-right:14px;flex-shrink:0;border-radius:4px">')
   +'<div><h1>🤝 '+safe((g.depts||[]).join(', ')||'Department TLC')+'</h1>'
   +'<div class="meta">Facilitator: <strong>'+safe(g.facilitator||'—')+'</strong> &nbsp;|&nbsp; '+safe(g.dateFrom||'—')+(g.dateTo?' → '+safe(g.dateTo):'')+'</div></div>'
   +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">🖨 Print</button></div>'
@@ -5671,6 +5694,8 @@ function printCPD(id){
   +'.before{background:#dbeafe;border-left:4px solid #1e40af}.during{background:#fef3c7;border-left:4px solid #d97706}.after{background:#d1fae5;border-left:4px solid #059669}'
   +'@media print{button{display:none!important}}</style></head><body>'
   +'<div style="display:flex;justify-content:space-between;align-items:start">'
+  +'<div style="display:flex;align-items:flex-start">'
+  '+(S.branding&&S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0" onerror="this.style.display=\'none\'">':'<img src="'+WAAD_LOGO_IMG+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0;border-radius:4px">')+'
   +'<div><h1>&#128218; '+safe(c.title)+'</h1>'
   +'<div class="meta">Date: <strong>'+safe(c.date||'—')+'</strong> &nbsp;|&nbsp; Facilitator: <strong>'+safe(c.facilitator||'—')+'</strong> &nbsp;|&nbsp; Audience: <strong>'+safe(c.audience||'All')+'</strong>'+(c.type?' &nbsp;|&nbsp; Type: <strong>'+safe(c.type)+'</strong>':'')+(c.delivery?' &nbsp;|&nbsp; Delivery: <strong>'+safe(c.delivery)+'</strong>':'')+'</div></div>'
   +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">&#128424; Print</button></div>'
@@ -5684,6 +5709,65 @@ function printCPD(id){
   w.document.close();setTimeout(()=>w.print(),400);
 }
 
+function printPortalSchedule(rows,teacherName,dept){
+  const safe=s=>(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const w=window.open('','_blank','width=860,height=1000');
+  const logoHtml=S.branding&&S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-right:16px;flex-shrink:0" onerror="this.style.display=\'none\'">' : '<img src="'+WAAD_LOGO_IMG+'" style="height:52px;object-fit:contain;margin-right:16px;flex-shrink:0;border-radius:4px">';
+  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CPD Schedule — '+safe(teacherName)+'</title>';
+  html+='<style>body{font-family:"Segoe UI",sans-serif;padding:24px 28px;font-size:12px;color:#1a1a2e;max-width:800px;margin:0 auto;line-height:1.5}';
+  html+='.hdr{display:flex;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:3px solid #1F4E79}';
+  html+='h1{color:#1F4E79;font-size:17px;font-weight:800;margin-bottom:3px}';
+  html+='.meta{font-size:11px;color:#6b7280}';
+  html+='.card{border:1px solid #e5e7eb;border-radius:8px;margin-bottom:12px;overflow:hidden}';
+  html+='.card-hdr{background:#1F4E79;color:#fff;padding:8px 12px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center}';
+  html+='.card-hdr .status{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}';
+  html+='.done-badge{background:#d1fae5;color:#065f46}.active-badge{background:#fef3c7;color:#92400e}.planned-badge{background:#f3f4f6;color:#6b7280}';
+  html+='.pills{display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb}';
+  html+='.pill{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:2px 8px;font-size:10px;font-weight:600;color:#374151}';
+  html+='.bda{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 12px}';
+  html+='.bda-b{padding:8px 10px;border-radius:6px;font-size:11px;white-space:pre-wrap;line-height:1.5}';
+  html+='.bda-label{font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:4px}';
+  html+='.before{background:#dbeafe;border-left:3px solid #1e40af}.during{background:#fef3c7;border-left:3px solid #d97706}.after{background:#d1fae5;border-left:3px solid #059669}';
+  html+='.atts{padding:6px 12px;display:flex;gap:6px;flex-wrap:wrap}';
+  html+='.att{background:#eff6ff;color:#1d4ed8;padding:3px 8px;border-radius:8px;font-size:10px;font-weight:600;text-decoration:none}';
+  html+='.insight{margin:6px 12px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px;padding:8px 10px;font-size:11px}';
+  html+='.insight-name{font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:2px}';
+  html+='.ftr{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}';
+  html+='@media print{.noprint{display:none!important}}</style></head><body>';
+  html+='<div class="hdr">'+logoHtml+'<div><h1>&#128218; CPD & Training Schedule</h1><div class="meta">'+safe(teacherName)+(dept?' &nbsp;&middot;&nbsp; <strong>'+safe(dept)+'</strong>':'')+'</div><div class="meta">'+rows.length+' sessions &nbsp;&middot;&nbsp; Printed: '+new Date().toLocaleDateString()+'</div></div>';
+  html+='<div class="noprint" style="margin-left:auto"><button onclick="window.print()" style="padding:7px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">&#128424; Print / Save PDF</button></div></div>';
+  rows.forEach(r=>{
+    const statusCls=r.status==='done'?'done-badge':r.status==='active'?'active-badge':'planned-badge';
+    html+='<div class="card"><div class="card-hdr"><span>'+safe(r.program)+'</span><span class="status '+statusCls+'">'+safe(r.status)+'</span></div>';
+    html+='<div class="pills">';
+    if(r.startDate)html+='<span class="pill">&#128197; '+safe(r.startDate)+(r.endDate&&r.endDate!==r.startDate?' &rarr; '+safe(r.endDate):'')+'</span>';
+    const tl=(r.timeFrom&&r.timeTo)?r.timeFrom+'&ndash;'+r.timeTo:r.timeFrom||r.timeTo||'';
+    if(tl)html+='<span class="pill">&#128336; '+tl+'</span>';
+    if(r.venue)html+='<span class="pill">&#128205; '+safe(r.venue)+'</span>';
+    if(r.duration)html+='<span class="pill">&#9201; '+safe(r.duration)+'</span>';
+    if(r.facilitator)html+='<span class="pill">&#127908; '+safe(r.facilitator)+'</span>';
+    if(r.target)html+='<span class="pill">&#128101; '+safe(r.target)+'</span>';
+    html+='</div>';
+    const cc=r.cpdCache;
+    if(cc&&(cc.before||cc.during||cc.after)){
+      html+='<div class="bda">';
+      if(cc.before)html+='<div class="bda-b before"><div class="bda-label" style="color:#1e40af">&#128203; Before</div>'+safe(cc.before).replace(/<br>/g,'\n')+'</div>';
+      if(cc.during)html+='<div class="bda-b during"><div class="bda-label" style="color:#d97706">&#9889; During</div>'+safe(cc.during).replace(/<br>/g,'\n')+'</div>';
+      if(cc.after)html+='<div class="bda-b after"><div class="bda-label" style="color:#059669">&#10003; After</div>'+safe(cc.after).replace(/<br>/g,'\n')+'</div>';
+      html+='</div>';
+    }
+    if(cc&&cc.attachments&&cc.attachments.length){
+      html+='<div class="atts">';
+      cc.attachments.forEach(a=>{html+='<a href="'+(a.url||a.dataUrl||'')+'" class="att" target="_blank">&#128206; '+safe(a.name||'File')+'</a>';});
+      html+='</div>';
+    }
+    const myI=(r.teacherInsights||{})[teacherName];
+    if(myI&&myI.text){html+='<div class="insight"><div class="insight-name">&#x1F4AC; My Reflection</div>'+safe(myI.text)+'</div>';}
+    html+='</div>';
+  });
+  html+='<div class="ftr">Waad Academy CPD Programme &middot; '+safe(teacherName)+' &middot; Printed '+new Date().toLocaleDateString()+'</div></body></html>';
+  w.document.write(html);w.document.close();setTimeout(()=>w.print(),400);
+}
 function printSchedule(){
   const mf=S.schedMonthFilter||'';const df=S.schedDateFrom||'';const dt=S.schedDateTo||'';
   let rows=S.schedule.slice();
