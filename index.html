@@ -297,7 +297,7 @@ const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',progr
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 // Cleared per request — this was hardcoded demo/placeholder data (Fatima Al-Rashid, Omar Hassan, etc.) never shown once real teacher rows exist in Supabase; emptied so the Teachers tab starts fresh for real data entry.
 const SEED_TEACHERS=[];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -531,7 +531,7 @@ function mapLW(r){return{id:r.id,date:r.date||'',observer:r.observer||'',section
 // storage — left untouched here (not part of this round's ask). mediaImages/mediaVideos now read
 // straight from the server like attachments already do, for the same reason as mapLW above.
 function mapCPD(r){const _prevCpd=(sget('cpd')||[]).find(x=>x.id===r.id)||{};return{id:r.id,title:r.title||'',date:r.date||'',facilitator:r.facilitator||'',audience:r.audience||'',type:r.type||'Internal',delivery:r.delivery||'Workshop',month:r.month||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',before:r.before_text||'',during:r.during_text||'',after:r.after_text||'',status:r.status||'active',venue:_prevCpd.venue||'',timeFrom:_prevCpd.timeFrom||'',timeTo:_prevCpd.timeTo||'',mediaImages:r.media_images||[],mediaVideos:r.media_videos||[],attachments:r.attachments||[]}}
-function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||''}}
+function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',startDate:r.start_date||'',endDate:r.end_date||'',venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpdId:r.cpd_id||null,cost:r.cost||'',time:r.time_slot||'',timeFrom:r.time_from||r.time_slot||'',timeTo:r.time_to||'',cpdCache:r.cpd_cache||null,teacherInsights:r.teacher_insights||{}}}
 // Every place that displays a schedule row's time was reading the legacy single r.time field
 // (sourced from an old time_slot column) — but the Add/Edit form has always captured a
 // From/To range into timeFrom/timeTo instead, and nothing actually saved to time_slot. So even
@@ -597,7 +597,7 @@ async function save(k,v){
       // blank on the next sync or reload, for every department, not just IT. sbUpsertResilient
       // (rather than plain sbUpsert) means if these columns somehow don't exist in Supabase yet,
       // the rest of the row still saves and you get one clear error instead of losing it all.
-      const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null,time_from:r.timeFrom||r.time||null,time_to:r.timeTo||null,cost:r.cost||''}));
+      const _dbRows=v.filter(r=>_uuidRe.test(r.id)).map(r=>({id:r.id,school_id:sid,category:r.category||'',program:r.program||'',facilitator:r.facilitator||'',delivery:r.delivery||'',type:r.type||'',duration:r.duration||'',month:r.month||'',start_date:r.startDate||null,end_date:r.endDate||null,venue:r.venue||'',target:r.target||'',status:r.status||'planned',cpd_id:r.cpdId||null,time_from:r.timeFrom||r.time||null,time_to:r.timeTo||null,cost:r.cost||'',cpd_cache:r.cpdCache||null,teacher_insights:r.teacherInsights||{}}));
       if(_dbRows.length) return await sbUpsertResilient('schedule_rows',_dbRows,['time_from','time_to','cost']);
       return true;
     }
@@ -638,7 +638,20 @@ async function saveSchedRecord(row,fullArray){
   return await sbUpsertResilient('schedule_rows',[{id:row.id,school_id:SCHOOL_ID,category:row.category||'',program:row.program||'',
     facilitator:row.facilitator||'',delivery:row.delivery||'',type:row.type||'',duration:row.duration||'',month:row.month||'',
     start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
-    status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||''}],['time_from','time_to','cost']);
+    status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||'',cpd_cache:row.cpdCache||null,teacher_insights:row.teacherInsights||{}}],['time_from','time_to','cost','cpd_cache','teacher_insights']);
+}
+async function saveSchedInsight(schedId,teacherName,text){
+  const row=S.schedule.find(r=>r.id===schedId);
+  if(!row)return false;
+  const updated={...row,teacherInsights:{...(row.teacherInsights||{}),[teacherName]:text?{text,at:new Date().toISOString()}:null}};
+  // remove null entries cleanly
+  Object.keys(updated.teacherInsights).forEach(k=>{if(!updated.teacherInsights[k])delete updated.teacherInsights[k];});
+  S.schedule=S.schedule.map(r=>r.id===schedId?updated:r);
+  sset('sched',S.schedule);
+  if(!SCHOOL_ID)return true;
+  const uuidRe=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if(!uuidRe.test(schedId))return true;
+  return await sbUpsertResilient('schedule_rows',[{id:schedId,school_id:SCHOOL_ID,teacher_insights:updated.teacherInsights}],['teacher_insights']);
 }
 async function saveTlcTeacherResponse(tlcId,teacherId,text){
   const g=S.deptTLC.find(x=>x.id===tlcId);
@@ -1500,7 +1513,7 @@ ${cats.map(cat=>{
       <span class="badge badge-blue">${rows.length} programme${rows.length!==1?'s':''}</span>
     </div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Venue</th><th>Target</th><th>Cost</th><th>⭐</th><th>Status</th>${canEdit()?'<th style="min-width:80px"></th>':''}</tr></thead>
+      <thead><tr><th>Programme</th><th>Facilitator</th><th>Type</th><th>Time</th><th>Duration</th><th>Start</th><th>End</th><th>Month</th><th>Venue</th><th>Target</th><th>Cost</th><th>⭐</th><th>Insights</th><th>Status</th>${canEdit()?'<th style="min-width:80px"></th>':''}</tr></thead>
       <tbody>${rows.map(r=>{const ratingVal=(S.schedRatings||{})[r.id]||0;return`<tr style="${conflicts.has(r.id)?'background:#fff7ed;border-left:3px solid #f59e0b':''}">
         <td style="font-weight:600;direction:auto">${esc(r.program)}${r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':''}${conflicts.has(r.id)?'<span class="badge badge-amber ml-1" style="font-size:10px">⚠ conflict</span>':''}</td>
         <td class="text-xs">${esc(r.facilitator||'—')}</td>
@@ -1514,6 +1527,7 @@ ${cats.map(cat=>{
         <td class="text-xs">${esc(r.target||'—')}</td>
         <td class="text-xs">${r.cost?'<span style="font-weight:600;color:var(--forest)">'+esc(r.cost)+'</span>':'—'}</td>
         <td class="text-xs" style="white-space:nowrap">${ratingVal>0?'<span style="color:#f59e0b;font-weight:700">'+'★'.repeat(ratingVal)+'</span> <span style="color:var(--muted);font-size:10px">'+ratingVal+'/5</span>':'<span style="color:#d1d5db">—</span>'}</td>
+        <td class="text-xs">${(()=>{const ins=Object.entries(r.teacherInsights||{});if(!ins.length)return '<span style="color:#d1d5db">—</span>';return ins.map(([n,v])=>'<div style="margin-bottom:2px"><strong style="font-size:10px">'+esc(n)+':</strong> <span style="color:#374151">'+esc((v&&v.text||'').slice(0,60))+((v&&v.text||'').length>60?'…':'')+'</span></div>').join('');})()}</td>
         <td>${canEdit()
           ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:90px" data-status-sched="${r.id}">
               ${['planned','active','done'].map(s=>`<option ${r.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
@@ -2140,6 +2154,20 @@ ${tab==='schedule'?`
         +[1,2,3,4,5].map(n=>'<button data-rate-sched="'+r.id+'-'+n+'" style="width:32px;height:32px;font-size:18px;border:none;background:transparent;cursor:pointer;color:'+(myRating>=n?'#f59e0b':'#d1d5db')+';transition:color .15s" title="'+n+' star'+(n!==1?'s':'')+'">'+(myRating>=n?'★':'☆')+'</button>').join('')
         +(myRating>0?'<span style="font-size:12px;font-weight:700;color:#f59e0b;margin-left:6px">'+myRating+'/5</span>':'')
         +'</div></div>':'')
+        // CPD session content — reads from cpdCache on the schedule row (resilient, no RLS dependency)
+        +(()=>{
+          if(r.status!=='done')return '';
+          const cc=r.cpdCache;
+          const hasBDA=cc&&(cc.before||cc.during||cc.after);
+          const bdaHtml=hasBDA?'<div class="grid-3 mb-2">'+(cc.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto"><strong>📋 Before:</strong><br>'+esc(cc.before)+'</div>':'')+(cc.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(cc.during)+'</div>':'')+(cc.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(cc.after)+'</div>':'')+'</div>':'';
+          const mediaHtml=cc?mediaEvidenceDisplay(cc.mediaImages||[],cc.mediaVideos||[]):'';
+          const attsHtml=cc?tlcAttDisplayList(cc.attachments||[]):'';
+          const myInsight=(r.teacherInsights||{})[S.session?.name||'']||null;
+          const isEditing=S.editingSchedInsightId===r.id;
+          const insightHtml='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px"><div style="font-size:11px;font-weight:700;color:#1F4E79;margin-bottom:6px">💬 My Insight / Reflection</div>'+(myInsight&&!isEditing?'<div class="text-xs p-2" style="background:#eff6ff;border-radius:4px;border:1px solid #bfdbfe;margin-bottom:4px">'+esc(myInsight.text)+'</div><div class="text-xs text-muted mb-2">Submitted '+esc(new Date(myInsight.at).toLocaleString())+'</div><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit-sched-insight="'+r.id+'">✏ Edit</button><button class="btn btn-danger btn-sm" data-del-sched-insight="'+r.id+'">🗑 Delete</button></div>':'<div class="text-xs text-muted mb-2" style="font-style:italic">'+(!myInsight?'Share your key takeaway or reflection on this session.':'')+'</div><textarea class="form-control" id="si-resp-'+r.id+'" placeholder="What did you take away from this session? Any insights or implementation ideas?" style="min-height:60px;font-size:12px">'+esc((myInsight&&isEditing)?myInsight.text:'')+'</textarea><div class="flex gap-2 mt-2"><button class="btn btn-success btn-sm" data-save-sched-insight="'+r.id+'">💾 Save</button>'+(isEditing?'<button class="btn btn-ghost btn-sm" data-cancel-sched-insight="'+r.id+'">Cancel</button>':'')+'</div>')+'</div>';
+          if(!bdaHtml&&!mediaHtml&&!attsHtml&&!insightHtml)return '';
+          return '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px">'+(bdaHtml||mediaHtml||attsHtml?'<div style="font-size:11px;font-weight:700;color:#0F6E56;margin-bottom:8px">📚 CPD Session Content</div>'+bdaHtml+mediaHtml+attsHtml:'')+insightHtml+'</div>';
+        })()+'</div>';})()
         +'</div>';
     }).join('');
   })()}
@@ -3997,7 +4025,7 @@ function bindEvents(){
     el.onchange=()=>{
       const id=el.dataset.statusSched;
       const row=S.schedule.find(r=>r.id===id);
-      if(row){row.status=el.value;save('sched',S.schedule);showToast('Status updated ✓');}
+      if(row){row.status=el.value;if(el.value==='done'&&row.cpdId){const _cpd=S.cpd.find(c=>c.id===row.cpdId);if(_cpd)row.cpdCache={before:_cpd.before||'',during:_cpd.during||'',after:_cpd.after||'',attachments:_cpd.attachments||[],mediaImages:_cpd.mediaImages||[],mediaVideos:_cpd.mediaVideos||[]};}save('sched',S.schedule);saveSchedRecord(row,S.schedule);showToast('Status updated ✓');}
     };
   });
 
@@ -5216,6 +5244,37 @@ function bindEvents(){
       save('obs',S.observations);
       S.editingResponseId=null;
       showToast('Response saved ✓');
+      render();
+    };
+  });
+
+  // ── My Portal: schedule insights ─────────────────────────────────────────
+  document.querySelectorAll('[data-save-sched-insight]').forEach(el=>{
+    el.onclick=async()=>{
+      const sid=el.dataset.saveSchedInsight;
+      const ta=document.getElementById('si-resp-'+sid);
+      if(!ta)return;
+      const txt=ta.value.trim();
+      if(!txt){showToast('Please enter a reflection before saving.','error');return;}
+      await saveSchedInsight(sid,S.session?.name||'',txt);
+      S.editingSchedInsightId=null;
+      showToast('Insight saved ✓');
+      render();
+    };
+  });
+  document.querySelectorAll('[data-edit-sched-insight]').forEach(el=>{
+    el.onclick=()=>{S.editingSchedInsightId=el.dataset.editSchedInsight;render();};
+  });
+  document.querySelectorAll('[data-cancel-sched-insight]').forEach(el=>{
+    el.onclick=()=>{S.editingSchedInsightId=null;render();};
+  });
+  document.querySelectorAll('[data-del-sched-insight]').forEach(el=>{
+    el.onclick=async()=>{
+      if(!confirm('Delete your reflection on this session?'))return;
+      const sid=el.dataset.delSchedInsight;
+      await saveSchedInsight(sid,S.session?.name||'','');
+      S.editingSchedInsightId=null;
+      showToast('Reflection deleted');
       render();
     };
   });
