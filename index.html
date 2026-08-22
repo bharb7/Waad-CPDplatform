@@ -5695,7 +5695,7 @@ function printCPD(id){
   +'@media print{button{display:none!important}}</style></head><body>'
   +'<div style="display:flex;justify-content:space-between;align-items:start">'
   +'<div style="display:flex;align-items:flex-start">'
-  '+(S.branding&&S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0" onerror="this.style.display=\'none\'">':'<img src="'+WAAD_LOGO_IMG+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0;border-radius:4px">')+'
+  +(S.branding&&S.branding.logo?'<img src="'+S.branding.logo+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0" onerror="this.style.display=\'none\'">':'<img src="'+WAAD_LOGO_IMG+'" style="height:52px;object-fit:contain;margin-right:14px;flex-shrink:0;border-radius:4px">')
   +'<div><h1>&#128218; '+safe(c.title)+'</h1>'
   +'<div class="meta">Date: <strong>'+safe(c.date||'—')+'</strong> &nbsp;|&nbsp; Facilitator: <strong>'+safe(c.facilitator||'—')+'</strong> &nbsp;|&nbsp; Audience: <strong>'+safe(c.audience||'All')+'</strong>'+(c.type?' &nbsp;|&nbsp; Type: <strong>'+safe(c.type)+'</strong>':'')+(c.delivery?' &nbsp;|&nbsp; Delivery: <strong>'+safe(c.delivery)+'</strong>':'')+'</div></div>'
   +'<button onclick="window.print()" style="padding:6px 14px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-top:4px">&#128424; Print</button></div>'
