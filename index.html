@@ -1527,7 +1527,7 @@ ${cats.map(cat=>{
         <td class="text-xs">${esc(r.target||'—')}</td>
         <td class="text-xs">${r.cost?'<span style="font-weight:600;color:var(--forest)">'+esc(r.cost)+'</span>':'—'}</td>
         <td class="text-xs" style="white-space:nowrap">${ratingVal>0?'<span style="color:#f59e0b;font-weight:700">'+'★'.repeat(ratingVal)+'</span> <span style="color:var(--muted);font-size:10px">'+ratingVal+'/5</span>':'<span style="color:#d1d5db">—</span>'}</td>
-        <td class="text-xs">${(()=>{const ins=Object.entries(r.teacherInsights||{});if(!ins.length)return '<span style="color:#d1d5db">—</span>';return ins.map(([n,v])=>{const t=(v&&v.text||'').slice(0,60)+((v&&v.text||'').length>60?'...':'');return '<div style="margin-bottom:2px"><strong style="font-size:10px">'+esc(n)+':</strong> <span style="color:#374151">'+esc(t)+'</span></div>';}).join('');})()}</td>
+        <td class="text-xs">${(()=>{const ins=Object.entries(r.teacherInsights||{}).filter(([,v])=>v&&v.text);if(!ins.length)return '<span style="color:#d1d5db">—</span>';return '<span style="background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;cursor:default" title="'+ins.map(([n,v])=>n+': '+esc((v.text||'').slice(0,80))).join(' | ')+'">&#x1F4AC; '+ins.length+'</span>';})()}</td>
         <td>${canEdit()
           ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:90px" data-status-sched="${r.id}">
               ${['planned','active','done'].map(s=>`<option ${r.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
@@ -2561,6 +2561,7 @@ ${(()=>{
       </div>`:''}
     ${mediaEvidenceDisplay(c.mediaImages,c.mediaVideos)}
     ${tlcAttDisplayList(c.attachments)}
+    ${(()=>{const schedRow=S.schedule.find(r=>r.cpdId===c.id);if(!schedRow)return '';const ins=Object.entries(schedRow.teacherInsights||{}).filter(([,v])=>v&&v.text);if(!ins.length)return '';return '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px"><div style="font-size:11px;font-weight:700;color:#1F4E79;margin-bottom:8px">&#x1F4AC; Teacher Insights ('+ins.length+')</div><div style="display:flex;flex-direction:column;gap:6px">'+ins.map(([n,v])=>'<div style="background:#eff6ff;border-radius:6px;padding:8px 10px;border-left:3px solid #3b82f6"><div style="font-size:10px;font-weight:700;color:#1d4ed8;margin-bottom:3px">'+esc(n)+'<span style="font-weight:400;color:#6b7280;margin-left:6px">'+esc(new Date(v.at).toLocaleDateString())+'</span></div><div style="font-size:12px;color:#1e293b;direction:auto">'+esc(v.text)+'</div></div>').join('')+'</div></div>';})()}
   </div>
 `).join('')
     +(!filtCPD.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(S.cpd.length?'No sessions match current filters.':'No CPD sessions yet.')+'</div>':'');
