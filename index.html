@@ -1920,10 +1920,13 @@ function renderMyPortal(){
   return `
 <div class="card mb-3" style="background:linear-gradient(135deg,#1F4E79,#0F6E56);color:#fff;border:none;padding:20px 22px">
   <div class="flex justify-between items-center">
-    <div>
-      <div style="font-size:20px;font-weight:800;margin-bottom:4px">👤 ${esc(S.session?.name||'')}</div>
-      <div style="font-size:13px;opacity:.85">${me?esc(me.dept)+' · '+esc(me.section)+' · '+esc(me.stage):'Connect your teacher record in Settings'}</div>
-      ${me?`<div style="font-size:11px;opacity:.7;margin-top:4px">${esc(me.groupId?S.groups.find(g=>g.id===me.groupId)?.name||'':'')} · ${myObs.length} observations · ${myTrips.length} coaching sessions</div>`:''}
+    <div style="display:flex;align-items:center;gap:14px">
+      ${(S.branding&&S.branding.logo)?`<img src="${S.branding.logo}" style="height:48px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.15);padding:4px" onerror="this.style.display='none'">`:`<img src="${WAAD_LOGO_IMG}" style="height:48px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.15);padding:4px">`}
+      <div>
+        <div style="font-size:20px;font-weight:800;margin-bottom:4px">👤 ${esc(S.session?.name||'')}</div>
+        <div style="font-size:13px;opacity:.85">${me?esc(me.dept)+' · '+esc(me.section)+' · '+esc(me.stage):'Connect your teacher record in Settings'}</div>
+        ${me?`<div style="font-size:11px;opacity:.7;margin-top:4px">${esc(me.groupId?S.groups.find(g=>g.id===me.groupId)?.name||'':'')} · ${myObs.length} observations · ${myTrips.length} coaching sessions</div>`:''}
+      </div>
     </div>
     <div style="text-align:right">
       ${myObs.length>0?`<div style="font-size:28px;font-weight:800">${avg(myObs.map(o=>domAvg(o.scores)).filter(x=>x>0))>0?avg(myObs.map(o=>domAvg(o.scores)).filter(x=>x>0)).toFixed(1)+'/5':'—'}</div><div style="font-size:11px;opacity:.7">Overall average</div>`:''}
@@ -2139,15 +2142,8 @@ ${tab==='schedule'?`
         +(r.cpdId?'<span style="margin-left:4px;font-size:10px">🔗</span>':'')+whenBadge+'</div>'
         +'<span style="background:'+statusBg+';color:'+statusColor+';padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">'+r.status+'</span>'
         +'</div>'
-        // Details grid
-        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📅 Date</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(r.startDate||'—')+(r.endDate&&r.endDate!==r.startDate?'<br><span style="color:var(--muted)">→ '+r.endDate+'</span>':'')+'</div></div>'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🕐 Time</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+(schedTimeLabel(r)||'—')+'</div></div>'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">📍 Venue</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.venue||'TBC')+'</div></div>'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">⏱ Duration</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.duration||'—')+'</div></div>'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">🎤 Facilitator</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.facilitator||'—')+'</div></div>'
-        +'<div style="background:var(--light);border-radius:6px;padding:7px 10px"><div style="font-size:10px;color:var(--muted);font-weight:600">👥 Target</div><div style="font-size:12px;font-weight:600;margin-top:2px">'+esc(r.target||'All')+'</div></div>'
-        +'</div>'
+        // Details - clean horizontal pill rows
+        +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'        +(r.startDate?'<span style="background:var(--light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)">&#128197; '+(r.startDate||'&mdash;')+(r.endDate&&r.endDate!==r.startDate?' &rarr; '+r.endDate:'')+'</span>':'')        +(schedTimeLabel(r)?'<span style="background:var(--light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)">&#128336; '+schedTimeLabel(r)+'</span>':'')        +(r.venue?'<span style="background:var(--light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)">&#128205; '+esc(r.venue)+'</span>':'')        +(r.duration?'<span style="background:var(--light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)">&#9201; '+esc(r.duration)+'</span>':'')        +(r.facilitator?'<span style="background:var(--light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)">&#127908; '+esc(r.facilitator)+'</span>':'')        +(r.target?'<span style="background:var(--light);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--muted)">&#128101; '+esc(r.target)+'</span>':'')        +'</div>'
         // Star rating
         +(r.status==='done'?'<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:6px">⭐ Rate this session</div>'
         +'<div class="flex gap-1 items-center">'
@@ -2158,7 +2154,7 @@ ${tab==='schedule'?`
         +(()=>{
           if(r.status!=='done')return '';
           const cc=r.cpdCache||null;
-          const bdaHtml=cc&&(cc.before||cc.during||cc.after)?'<div class="grid-3 mb-2">'+(cc.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto"><strong>📋 Before:</strong><br>'+esc(cc.before)+'</div>':'')+(cc.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(cc.during)+'</div>':'')+(cc.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(cc.after)+'</div>':'')+'</div>':'';
+          const bdaHtml=cc&&(cc.before||cc.during||cc.after)?'<div class="grid-3 mb-2">'+(cc.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto;white-space:pre-wrap"><strong>📋 Before:</strong><br>'+esc(cc.before)+'</div>':'')+(cc.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto;white-space:pre-wrap"><strong>⚡ During:</strong><br>'+esc(cc.during)+'</div>':'')+(cc.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto;white-space:pre-wrap"><strong>✅ After:</strong><br>'+esc(cc.after)+'</div>':'')+'</div>':'';
           const mediaHtml=cc?mediaEvidenceDisplay(cc.mediaImages||[],cc.mediaVideos||[]):'';
           const attsHtml=cc?tlcAttDisplayList(cc.attachments||[]):'';
           const myInsight=(r.teacherInsights||{})[S.session&&S.session.name||'']||null;
@@ -2555,9 +2551,9 @@ ${(()=>{
     </div>
     ${c.bio?'<span class="badge badge-purple mb-2">Technique: '+esc(c.bio)+'</span>':''}
     ${c.before||c.during||c.after?`<div class="grid-3 mt-2">
-        ${c.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto"><strong>📋 Before:</strong><br>'+esc(c.before)+'</div>':''}
-        ${c.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(c.during)+'</div>':''}
-        ${c.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(c.after)+'</div>':''}
+        ${c.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto;white-space:pre-wrap"><strong>📋 Before:</strong><br>'+esc(c.before)+'</div>':''}
+        ${c.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto;white-space:pre-wrap"><strong>⚡ During:</strong><br>'+esc(c.during)+'</div>':''}
+        ${c.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto;white-space:pre-wrap"><strong>✅ After:</strong><br>'+esc(c.after)+'</div>':''}
       </div>`:''}
     ${mediaEvidenceDisplay(c.mediaImages,c.mediaVideos)}
     ${tlcAttDisplayList(c.attachments)}
