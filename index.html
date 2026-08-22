@@ -1527,7 +1527,7 @@ ${cats.map(cat=>{
         <td class="text-xs">${esc(r.target||'—')}</td>
         <td class="text-xs">${r.cost?'<span style="font-weight:600;color:var(--forest)">'+esc(r.cost)+'</span>':'—'}</td>
         <td class="text-xs" style="white-space:nowrap">${ratingVal>0?'<span style="color:#f59e0b;font-weight:700">'+'★'.repeat(ratingVal)+'</span> <span style="color:var(--muted);font-size:10px">'+ratingVal+'/5</span>':'<span style="color:#d1d5db">—</span>'}</td>
-        <td class="text-xs">${(()=>{const ins=Object.entries(r.teacherInsights||{});if(!ins.length)return '<span style="color:#d1d5db">—</span>';return ins.map(([n,v])=>'<div style="margin-bottom:2px"><strong style="font-size:10px">'+esc(n)+':</strong> <span style="color:#374151">'+esc((v&&v.text||'').slice(0,60))+((v&&v.text||'').length>60?'…':'')+'</span></div>').join('');})()}</td>
+        <td class="text-xs">${(()=>{const ins=Object.entries(r.teacherInsights||{});if(!ins.length)return '<span style="color:#d1d5db">—</span>';return ins.map(([n,v])=>{const t=(v&&v.text||'').slice(0,60)+((v&&v.text||'').length>60?'...':'');return '<div style="margin-bottom:2px"><strong style="font-size:10px">'+esc(n)+':</strong> <span style="color:#374151">'+esc(t)+'</span></div>';}).join('');})()}</td>
         <td>${canEdit()
           ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:90px" data-status-sched="${r.id}">
               ${['planned','active','done'].map(s=>`<option ${r.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
@@ -2154,20 +2154,21 @@ ${tab==='schedule'?`
         +[1,2,3,4,5].map(n=>'<button data-rate-sched="'+r.id+'-'+n+'" style="width:32px;height:32px;font-size:18px;border:none;background:transparent;cursor:pointer;color:'+(myRating>=n?'#f59e0b':'#d1d5db')+';transition:color .15s" title="'+n+' star'+(n!==1?'s':'')+'">'+(myRating>=n?'★':'☆')+'</button>').join('')
         +(myRating>0?'<span style="font-size:12px;font-weight:700;color:#f59e0b;margin-left:6px">'+myRating+'/5</span>':'')
         +'</div></div>':'')
-        // CPD session content — reads from cpdCache on the schedule row (resilient, no RLS dependency)
+        // CPD session content — reads from cpdCache (resilient, no RLS dependency) + teacher insight
         +(()=>{
           if(r.status!=='done')return '';
-          const cc=r.cpdCache;
-          const hasBDA=cc&&(cc.before||cc.during||cc.after);
-          const bdaHtml=hasBDA?'<div class="grid-3 mb-2">'+(cc.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto"><strong>📋 Before:</strong><br>'+esc(cc.before)+'</div>':'')+(cc.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(cc.during)+'</div>':'')+(cc.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(cc.after)+'</div>':'')+'</div>':'';
+          const cc=r.cpdCache||null;
+          const bdaHtml=cc&&(cc.before||cc.during||cc.after)?'<div class="grid-3 mb-2">'+(cc.before?'<div class="p-2 rounded text-xs" style="background:#dbeafe;direction:auto"><strong>📋 Before:</strong><br>'+esc(cc.before)+'</div>':'')+(cc.during?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>⚡ During:</strong><br>'+esc(cc.during)+'</div>':'')+(cc.after?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>✅ After:</strong><br>'+esc(cc.after)+'</div>':'')+'</div>':'';
           const mediaHtml=cc?mediaEvidenceDisplay(cc.mediaImages||[],cc.mediaVideos||[]):'';
           const attsHtml=cc?tlcAttDisplayList(cc.attachments||[]):'';
-          const myInsight=(r.teacherInsights||{})[S.session?.name||'']||null;
+          const myInsight=(r.teacherInsights||{})[S.session&&S.session.name||'']||null;
           const isEditing=S.editingSchedInsightId===r.id;
-          const insightHtml='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px"><div style="font-size:11px;font-weight:700;color:#1F4E79;margin-bottom:6px">💬 My Insight / Reflection</div>'+(myInsight&&!isEditing?'<div class="text-xs p-2" style="background:#eff6ff;border-radius:4px;border:1px solid #bfdbfe;margin-bottom:4px">'+esc(myInsight.text)+'</div><div class="text-xs text-muted mb-2">Submitted '+esc(new Date(myInsight.at).toLocaleString())+'</div><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit-sched-insight="'+r.id+'">✏ Edit</button><button class="btn btn-danger btn-sm" data-del-sched-insight="'+r.id+'">🗑 Delete</button></div>':'<div class="text-xs text-muted mb-2" style="font-style:italic">'+(!myInsight?'Share your key takeaway or reflection on this session.':'')+'</div><textarea class="form-control" id="si-resp-'+r.id+'" placeholder="What did you take away from this session? Any insights or implementation ideas?" style="min-height:60px;font-size:12px">'+esc((myInsight&&isEditing)?myInsight.text:'')+'</textarea><div class="flex gap-2 mt-2"><button class="btn btn-success btn-sm" data-save-sched-insight="'+r.id+'">💾 Save</button>'+(isEditing?'<button class="btn btn-ghost btn-sm" data-cancel-sched-insight="'+r.id+'">Cancel</button>':'')+'</div>')+'</div>';
-          if(!bdaHtml&&!mediaHtml&&!attsHtml&&!insightHtml)return '';
-          return '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px">'+(bdaHtml||mediaHtml||attsHtml?'<div style="font-size:11px;font-weight:700;color:#0F6E56;margin-bottom:8px">📚 CPD Session Content</div>'+bdaHtml+mediaHtml+attsHtml:'')+insightHtml+'</div>';
-        })()+'</div>';})()
+          const insightHtml='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px"><div style="font-size:11px;font-weight:700;color:#1F4E79;margin-bottom:6px">&#x1F4AC; My Insight / Reflection</div>'+(myInsight&&!isEditing?'<div class="text-xs p-2" style="background:#eff6ff;border-radius:4px;border:1px solid #bfdbfe;margin-bottom:4px">'+esc(myInsight.text)+'</div><div class="text-xs text-muted mb-2">Submitted '+esc(new Date(myInsight.at).toLocaleString())+'</div><div class="flex gap-2"><button class="btn btn-ghost btn-sm" data-edit-sched-insight="'+r.id+'">&#9999; Edit</button><button class="btn btn-danger btn-sm" data-del-sched-insight="'+r.id+'">Delete</button></div>':'<div class="text-xs text-muted mb-2" style="font-style:italic">Share your key takeaway or reflection on this session.</div><textarea class="form-control" id="si-resp-'+r.id+'" placeholder="What did you take away from this session?" style="min-height:60px;font-size:12px">'+esc(myInsight&&isEditing?myInsight.text:'')+'</textarea><div class="flex gap-2 mt-2"><button class="btn btn-success btn-sm" data-save-sched-insight="'+r.id+'">Save</button>'+(isEditing?'<button class="btn btn-ghost btn-sm" data-cancel-sched-insight="'+r.id+'">Cancel</button>':'')+'</div>')+'</div>';
+          var out='';
+          if(bdaHtml||mediaHtml||attsHtml){out+='<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px"><div style="font-size:11px;font-weight:700;color:#0F6E56;margin-bottom:8px">&#x1F4DA; CPD Session Content</div>'+bdaHtml+mediaHtml+attsHtml+'</div>';}
+          out+=insightHtml;
+          return out;
+        })()
         +'</div>';
     }).join('');
   })()}
