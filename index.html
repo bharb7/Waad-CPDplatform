@@ -297,7 +297,7 @@ const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',progr
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 // Cleared per request — this was hardcoded demo/placeholder data (Fatima Al-Rashid, Omar Hassan, etc.) never shown once real teacher rows exist in Supabase; emptied so the Teachers tab starts fresh for real data entry.
 const SEED_TEACHERS=[];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -356,7 +356,7 @@ async function loadAll(){
     else S.progress=sget('progress')||[];
     if(snaps&&Array.isArray(snaps)){S.snapshots=snaps.map(mapSnap);sset('snapshots',S.snapshots);}
     else S.snapshots=sget('snapshots')||[];
-    if(resources&&Array.isArray(resources)&&resources.length>0){S.resources=resources.map(r=>({id:r.id,title:r.title||'',url:r.url||'',desc:r.description||'',dept:r.dept||'',addedBy:r.added_by||''}));sset('resources',S.resources);}
+    if(resources&&Array.isArray(resources)&&resources.length>0){S.resources=resources.map(r=>({id:r.id,title:r.title||'',url:r.url||'',desc:r.description||'',dept:r.dept||'',depts:r.depts||[],fileData:r.file_data||null,addedBy:r.added_by||''}));sset('resources',S.resources);}
     else S.resources=sget('resources')||DEFAULT_RESOURCES;
     if(deptTlc&&Array.isArray(deptTlc)){S.deptTLC=deptTlc.map(mapDeptTLC);sset('deptTLC',S.deptTLC);}
     else S.deptTLC=sget('deptTLC')||[];
@@ -538,7 +538,7 @@ function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'
 // once time_from/time_to are correctly saved, the table/print/CSV views still need to read
 // THESE fields to actually show what was entered, not the legacy one that was never written to.
 function schedTimeLabel(r){if(r.timeFrom&&r.timeTo)return r.timeFrom+'–'+r.timeTo;return r.timeFrom||r.time||'';}
-function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',tripletId:r.linked_triplet_id||'',teacherResponses:r.teacher_responses||{},attachments:r.attachments||[]}}
+function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',artifactImages:r.artifact_images||[],artifactVideos:r.artifact_videos||[],tripletId:r.linked_triplet_id||'',teacherResponses:r.teacher_responses||{},attachments:r.attachments||[]}}
 function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
 function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.stage_scores||{},folderLink:r.folder_link||''}}
 function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0,tripCount:r.trip_count||0,lwCount:r.lw_count||0,dept:r.dept||'Whole School',date:r.submitted_at||new Date().toISOString()}}
@@ -584,7 +584,7 @@ async function save(k,v){
     // uses password_hash) — invisible for edits to existing rows (their real hash round-trips
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
-    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id))})),['username','password','sections','grades','teacher_id']);
+    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
     else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
@@ -604,8 +604,8 @@ async function save(k,v){
     else if(k==='impacts') return await sbUpsert('impact_entries',v.map(i=>({id:i.id,school_id:sid,level:i.level||'1',type:i.type||'',teacher_id:i.tid||null,value:i.value||'',evidence:i.evidence||'',date:i.date||null,term:i.term||''})));
     else if(k==='progress') return await sbUpsert('student_progress',v.map(p=>({id:p.id,school_id:sid,mode:p.mode||'internal',subject:p.subject||'',dept:p.dept||'',grade:p.grade||'',section:p.section||'',stage_scores:p.scores||{},folder_link:p.folderLink||''})));
     else if(k==='snapshots') return await sbUpsert('process_snapshots',v.map(s=>({id:s.id,school_id:sid,ratings:s.ratings||{},obs_count:s.obsCount||0,trip_count:s.tripCount||0,lw_count:s.lwCount||0,dept:s.dept||'Whole School'})));
-    else if(k==='resources') return await sbUpsertResilient('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0,dept:r.dept||'',added_by:r.addedBy||''})),['dept','added_by']);
-    else if(k==='deptTLC') return await sbUpsertResilient('dept_tlc_groups',v.map(g=>({id:g.id,school_id:sid,departments:g.depts||[],facilitator:g.facilitator||'',date_from:g.dateFrom||null,date_to:g.dateTo||null,application:g.application||[],application_custom:g.applicationCustom||'',app_content:g.appContent||'',collaboration:g.collaboration||'',active_learning:g.activeLearning||'',focus_feed:g.focusFeed||'',learned:g.learned||'',strategies:g.strategies||'',commitment:g.commitment||'',artifact_image:g.artifactImage||'',linked_triplet_id:g.tripletId||null,teacher_responses:g.teacherResponses||{},attachments:g.attachments||[]})),['teacher_responses','attachments']);
+    else if(k==='resources') return await sbUpsertResilient('resources',v.map(r=>({id:r.id,school_id:sid,title:r.title||'',url:r.url||'',description:r.desc||'',sort_order:0,dept:r.dept||'',depts:r.depts||[],file_data:r.fileData||null,added_by:r.addedBy||''})),['dept','added_by','depts','file_data']);
+    else if(k==='deptTLC') return await sbUpsertResilient('dept_tlc_groups',v.map(g=>({id:g.id,school_id:sid,departments:g.depts||[],facilitator:g.facilitator||'',date_from:g.dateFrom||null,date_to:g.dateTo||null,application:g.application||[],application_custom:g.applicationCustom||'',app_content:g.appContent||'',collaboration:g.collaboration||'',active_learning:g.activeLearning||'',focus_feed:g.focusFeed||'',learned:g.learned||'',strategies:g.strategies||'',commitment:g.commitment||'',artifact_image:g.artifactImage||'',artifact_images:g.artifactImages||[],artifact_videos:g.artifactVideos||[],linked_triplet_id:g.tripletId||null,teacher_responses:g.teacherResponses||{},attachments:g.attachments||[]})),['teacher_responses','attachments','artifact_images','artifact_videos']);
     return true;
   }catch(e){console.warn('Supabase save failed for',k,e);return false;}
 }
@@ -639,6 +639,20 @@ async function saveSchedRecord(row,fullArray){
     facilitator:row.facilitator||'',delivery:row.delivery||'',type:row.type||'',duration:row.duration||'',month:row.month||'',
     start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
     status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||'',cpd_cache:row.cpdCache||null,teacher_insights:row.teacherInsights||{}}],['time_from','time_to','cost','cpd_cache','teacher_insights']);
+}
+function getMyPortfolio(){
+  const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
+  if(myUser&&myUser.portfolio&&myUser.portfolio.folders)return myUser.portfolio;
+  return sget('myPortfolio')||{folders:[]};
+}
+function saveMyPortfolio(p){
+  sset('myPortfolio',p);
+  // Also save to user record if available
+  const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
+  if(myUser){
+    myUser.portfolio=p;
+    save('users',S.users);
+  }
 }
 async function saveSchedInsight(schedId,teacherName,text){
   const row=S.schedule.find(r=>r.id===schedId);
@@ -1957,6 +1971,7 @@ function renderMyPortal(){
   <button class="tab ${tab==='tlc'?'active':''}" data-myportal-tab="tlc">🤝 TLC (${myTLC.length})</button>
   <button class="tab ${tab==='schedule'?'active':''}" data-myportal-tab="schedule">🗓 My Schedule (${mySchedule.length})</button>
   <button class="tab ${tab==='resources'?'active':''}" data-myportal-tab="resources">📂 Resources</button>
+  <button class="tab ${tab==='portfolio'?'active':''}" data-myportal-tab="portfolio">🎓 Portfolio</button>
 </div>
 
 ${tab==='overview'?`
@@ -2034,7 +2049,7 @@ ${tab==='obs'?`
           </div>
         `:`
           ${!o.teacherResponse?'<div class="text-xs text-muted mb-2" style="font-style:italic">No response submitted yet. Share your thoughts on this observation below.</div>':''}
-          <textarea class="form-control" id="tr-resp-${o.id}" placeholder="Add your response, reflection, or any comments about this observation..." style="min-height:60px;font-size:12px">${esc(o.teacherResponse||'')}</textarea>
+          <textarea class="form-control" id="tr-resp-${o.id}" placeholder="Add your response, reflection, or any comments about this observation..." style="min-height:60px;font-size:12px" data-draft-id="${o.id}">${esc((S.draftResponses&&S.draftResponses[o.id]!==undefined?S.draftResponses[o.id]:o.teacherResponse)||'')}</textarea>
           <div class="flex gap-2 mt-2">
             <button class="btn btn-success btn-sm" data-save-teacher-response="${o.id}">💾 Save Response</button>
             ${o.teacherResponse?`<button class="btn btn-ghost btn-sm" data-cancel-teacher-response="${o.id}">Cancel</button>`:''}
@@ -2102,7 +2117,8 @@ ${tab==='tlc'?`
           ${g.strategies?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>2️⃣ Strategies:</strong><br>'+esc(g.strategies)+'</div>':''}
           ${g.commitment?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>1️⃣ Commitment:</strong><br>'+esc(g.commitment)+'</div>':''}
         </div>`:''}
-      ${g.artifactImage?`<div class="mb-2"><img src="${g.artifactImage}" style="max-height:140px;border-radius:6px;border:1px solid var(--border)"></div>`:''}
+      ${(g.artifactImages&&g.artifactImages.length?g.artifactImages:g.artifactImage?[g.artifactImage]:[]).length?`<div class="flex gap-2 mb-2" style="flex-wrap:wrap">${(g.artifactImages&&g.artifactImages.length?g.artifactImages:g.artifactImage?[g.artifactImage]:[]).map(url=>`<img src="${url}" style="max-height:120px;border-radius:6px;border:1px solid var(--border)">`).join('')}</div>`:''}
+      ${(g.artifactVideos||[]).length?`<div class="flex gap-2 mb-2" style="flex-wrap:wrap">${(g.artifactVideos||[]).map(url=>`<video src="${url}" style="max-height:120px;border-radius:6px" controls></video>`).join('')}</div>`:''}
       ${tlcAttDisplayList(g.attachments)}
       ${g.focusFeed?`<div class="text-xs" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;direction:auto"><strong>🔗 Focus Feed into Coaching Triplet:</strong><br>${esc(g.focusFeed)}</div>`:''}
     </div>`).join('')}
@@ -2205,6 +2221,34 @@ ${tab==='resources'?`
     ${!scopedResources().length?'<div class="card" style="text-align:center;color:var(--muted);padding:20px;font-style:italic">No resources yet.</div>':''}
   </div>
 `:''}
+${tab==='portfolio'?`
+  ${(()=>{
+    // Load portfolio from session user record
+    const myUser=S.users.find(u=>u.name===S.session?.name||u.username===S.session?.username);
+    const portfolio=myUser?.portfolio||sget('myPortfolio')||{folders:[],editingFolder:null};
+    const folders=portfolio.folders||[];
+    window.__portfolio=portfolio;
+    const DEFAULT_FOLDERS=['Certificates','Best Practices','Strategies','Reflections','Observations','Professional Development'];
+    return '<div class="flex justify-between items-center mb-3"><div style="font-size:14px;font-weight:700;color:var(--navy)">🎓 My Professional Portfolio</div><button class="btn btn-primary btn-sm" data-add-portfolio-folder>+ New Folder</button></div>'
+    +(folders.length===0?'<div class="card" style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:40px;margin-bottom:8px">🗂</div><div style="font-style:italic;margin-bottom:12px">No folders yet. Add your first folder to get started.</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">'+DEFAULT_FOLDERS.map(n=>`<button class="btn btn-ghost btn-sm" data-add-portfolio-preset="${n}">+ ${n}</button>`).join('')+'</div></div>'
+    :'<div class="grid-2">'+folders.map((f,fi)=>'<div class="card" style="border-left:4px solid '+(['#1F4E79','#0F6E56','#d97706','#7c3aed','#dc2626','#0891b2'][fi%6]||'#1F4E79')+'">'
+    +'<div class="flex justify-between items-center mb-2">'
+    +'<div style="font-weight:700;font-size:13px">'+esc(f.name)+'<span class="badge badge-gray ml-1" style="font-size:9px">'+( f.items||[]).length+' items</span></div>'
+    +'<div class="flex gap-1"><button class="btn btn-ghost btn-sm" data-add-portfolio-item="'+fi+'" title="Add item">＋</button><button class="btn btn-danger btn-sm" data-del-portfolio-folder="'+fi+'">✕</button></div>'
+    +'</div>'
+    +(f.items&&f.items.length?'<div style="display:flex;flex-direction:column;gap:6px">'+f.items.map((item,ii)=>'<div style="background:var(--light);border-radius:6px;padding:6px 8px;font-size:12px">'
+    +'<div class="flex justify-between items-start">'
+    +'<div><strong>'+esc(item.name)+'</strong>'+(item.type?'<span style="font-size:10px;color:var(--muted);margin-left:4px">'+esc(item.type)+'</span>':'')+'</div>'
+    +'<button class="btn btn-danger" style="font-size:9px;padding:1px 5px" data-del-portfolio-item="'+fi+'-'+ii+'">✕</button>'
+    +'</div>'
+    +(item.note?'<div class="text-xs text-muted mt-1">'+esc(item.note)+'</div>':'')
+    +(item.url?'<a href="'+esc(item.url)+'" target="_blank" class="text-xs" style="color:#1d4ed8">↗ View</a>':'')
+    +(item.fileData?'<a href="'+item.fileData.dataUrl+'" download="'+esc(item.fileData.name||'file')+'" class="text-xs" style="color:#1d4ed8">📎 '+esc(item.fileData.name||'Download')+'</a>':'')
+    +'</div>').join('')+'</div>'
+    :'<div class="text-xs text-muted" style="font-style:italic">Empty folder — tap + to add items</div>')
+    +'</div>').join('')+'</div>');
+  })()}
+`:''}
 `}
 
 function renderDeptTLCList(){
@@ -2259,7 +2303,8 @@ ${items.slice().reverse().map(g=>{
         ${g.strategies?'<div class="p-2 rounded text-xs" style="background:#fef3c7;direction:auto"><strong>2️⃣ Strategies:</strong><br>'+esc(g.strategies)+'</div>':''}
         ${g.commitment?'<div class="p-2 rounded text-xs" style="background:#d1fae5;direction:auto"><strong>1️⃣ Commitment:</strong><br>'+esc(g.commitment)+'</div>':''}
       </div>`:''}
-    ${g.artifactImage?`<div class="mb-2"><img src="${g.artifactImage}" style="max-height:140px;border-radius:6px;border:1px solid var(--border)"></div>`:''}
+    ${(g.artifactImages&&g.artifactImages.length?g.artifactImages:g.artifactImage?[g.artifactImage]:[]).length?`<div class="flex gap-2 mb-2" style="flex-wrap:wrap">${(g.artifactImages&&g.artifactImages.length?g.artifactImages:g.artifactImage?[g.artifactImage]:[]).map(url=>`<img src="${url}" style="max-height:120px;border-radius:6px;border:1px solid var(--border)">`).join('')}</div>`:''}
+      ${(g.artifactVideos||[]).length?`<div class="flex gap-2 mb-2" style="flex-wrap:wrap">${(g.artifactVideos||[]).map(url=>`<video src="${url}" style="max-height:120px;border-radius:6px" controls></video>`).join('')}</div>`:''}
       ${tlcAttDisplayList(g.attachments)}
     ${g.focusFeed?`<div class="text-xs" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;direction:auto"><strong>🔗 Focus Feed into Coaching Triplet:</strong><br>${esc(g.focusFeed)}</div>`:''}
   </div>`;
@@ -2990,11 +3035,19 @@ ${canEdit()?'<div class="mb-3"><button class="btn btn-primary" data-modal="resou
 ${scopedResources().map(r=>`
   <div class="card" style="border-left:3px solid var(--navy)">
     <div class="flex justify-between items-start mb-1">
-      <a href="${r.url||'#'}" target="_blank" style="font-weight:600;font-size:13px;color:var(--navy);text-decoration:none">${r.title} ↗</a>
+      <div>
+        ${r.url?`<a href="${r.url}" target="_blank" style="font-weight:600;font-size:13px;color:var(--navy);text-decoration:none">${esc(r.title)} ↗</a>`:`<span style="font-weight:600;font-size:13px;color:var(--navy)">${esc(r.title)}</span>`}
+        ${r.fileData?`<br><a href="${r.fileData.dataUrl||'#'}" download="${esc(r.fileData.name||'file')}" style="font-size:11px;color:#1d4ed8;font-weight:600">📎 Download ${esc(r.fileData.name||'File')}</a>`:''}
+      </div>
       ${canEdit()?`<div class="flex gap-1"><button class="btn btn-sm btn-ghost" data-edit-res="${r.id}" title="Edit">✏</button><button class="btn btn-sm btn-danger" data-del-res="${r.id}">✕</button></div>`:''}
     </div>
     <div class="text-xs text-muted">${r.desc||''}</div>
-    ${r.dept||r.addedBy?`<div class="mt-1" style="display:flex;gap:4px;flex-wrap:wrap">${r.dept?`<span class="badge badge-blue" style="font-size:9px">${esc(r.dept)}</span>`:'<span class="badge badge-gray" style="font-size:9px">General</span>'}${r.addedBy?`<span class="badge badge-gray" style="font-size:9px">Shared by ${esc(r.addedBy)}</span>`:''}</div>`:''}
+    <div class="mt-1" style="display:flex;gap:4px;flex-wrap:wrap">
+      ${(r.depts&&r.depts.length?r.depts:r.dept?[r.dept]:[]).length?
+        (r.depts&&r.depts.length?r.depts:r.dept?[r.dept]:[]).map(d=>`<span class="badge badge-blue" style="font-size:9px">${esc(d)}</span>`).join('')
+        :'<span class="badge badge-gray" style="font-size:9px">General</span>'}
+      ${r.addedBy?`<span class="badge badge-gray" style="font-size:9px">Shared by ${esc(r.addedBy)}</span>`:''}
+    </div>
   </div>
 `).join('')}
 </div>`}
@@ -3394,9 +3447,16 @@ function renderModal(type, data={}){
       FTA('tlc-learned','3️⃣ Things Learned',data.learned||'',2)+
       FTA('tlc-strategies','2️⃣ Strategies to Try',data.strategies||'',2)+
       FTA('tlc-commitment','1️⃣ Commitment for Next Week',data.commitment||'',2)+
-      `<div class="form-group"><label class="form-label">Group Artifact (photo or scan)</label>
-      <input type="file" accept="image/*" id="tlc-artifact-file">
-      <div id="tlc-artifact-preview-wrap" style="margin-top:6px">${data.artifactImage?`<img src="${data.artifactImage}" style="max-height:120px;border-radius:6px;border:1px solid var(--border)"><br><button type="button" class="btn btn-ghost btn-sm mt-1" onclick="window.__tlcArtifactData='';document.getElementById('tlc-artifact-preview-wrap').innerHTML=''">Remove photo</button>`:''}</div></div>`+
+      `<div class="form-group"><label class="form-label">Group Artifact Photos (you can upload multiple)</label>
+      <input type="file" accept="image/*" multiple id="tlc-artifact-file" style="margin-bottom:6px">
+      <div id="tlc-artifact-preview-wrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+        ${(data.artifactImages&&data.artifactImages.length?data.artifactImages:data.artifactImage?[data.artifactImage]:[]).map((url,i)=>`<div style="position:relative;display:inline-block"><img src="${url}" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" onclick="window.__tlcArtifactImages=(window.__tlcArtifactImages||[]).filter((_,j)=>j!==${i});document.getElementById('tlc-artifact-preview-wrap').querySelectorAll('div')[${i}].remove()" style="position:absolute;top:2px;right:2px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button></div>`).join('')}
+      </div></div>`+
+      `<div class="form-group"><label class="form-label">Group Artifact Videos</label>
+      <input type="file" accept="video/*" multiple id="tlc-video-file" style="margin-bottom:6px">
+      <div id="tlc-video-preview-wrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+        ${(data.artifactVideos||[]).map((url,i)=>`<div style="position:relative"><video src="${url}" style="max-height:90px;border-radius:6px" controls></video><button type="button" onclick="window.__tlcArtifactVideos=(window.__tlcArtifactVideos||[]).filter((_,j)=>j!==${i});document.getElementById('tlc-video-preview-wrap').querySelectorAll('div')[${i}].remove()" style="position:absolute;top:2px;right:2px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">✕</button></div>`).join('')}
+      </div></div>`+
       `<div class="form-group"><label class="form-label">Additional Files (PDF, PowerPoint, or Video)</label>
       <div class="text-xs text-muted mb-1">PDF/PowerPoint up to 12MB each, video up to 20MB each</div>
       <input type="file" accept=".pdf,application/pdf,.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,video/*" multiple id="tlc-att-file">
@@ -3632,11 +3692,17 @@ function renderModal(type, data={}){
     // Admin/full-access editors get the full picker, including General (no department = everyone).
     const isTeacherAdd=S.session?.role==='teacher'&&!isResEdit;
     const teacherRec=isTeacherAdd?myTeacherRecord():null;
+    const existingDepts=data.depts&&data.depts.length?data.depts:(data.dept?[data.dept]:[]);
     const deptField=isTeacherAdd
-      ?`<div class="form-group"><label class="form-label">Department</label><input class="form-control" value="${esc(teacherRec?.dept||'—')}" disabled><div class="text-xs text-muted mt-1">Shared resources are only visible to your own department${teacherRec?.dept?' ('+esc(teacherRec.dept)+')':''}.</div><input type="hidden" id="res-dept" value="${esc(teacherRec?.dept||'')}"></div>`
-      :FS('res-dept','Department (leave as General to show it to everyone)',[{v:'',l:'— General (Everyone) —'},...DEPTS.map(d=>({v:d,l:d}))],data.dept||'');
+      ?`<div class="form-group"><label class="form-label">Department</label><input class="form-control" value="${esc(teacherRec?.dept||'—')}" disabled><input type="hidden" id="res-dept" value="${esc(teacherRec?.dept||'')}"></div>`
+      :`<div class="form-group"><label class="form-label">Departments (select all that apply — leave all unchecked for General/Everyone)</label><div class="flex gap-2 mt-1" style="flex-wrap:wrap">${DEPTS.map(d=>`<label style="display:flex;align-items:center;gap:4px;font-size:12px;background:var(--light);padding:4px 8px;border-radius:6px;cursor:pointer"><input type="checkbox" class="res-dept-cb" value="${d}"${existingDepts.includes(d)?' checked':''}> ${d}</label>`).join('')}</div></div>`;
+    const fileSection=`<div class="form-group"><label class="form-label">File Upload (optional — PDF, Word, PPT, Image up to 10MB)</label>
+      <div class="text-xs text-muted mb-1">Upload a file instead of or alongside a URL</div>
+      <input type="file" id="res-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      ${data.fileData?`<div id="res-file-preview" style="margin-top:6px" class="text-xs"><span style="background:#eff6ff;color:#1d4ed8;padding:3px 8px;border-radius:6px">📎 ${esc(data.fileData.name||'File')} (uploaded)</span> <button type="button" onclick="window.__resFileData=null;document.getElementById('res-file-preview').innerHTML=''" class="btn btn-ghost btn-sm ml-2">Remove</button></div>`:'<div id="res-file-preview" style="margin-top:6px"></div>'}
+      </div>`;
     return M((isResEdit?'✏ Edit':(isTeacherAdd?'📂 Share a':'📂 Add'))+' Resource',
-      FI('res-title','Title',data.title||'')+FI('res-url','URL',data.url||'','url')+FTA('res-desc','Description',data.desc||'')+deptField,
+      FI('res-title','Title',data.title||'')+FI('res-url','URL (optional if file uploaded)',data.url||'','url')+FTA('res-desc','Description',data.desc||'')+deptField+fileSection,
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-res>${isResEdit?'Update Resource':'Save Resource'}</button>`
     );
   }
@@ -3794,7 +3860,7 @@ function bindEvents(){
   // Modal triggers
   document.querySelectorAll('[data-modal]').forEach(el=>{
     el.onclick=()=>{
-      if(el.dataset.modal==='tlc'){window.__tlcArtifactData='';window.__tlcAttachments=[];}
+      if(el.dataset.modal==='tlc'){window.__tlcArtifactData='';window.__tlcArtifactImages=[];window.__tlcArtifactVideos=[];window.__tlcAttachments=[];}
       if(el.dataset.modal==='cpd'){window.__cpdMediaImages=[];window.__cpdMediaVideos=[];window.__cpdAttachments=[];}
       if(el.dataset.modal==='lw'){window.__lwMediaImages=[];window.__lwMediaVideos=[];}
       openModal(el.dataset.modal);
@@ -4354,16 +4420,39 @@ function bindEvents(){
   const tlcArtifactFile=document.getElementById('tlc-artifact-file');
   if(tlcArtifactFile){
     tlcArtifactFile.onchange=async(e)=>{
-      const file=e.target.files[0];
-      if(!file)return;
-      if(file.size>4*1024*1024){showToast('Image too large — please use a photo under 4MB','error');tlcArtifactFile.value='';return;}
+      const files=Array.from(e.target.files||[]);
+      if(!files.length)return;
+      window.__tlcArtifactImages=window.__tlcArtifactImages||[];
       const wrap=document.getElementById('tlc-artifact-preview-wrap');
-      if(wrap)wrap.innerHTML='<div class="text-xs text-muted">Uploading…</div>';
-      const url=await sbUploadFile(file,'tlc');
+      for(const file of files){
+        if(file.size>8*1024*1024){showToast('Image too large — max 8MB each','error');continue;}
+        const reader=new FileReader();
+        await new Promise(res=>{reader.onload=ev=>{window.__tlcArtifactImages.push(ev.target.result);res();};reader.readAsDataURL(file);});
+      }
       tlcArtifactFile.value='';
-      if(!url){showToast('Upload failed — check your connection and try again','error');if(wrap)wrap.innerHTML='';return;}
-      window.__tlcArtifactData=url;
-      if(wrap)wrap.innerHTML='<img src="'+url+'" style="max-height:120px;border-radius:6px;border:1px solid var(--border)"><br><button type="button" class="btn btn-ghost btn-sm mt-1" onclick="window.__tlcArtifactData=\'\';document.getElementById(\'tlc-artifact-preview-wrap\').innerHTML=\'\'">Remove photo</button>';
+      if(wrap){
+        wrap.innerHTML=window.__tlcArtifactImages.map((url,i)=>'<div style="position:relative;display:inline-block;margin:2px"><img src="'+url+'" style="max-height:90px;border-radius:6px;border:1px solid var(--border)"><button type="button" onclick="window.__tlcArtifactImages.splice('+i+',1);this.parentNode.remove()" style="position:absolute;top:2px;right:2px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">✕</button></div>').join('');
+      }
+      showToast(files.length+' photo'+(files.length>1?'s':'')+' added ✓');
+    };
+  }
+  const tlcVideoFile=document.getElementById('tlc-video-file');
+  if(tlcVideoFile){
+    tlcVideoFile.onchange=async(e)=>{
+      const files=Array.from(e.target.files||[]);
+      if(!files.length)return;
+      window.__tlcArtifactVideos=window.__tlcArtifactVideos||[];
+      const wrap=document.getElementById('tlc-video-preview-wrap');
+      for(const file of files){
+        if(file.size>30*1024*1024){showToast('Video too large — max 30MB each','error');continue;}
+        const reader=new FileReader();
+        await new Promise(res=>{reader.onload=ev=>{window.__tlcArtifactVideos.push(ev.target.result);res();};reader.readAsDataURL(file);});
+      }
+      tlcVideoFile.value='';
+      if(wrap){
+        wrap.innerHTML=window.__tlcArtifactVideos.map((url,i)=>'<div style="position:relative;display:inline-block;margin:2px"><video src="'+url+'" style="max-height:90px;border-radius:6px" controls></video><button type="button" onclick="window.__tlcArtifactVideos.splice('+i+',1);this.parentNode.remove()" style="position:absolute;top:2px;right:2px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer">✕</button></div>').join('');
+      }
+      showToast(files.length+' video'+(files.length>1?'s':'')+' added ✓');
     };
   }
   // ── Department TLC: additional file attachments (PDF/PowerPoint/Video) —
@@ -4406,7 +4495,7 @@ function bindEvents(){
       id:editId||uid(),depts,facilitator:gv('tlc-fac'),dateFrom:gv('tlc-from'),dateTo:gv('tlc-to'),
       appContent:gv('tlc-app-content'),collaboration:gv('tlc-collab'),activeLearning:gv('tlc-active'),
       learned:gv('tlc-learned'),strategies:gv('tlc-strategies'),commitment:gv('tlc-commitment'),
-      artifactImage:window.__tlcArtifactData||'',attachments:window.__tlcAttachments||[],focusFeed
+      artifactImage:(window.__tlcArtifactImages&&window.__tlcArtifactImages[0])||window.__tlcArtifactData||'',artifactImages:window.__tlcArtifactImages||[],artifactVideos:window.__tlcArtifactVideos||[],attachments:window.__tlcAttachments||[],focusFeed
     };
     S.deptTLC=editId?S.deptTLC.map(g=>g.id===editId?group:g):[...S.deptTLC,group];
     save('deptTLC',S.deptTLC);
@@ -4703,19 +4792,39 @@ function bindEvents(){
     showToast(editId?'Progress updated ✓':'Progress entry saved ✓');
   };
 
+  // res file upload handler
+  const resFileInput=document.getElementById('res-file-input');
+  if(resFileInput){
+    resFileInput.onchange=async(e)=>{
+      const file=e.target.files[0];if(!file)return;
+      if(file.size>10*1024*1024){showToast('File too large — max 10MB','error');resFileInput.value='';return;}
+      const preview=document.getElementById('res-file-preview');
+      if(preview)preview.innerHTML='<div class="text-xs text-muted">Uploading...</div>';
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        window.__resFileData={name:file.name,type:file.type,size:file.size,dataUrl:ev.target.result};
+        if(preview)preview.innerHTML='<span style="background:#eff6ff;color:#1d4ed8;padding:3px 8px;border-radius:6px;font-size:11px">📎 '+file.name+' — ready to save</span>';
+      };
+      reader.readAsDataURL(file);
+    };
+  }
   const saveRes=document.querySelector('[data-save-res]');
   if(saveRes)saveRes.onclick=()=>{
     const title=gv('res-title');
     if(!title){showToast('Enter a title','error');return;}
     const editId=S.editingId?.type==='res'?S.editingId.id:null;
-    const deptVal=(document.getElementById('res-dept')||{}).value||'';
+    const deptHidden=document.getElementById('res-dept');
+    const deptCbs=Array.from(document.querySelectorAll('.res-dept-cb:checked')).map(cb=>cb.value);
+    const deptsVal=deptHidden?[deptHidden.value].filter(Boolean):deptCbs;
+    const fileData=window.__resFileData||null;
+    if(!gv('res-url')&&!fileData&&!editId){showToast('Please add a URL or upload a file','error');return;}
     if(editId){
-      S.resources=S.resources.map(r=>r.id===editId?{...r,title,url:gv('res-url'),desc:gv('res-desc'),dept:deptVal}:r);
-      save('resources',S.resources);S.modal=null;S.editingId=null;showToast('Resource updated ✓');
+      S.resources=S.resources.map(r=>r.id===editId?{...r,title,url:gv('res-url'),desc:gv('res-desc'),dept:deptsVal[0]||'',depts:deptsVal,fileData:fileData||r.fileData}:r);
+      save('resources',S.resources);S.modal=null;S.editingId=null;window.__resFileData=null;showToast('Resource updated ✓');
     }else{
       const isTeacherAdd=S.session?.role==='teacher';
-      const r={id:uid(),title,url:gv('res-url'),desc:gv('res-desc'),dept:deptVal,addedBy:isTeacherAdd?(S.session?.name||''):''};
-      S.resources=[...S.resources,r];save('resources',S.resources);S.modal=null;showToast(isTeacherAdd?'Resource shared ✓':'Resource added ✓');
+      const r={id:uid(),title,url:gv('res-url'),desc:gv('res-desc'),dept:deptsVal[0]||'',depts:deptsVal,fileData,addedBy:isTeacherAdd?(S.session?.name||''):''};
+      S.resources=[...S.resources,r];save('resources',S.resources);S.modal=null;window.__resFileData=null;showToast(isTeacherAdd?'Resource shared ✓':'Resource added ✓');
     }
   };
 
@@ -4955,7 +5064,7 @@ function bindEvents(){
   document.querySelectorAll('[data-edit-tlc]').forEach(el=>{
     el.onclick=()=>{
       const g=S.deptTLC.find(g=>g.id===el.dataset.editTlc);
-      if(g){window.__tlcArtifactData=g.artifactImage||'';window.__tlcAttachments=g.attachments||[];S.editingId={type:'tlc',id:g.id};S.modal=renderModal('tlc',g);render();}
+      if(g){window.__tlcArtifactData=g.artifactImage||'';window.__tlcArtifactImages=g.artifactImages&&g.artifactImages.length?g.artifactImages:(g.artifactImage?[g.artifactImage]:[]);window.__tlcArtifactVideos=g.artifactVideos||[];window.__tlcAttachments=g.attachments||[];S.editingId={type:'tlc',id:g.id};S.modal=renderModal('tlc',g);render();}
     };
   });
   // ── Edit impact ──────────────────────────────────────────────────────────
@@ -5294,12 +5403,22 @@ function bindEvents(){
     };
   });
   // ── Teacher response save/edit/delete ───────────────────────────────────────
+  // Autosave draft responses as teacher types — survives render()
+  document.querySelectorAll('[data-draft-id]').forEach(ta=>{
+    ta.oninput=()=>{
+      if(!S.draftResponses)S.draftResponses={};
+      S.draftResponses[ta.dataset.draftId]=ta.value;
+      sset('draftResponses',S.draftResponses);
+    };
+  });
   document.querySelectorAll('[data-save-teacher-response]').forEach(el=>{
     el.onclick=()=>{
       const oid=el.dataset.saveTeacherResponse;
       const ta=document.getElementById('tr-resp-'+oid);
       if(!ta)return;
       const resp=ta.value.trim();
+      // Clear draft on save
+      if(S.draftResponses){delete S.draftResponses[oid];sset('draftResponses',S.draftResponses);}
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp,teacherResponseAt:resp?new Date().toISOString():''}:o);
       save('obs',S.observations);
       S.editingResponseId=null;
@@ -5308,6 +5427,72 @@ function bindEvents(){
     };
   });
 
+  // ── My Portfolio handlers ──────────────────────────────────────────────
+  const _addFolderBtn=document.querySelector('[data-add-portfolio-folder]');
+  if(_addFolderBtn){
+    _addFolderBtn.onclick=()=>{
+      const name=prompt('Folder name (e.g. Certificates, Strategies):','');
+      if(!name||!name.trim())return;
+      const p=getMyPortfolio();
+      p.folders=[...(p.folders||[]),{name:name.trim(),items:[]}];
+      saveMyPortfolio(p);showToast('Folder created ✓');render();
+    };
+  }
+  document.querySelectorAll('[data-add-portfolio-preset]').forEach(el=>{
+    el.onclick=()=>{
+      const name=el.dataset.addPortfolioPreset;
+      const p=getMyPortfolio();
+      if((p.folders||[]).find(f=>f.name===name)){showToast('Folder already exists','error');return;}
+      p.folders=[...(p.folders||[]),{name,items:[]}];
+      saveMyPortfolio(p);showToast(name+' folder created ✓');render();
+    };
+  });
+  document.querySelectorAll('[data-del-portfolio-folder]').forEach(el=>{
+    el.onclick=()=>{
+      const fi=parseInt(el.dataset.delPortfolioFolder);
+      const p=getMyPortfolio();
+      if(!confirm('Delete folder "'+p.folders[fi].name+'" and all its items?'))return;
+      p.folders.splice(fi,1);
+      saveMyPortfolio(p);showToast('Folder deleted');render();
+    };
+  });
+  document.querySelectorAll('[data-add-portfolio-item]').forEach(el=>{
+    el.onclick=()=>{
+      const fi=parseInt(el.dataset.addPortfolioItem);
+      const p=getMyPortfolio();
+      const folder=p.folders[fi];if(!folder)return;
+      // Build a mini-modal inline
+      const itemName=prompt('Item name / title:','');
+      if(!itemName||!itemName.trim())return;
+      const itemType=prompt('Type (e.g. Certificate, Strategy, PDF, Image) — or leave blank:','');
+      const itemNote=prompt('Note or description — or leave blank:','');
+      const itemUrl=prompt('URL link (optional — or leave blank):','');
+      const item={name:itemName.trim(),type:itemType||'',note:itemNote||'',url:itemUrl||'',fileData:null,addedAt:new Date().toISOString()};
+      // File upload via hidden input
+      const fi2=fi;
+      const fileInput=document.createElement('input');
+      fileInput.type='file';fileInput.accept='image/*,.pdf,.doc,.docx,.ppt,.pptx';
+      fileInput.onchange=e=>{
+        const file=e.target.files[0];
+        if(!file){folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added ✓');render();return;}
+        if(file.size>8*1024*1024){showToast('File too large — max 8MB','error');folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added (no file)');render();return;}
+        const reader=new FileReader();
+        reader.onload=ev=>{item.fileData={name:file.name,type:file.type,dataUrl:ev.target.result};folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item + file added ✓');render();};
+        reader.readAsDataURL(file);
+      };
+      if(confirm('Do you want to attach a file (certificate, PDF, image)?')){fileInput.click();}
+      else{folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added ✓');render();}
+    };
+  });
+  document.querySelectorAll('[data-del-portfolio-item]').forEach(el=>{
+    el.onclick=()=>{
+      const[fi,ii]=el.dataset.delPortfolioItem.split('-').map(Number);
+      const p=getMyPortfolio();
+      if(!p.folders[fi])return;
+      p.folders[fi].items.splice(ii,1);
+      saveMyPortfolio(p);showToast('Item removed');render();
+    };
+  });
   // ── My Portal: schedule insights ─────────────────────────────────────────
   document.querySelectorAll('[data-save-sched-insight]').forEach(el=>{
     el.onclick=async()=>{
