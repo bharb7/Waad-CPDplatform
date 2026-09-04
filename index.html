@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D28-script-tag-fix">
+<meta name="app-build" content="2026-09-04-D29-visitor-profiles-targets">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -2446,6 +2446,47 @@ ${tab==='portfolio'?`
 `}
 
 
+// ─── Visitor Profile & Target helpers ─────────────────────────────────────────
+// Positions: 'Academic Head','HOD','HOS','Mid-Leader'
+// visitorProfiles: { [name]: { position, dept, section } }
+// visitTargetsCfg: { global: {type:n}, byPosition: { HOD: {LW:5,LO:2,...} }, byVisitorDept: { 'HOD||Math': {LW:3} } }
+
+function getVisitorProfiles(){return sget('visitorProfiles')||{};}
+function saveVisitorProfiles(p){sset('visitorProfiles',p);}
+function getVisitTargetsCfg(){return sget('visitTargetsCfg')||{global:{},byPosition:{},byVisitorDept:{}};}
+function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);}
+
+const VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+
+// Get position label for a given observer name
+function visitorPosition(name){
+  const p=getVisitorProfiles();
+  return (p[name]&&p[name].position)||'Other';
+}
+function visitorDept(name){
+  const p=getVisitorProfiles();
+  return (p[name]&&p[name].dept)||'';
+}
+
+// Get target for a visitor given their position + dept + visit type
+function getTargetFor(visitorName, visitType){
+  const cfg=getVisitTargetsCfg();
+  const pos=visitorPosition(visitorName);
+  const dept=visitorDept(visitorName);
+  // Most specific: visitor+dept override
+  const key=pos+'||'+dept;
+  if(cfg.byVisitorDept&&cfg.byVisitorDept[key]&&cfg.byVisitorDept[key][visitType]!=null)
+    return cfg.byVisitorDept[key][visitType];
+  // Position-level default
+  if(cfg.byPosition&&cfg.byPosition[pos]&&cfg.byPosition[pos][visitType]!=null)
+    return cfg.byPosition[pos][visitType];
+  // Global fallback
+  if(cfg.global&&cfg.global[visitType]!=null)
+    return cfg.global[visitType];
+  return 0;
+}
+
+
 // ─── loadVisits: merge seed with any locally-saved status changes ─────────────
 function loadVisits(){
   const local=sget('cvVisits')||[];
@@ -3360,6 +3401,64 @@ function renderSettings(){
     ${canEdit()?'<button class="btn btn-primary btn-sm mt-2" data-modal="user">+ Add User</button>':''}
   </div>
 </div>
+
+<!-- ── Visit Tracker Settings Card ──────────────────────────────────────────── -->
+<div class="card mt-3" style="border-top:3px solid var(--teal)">
+  <div class="flex justify-between items-center mb-2">
+    <div class="card-title" style="margin:0;color:var(--teal)">📊 Visit Tracker — Visitor Profiles & Targets</div>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'profiles'});render()">👤 Visitor Profiles</button>
+      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'positions'});render()">🏷 Position Targets</button>
+      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'depts'});render()">📚 Dept Overrides</button>
+      <button class="btn btn-primary btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'progress'});render()">📊 Progress Report</button>
+    </div>
+  </div>
+  <p class="text-xs text-muted mb-3">Map each observer to their position (HOD, HOS, Mid-Leader), set visit targets per position and department, and track compliance in real time.</p>
+  ${(()=>{
+    const profiles=getVisitorProfiles();
+    const allObs=S.observations||[];
+    const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
+    if(!allObservers.length)return '<div class="text-xs text-muted" style="font-style:italic">No observations yet — observer profiles will appear here once visits are recorded.</div>';
+    const cfg=getVisitTargetsCfg();
+    const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+    const VCOL={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+    let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">';
+    allObservers.forEach(name=>{
+      const pos=visitorPosition(name);
+      const dept=visitorDept(name);
+      const myObs=allObs.filter(o=>o.observer===name);
+      const totalDone=myObs.length;
+      const totalTarget=VT.reduce((a,t)=>a+getTargetFor(name,t),0);
+      const pct=totalTarget?Math.min(100,Math.round(totalDone/totalTarget*100)):null;
+      const posColor=pos==='Academic Head'?'var(--purple)':pos.startsWith('HOS')?'var(--navy)':pos.startsWith('HOD')?'var(--teal)':pos.startsWith('Mid')?'var(--amber)':'#6b7280';
+      html+='<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;border-left:4px solid '+posColor+'">';
+      html+='<div style="font-weight:700;font-size:12px;margin-bottom:2px">'+esc(name)+'</div>';
+      html+='<div style="font-size:10px;color:'+posColor+';font-weight:600;margin-bottom:6px">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>';
+      html+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">';
+      VT.forEach(t=>{
+        const cnt=myObs.filter(o=>o.visitType===t).length;
+        const tgt=getTargetFor(name,t);
+        if(!cnt&&!tgt)return;
+        html+='<span title="'+t+'" style="font-size:10px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+'44;border-radius:3px;padding:1px 5px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+'</span>';
+      });
+      html+='</div>';
+      if(pct!==null){
+        const barColor=pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)';
+        html+='<div style="height:5px;background:#e5e7eb;border-radius:3px"><div style="height:5px;background:'+barColor+';width:'+pct+'%;border-radius:3px"></div></div>';
+        html+='<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalDone+' of '+totalTarget+' target visits ('+pct+'%)</div>';
+      } else {
+        html+='<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalDone+' visit'+(totalDone!==1?'s':'')+' · no targets set</div>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    return html;
+  })()}
+</div>
+<!-- ── END Visit Tracker Settings ────────────────────────────────────────────── -->
+  </div>
+</div>
 <div class="card">
   <div class="card-title">🔑 Role Permissions</div>
   <div style="overflow-x:auto"><table>
@@ -3970,17 +4069,112 @@ function renderModal(type, data={}){
     );
   }
   if(type==='visitTargets'){
-    const tgt=getVisitTargets();
-    const gt=tgt.targets||{};
-    const VISIT_TYPES_LOCAL=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-    return M('⚙ Visit Targets (per term, whole school)',
-      '<p class="text-xs text-muted mb-3">Set how many of each visit type should be completed per term across the school. These drive the progress indicators in the Visit Tracker.</p>'
-      +'<div style="display:flex;flex-direction:column;gap:10px">'
-      +VISIT_TYPES_LOCAL.map(t=>`<div class="flex items-center gap-3"><label style="min-width:170px;font-size:13px;font-weight:600">${t}</label><input type="number" class="form-control" id="vt-${t.replace(/\s+/g,'_')}" value="${gt[t]||''}" placeholder="0" min="0" style="width:80px;padding:4px 8px"></div>`).join('')
-      +'</div>',
-      `<button class="btn btn-ghost" data-close-modal>Cancel</button>
-       <button class="btn btn-success" id="save-visit-targets-btn">Save Targets</button>`
-    );
+    const activeTab=data.tab||'profiles';
+    const cfg=getVisitTargetsCfg();
+    const profiles=getVisitorProfiles();
+    const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+    const POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+
+    // Get all unique observers from observations
+    const allObservers=[...new Set((S.observations||[]).map(o=>o.observer).filter(Boolean))].sort();
+
+    const tabBtn=(t,lbl)=>'<button class="btn btn-sm '+(activeTab===t?'btn-primary':'btn-ghost')+' mr-1" onclick="S.modal=renderModal(\'visitTargets\',{tab:\''+t+'\'}); render()">'+lbl+'</button>';
+
+    let body='<div class="mb-3">'+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 Targets by Position')+tabBtn('depts','📚 Targets by Dept')+tabBtn('progress','📊 Progress')+'</div>';
+
+    if(activeTab==='profiles'){
+      body+='<p class="text-xs text-muted mb-3">Map each observer to their position and department. This drives the per-visitor progress tracking.</p>';
+      body+='<div style="max-height:420px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px 8px;text-align:left">Observer</th><th style="padding:6px">Position</th><th style="padding:6px">Dept / Subject</th></tr></thead><tbody>';
+      allObservers.forEach((name,i)=>{
+        const p=profiles[name]||{};
+        body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(name)+'</td>';
+        body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-pos-'+i+'">'+POSITIONS.map(p2=>'<option '+(p.position===p2?'selected':'')+' value="'+p2+'">'+p2+'</option>').join('')+'</select></td>';
+        body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-dept-'+i+'"><option value="">— All —</option>'+DEPTS.map(d=>'<option '+(p.dept===d?'selected':'')+' value="'+d+'">'+d+'</option>').join('')+'</select></td>';
+        body+='<input type="hidden" id="vp-name-'+i+'" value="'+esc(name)+'"></tr>';
+      });
+      body+='</tbody></table></div>';
+      if(!allObservers.length) body+='<div class="text-xs text-muted" style="font-style:italic;padding:20px;text-align:center">No observations recorded yet — observer names will appear here once observations are added.</div>';
+      return M('⚙ Visit Tracker Settings',body,
+        '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" id="save-visit-profiles-btn">Save Profiles</button>'
+      );
+    }
+
+    if(activeTab==='positions'){
+      body+='<p class="text-xs text-muted mb-3">Set default visit targets per term for each leadership position. These apply to all visitors with that position unless overridden by department.</p>';
+      body+='<div style="max-height:420px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px 8px;text-align:left">Position</th>'+VT.map(t=>'<th style="padding:6px;text-align:center;white-space:nowrap">'+VTS[t]+'</th>').join('')+'</tr></thead><tbody>';
+      POSITIONS.forEach((pos,i)=>{
+        const byPos=(cfg.byPosition&&cfg.byPosition[pos])||{};
+        body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(pos)+'</td>';
+        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+' " placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
+        body+='<input type="hidden" id="vpos-name-'+i+'" value="'+esc(pos)+'">';
+        body+='</tr>';
+      });
+      body+='</tbody></table></div>';
+      return M('⚙ Visit Tracker Settings',body,
+        '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" id="save-pos-targets-btn">Save Position Targets</button>'
+      );
+    }
+
+    if(activeTab==='depts'){
+      // Per HOD/Mid-Leader per department override
+      const deptPositions=['HOD (Head of Department)','Mid-Leader'];
+      body+='<p class="text-xs text-muted mb-3">Override targets for a specific position+department combination (e.g. HOD of Math has a different LW target).</p>';
+      body+='<div style="max-height:420px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px 8px">Position</th><th style="padding:6px 8px">Department</th>'+VT.map(t=>'<th style="padding:6px;text-align:center">'+VTS[t]+'</th>').join('')+'</tr></thead><tbody>';
+      let ri=0;
+      deptPositions.forEach(pos=>{
+        DEPTS.forEach(dept=>{
+          const key=pos+'||'+dept;
+          const byVD=(cfg.byVisitorDept&&cfg.byVisitorDept[key])||{};
+          body+='<tr style="background:'+(ri%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:4px 8px;font-size:11px">'+esc(pos)+'</td><td style="padding:4px 8px;font-weight:600;font-size:11px">'+esc(dept)+'</td>';
+          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+' " placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
+          body+='<input type="hidden" id="vdept-pos-'+ri+'" value="'+esc(pos)+'"><input type="hidden" id="vdept-dept-'+ri+'" value="'+esc(dept)+'">';
+          body+='</tr>';
+          ri++;
+        });
+      });
+      body+='</tbody></table></div>';
+      return M('⚙ Visit Tracker Settings',body,
+        '<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" id="save-dept-targets-btn">Save Dept Targets</button>'
+      );
+    }
+
+    if(activeTab==='progress'){
+      // Per-visitor progress summary
+      const obs=S.observations||[];
+      body+='<p class="text-xs text-muted mb-3">Real-time progress for each visitor against their targets this term.</p>';
+      if(!allObservers.length){body+='<div class="text-xs text-muted" style="font-style:italic;padding:20px;text-align:center">No observations yet.</div>';}
+      else{
+        body+='<div style="max-height:440px;overflow-y:auto">';
+        allObservers.forEach(name=>{
+          const pos=visitorPosition(name);
+          const dept=visitorDept(name);
+          const myObs=obs.filter(o=>o.observer===name);
+          body+='<div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px">';
+          body+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+          body+='<div><div style="font-weight:700;font-size:13px">'+esc(name)+'</div>';
+          body+='<div class="text-xs text-muted">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div></div>';
+          body+='<span class="badge badge-blue" style="font-size:11px">'+myObs.length+' total</span></div>';
+          body+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+          VT.forEach(t=>{
+            const cnt=myObs.filter(o=>o.visitType===t).length;
+            const tgt=getTargetFor(name,t);
+            const pct=tgt?Math.min(100,Math.round(cnt/tgt*100)):0;
+            const col={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'}[t]||'#6b7280';
+            body+='<div style="min-width:90px;background:#f9fafb;border-radius:6px;padding:6px 8px;border-left:3px solid '+col+'">';
+            body+='<div style="font-size:9px;font-weight:700;color:'+col+'">'+VTS[t]+'</div>';
+            body+='<div style="font-size:16px;font-weight:800;color:var(--navy)">'+cnt+(tgt?'<span style="font-size:11px;font-weight:400;color:var(--muted)">/'+tgt+'</span>':'')+'</div>';
+            if(tgt){body+='<div style="height:3px;background:#e5e7eb;border-radius:2px;margin-top:3px"><div style="height:3px;background:'+col+';width:'+pct+'%;border-radius:2px"></div></div>';}
+            body+='</div>';
+          });
+          body+='</div></div>';
+        });
+        body+='</div>';
+      }
+      return M('⚙ Visit Tracker Settings',body,'<button class="btn btn-ghost" data-close-modal>Close</button>');
+    }
+
+    return M('⚙ Visit Tracker Settings',body,'<button class="btn btn-ghost" data-close-modal>Close</button>');
   }
     if(type==='addDept'){
     const custom=sget('customDepts')||[];
@@ -5654,21 +5848,66 @@ function bindEvents(){
     });
     exportCSV('visit-tracker-'+new Date().toISOString().split('T')[0]+'.csv',rows);
   };
-  // Save visit targets
-  const saveVTBtn=document.getElementById('save-visit-targets-btn');
-  if(saveVTBtn){
-    saveVTBtn.onclick=()=>{
-      const VTYPES=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-      const tgt=getVisitTargets();
-      const gt=tgt.targets||{};
-      VTYPES.forEach(t=>{
-        const key=t.replace(/\s+/g,'_');
-        const el=document.getElementById('vt-'+key);
-        if(el){const v=parseInt(el.value)||0;if(v>0)gt[t]=v;else delete gt[t];}
+  // ── Save Visitor Profiles ───────────────────────────────────────────────────
+  const saveProfilesBtn=document.getElementById('save-visit-profiles-btn');
+  if(saveProfilesBtn){
+    saveProfilesBtn.onclick=()=>{
+      const allObs=S.observations||[];
+      const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
+      const profiles=getVisitorProfiles();
+      allObservers.forEach((name,i)=>{
+        const posEl=document.getElementById('vp-pos-'+i);
+        const deptEl=document.getElementById('vp-dept-'+i);
+        if(posEl) profiles[name]={...(profiles[name]||{}),position:posEl.value,dept:deptEl?deptEl.value:''};
       });
-      saveVisitTargets({...tgt,targets:gt});
-      showToast('Targets saved \u2713');
-      S.modal=null;render();
+      saveVisitorProfiles(profiles);
+      showToast('Visitor profiles saved ✓');
+      S.modal=renderModal('visitTargets',{tab:'profiles'});render();
+    };
+  }
+  // ── Save Position Targets ────────────────────────────────────────────────────
+  const savePosBtn=document.getElementById('save-pos-targets-btn');
+  if(savePosBtn){
+    savePosBtn.onclick=()=>{
+      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+      const cfg=getVisitTargetsCfg();
+      if(!cfg.byPosition)cfg.byPosition={};
+      POSITIONS.forEach((pos,i)=>{
+        if(!cfg.byPosition[pos])cfg.byPosition[pos]={};
+        VT.forEach(t=>{
+          const el=document.getElementById('vpos-'+i+'-'+t.replace(/ /g,'_'));
+          if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
+        });
+      });
+      saveVisitTargetsCfg(cfg);
+      showToast('Position targets saved ✓');
+      S.modal=renderModal('visitTargets',{tab:'positions'});render();
+    };
+  }
+  // ── Save Dept-level Target Overrides ─────────────────────────────────────────
+  const saveDeptTargetsBtn=document.getElementById('save-dept-targets-btn');
+  if(saveDeptTargetsBtn){
+    saveDeptTargetsBtn.onclick=()=>{
+      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const deptPositions=['HOD (Head of Department)','Mid-Leader'];
+      const cfg=getVisitTargetsCfg();
+      if(!cfg.byVisitorDept)cfg.byVisitorDept={};
+      let ri=0;
+      deptPositions.forEach(pos=>{
+        DEPTS.forEach(dept=>{
+          const key=pos+'||'+dept;
+          if(!cfg.byVisitorDept[key])cfg.byVisitorDept[key]={};
+          VT.forEach(t=>{
+            const el=document.getElementById('vdept-'+ri+'-'+t.replace(/ /g,'_'));
+            if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byVisitorDept[key][t]=v;else delete cfg.byVisitorDept[key][t];}
+          });
+          ri++;
+        });
+      });
+      saveVisitTargetsCfg(cfg);
+      showToast('Dept overrides saved ✓');
+      S.modal=renderModal('visitTargets',{tab:'depts'});render();
     };
   }
 
@@ -6580,10 +6819,47 @@ function renderVisitTracker(){
       ${target?`<div style="height:4px;background:#e5e7eb;border-radius:2px;margin-top:4px"><div style="height:4px;border-radius:2px;background:${col};width:${pct}%"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">${pct}% of target</div>`:'<div style="font-size:9px;color:var(--muted)">No target set</div>'}
     </div>`;
   }).join('')}
-  ${canEdit()?`<div style="background:#f9fafb;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;cursor:pointer" onclick="S.modal=renderModal('visitTargets');render()">
-    <span style="font-size:11px;color:var(--muted)">⚙ Set Targets</span>
+  ${canEdit()?`<div style="background:#f9fafb;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;cursor:pointer" onclick="S.modal=renderModal('visitTargets',{tab:'progress'});render()">
+    <span style="font-size:11px;color:var(--muted)">⚙ Targets & Progress</span>
   </div>`:''}
 </div>
+
+<!-- ── Per-Visitor Progress Strip ──────────────────────────────────────────── -->
+${(()=>{
+  const obs=S.observations||[];
+  const allObservers=[...new Set(obs.map(o=>o.observer).filter(Boolean))].sort();
+  if(!allObservers.length)return '';
+  const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+  const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+  const VCOL={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+  const posColor=(pos)=>pos==='Academic Head'?'var(--purple)':pos.startsWith('HOS')?'var(--navy)':pos.startsWith('HOD')?'var(--teal)':pos.startsWith('Mid')?'var(--amber)':'#9ca3af';
+  return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +allObservers.map(name=>{
+      const pos=visitorPosition(name);
+      const dept=visitorDept(name);
+      const myObs=obs.filter(o=>o.observer===name);
+      const col=posColor(pos);
+      const totalDone=myObs.length;
+      const totalTarget=VT.reduce((a,t)=>a+getTargetFor(name,t),0);
+      const pct=totalTarget?Math.min(100,Math.round(totalDone/totalTarget*100)):null;
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:160px;border-top:3px solid '+col+';background:#fff;cursor:pointer" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+esc(name)+'">'
+        +'<div style="font-weight:700;font-size:11px;margin-bottom:1px">'+esc(name)+'</div>'
+        +'<div style="font-size:9px;color:'+col+';font-weight:600;margin-bottom:6px">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
+        +'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px">'
+        +VT.map(t=>{
+          const cnt=myObs.filter(o=>o.visitType===t).length;
+          const tgt=getTargetFor(name,t);
+          if(!cnt&&!tgt)return '';
+          const ok=tgt&&cnt>=tgt;
+          return '<span title="'+t+'" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+'</span>';
+        }).join('')
+        +'</div>'
+        +(pct!==null?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+( pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalDone+'/'+totalTarget+' ('+pct+'%)</div>'
+          :'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalDone+' visit'+(totalDone!==1?'s':'')+' · no target</div>')
+        +'</div>';
+    }).join('')
+    +'</div>';
+})()}
 
 <!-- ── Filters ──────────────────────────────────────────────────────────────── -->
 ${!isTeacherRole?`
