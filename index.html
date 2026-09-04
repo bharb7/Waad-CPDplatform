@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D27-visit-tracker-obs-driven">
+<meta name="app-build" content="2026-09-04-D28-script-tag-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -6446,11 +6446,8 @@ async function boot(){
   }
   render();
 }
-boot();
 
-</script>
-</body>
-</html>// ─── renderVisitTracker ───────────────────────────────────────────────────────
+// ─── renderVisitTracker ───────────────────────────────────────────────────────
 // Reads LIVE from S.observations — no separate seed store needed.
 // Each observation = one visit record. Filters: dept, campus, visitor,
 // type, date-range, not-yet-visited. Targets panel per visitor (editable).
@@ -6692,4 +6689,8 @@ ${fv.length?`
 :'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(vnot?'All teachers in scope have been visited — great work! 🎉':'No visits recorded yet. Use + New Visit to add an observation.')+'</div>'}
 `;}
 
+boot();
 
+</script>
+</body>
+</html>
