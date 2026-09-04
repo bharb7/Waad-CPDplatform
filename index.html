@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D30-lw-tabs-removed-targets-fixed">
+<meta name="app-build" content="2026-09-04-D31-saving-bug-fixed">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-16-D24-lw-cpd-media-sync';
+const BUILD_VERSION='2026-09-04-D31-saving-bug-fixed';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -1914,6 +1914,8 @@ ${(()=>{
 }
 
 function renderFieldwork(){
+  // Redirect removed tabs (lw/dlw) to obs
+  if(S.fwTab==='lw'||S.fwTab==='dlw')S.fwTab='obs';
   const [tab,setTab]=[S.fwTab||'obs',t=>{S.fwTab=t;render()}];
   const obs=scopedObs();
   const lws=scopedLwalks();
@@ -4082,11 +4084,11 @@ function renderModal(type, data={}){
     let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('depts','📚 By Dept')+tabBtn('progress','📊 Progress')+'</div>';
 
     if(activeTab==='global'){
-      const gt=globalTargets;
+      const gt={...(cfg.global||{})};
       body+='<p class="text-xs text-muted mb-3">Set the school-wide total visit targets for the whole term. These drive the progress bars in the Visit Tracker top section.</p>';
       body+='<div style="display:flex;flex-direction:column;gap:10px;max-width:320px">';
       VT.forEach(t=>{
-        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]||'')+' " placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
+        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]||'')+'" placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
       });
       body+='</div>';
       return M('⚙ Visit Tracker Settings',body,
@@ -4117,7 +4119,7 @@ function renderModal(type, data={}){
       POSITIONS.forEach((pos,i)=>{
         const byPos=(cfg.byPosition&&cfg.byPosition[pos])||{};
         body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(pos)+'</td>';
-        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+' " placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
+        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+'" placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
         body+='<input type="hidden" id="vpos-name-'+i+'" value="'+esc(pos)+'">';
         body+='</tr>';
       });
@@ -4138,7 +4140,7 @@ function renderModal(type, data={}){
           const key=pos+'||'+dept;
           const byVD=(cfg.byVisitorDept&&cfg.byVisitorDept[key])||{};
           body+='<tr style="background:'+(ri%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:4px 8px;font-size:11px">'+esc(pos)+'</td><td style="padding:4px 8px;font-weight:600;font-size:11px">'+esc(dept)+'</td>';
-          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+' " placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
+          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+'" placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
           body+='<input type="hidden" id="vdept-pos-'+ri+'" value="'+esc(pos)+'"><input type="hidden" id="vdept-dept-'+ri+'" value="'+esc(dept)+'">';
           body+='</tr>';
           ri++;
@@ -5912,7 +5914,7 @@ function bindEvents(){
         if(!cfg.byPosition[pos])cfg.byPosition[pos]={};
         VT.forEach(t=>{
           const el=document.getElementById('vpos-'+i+'-'+t.replace(/ /g,'_'));
-          if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
+          if(el){const v=parseInt((el.value||'').trim())||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
         });
       });
       saveVisitTargetsCfg(cfg);
@@ -5935,7 +5937,7 @@ function bindEvents(){
           if(!cfg.byVisitorDept[key])cfg.byVisitorDept[key]={};
           VT.forEach(t=>{
             const el=document.getElementById('vdept-'+ri+'-'+t.replace(/ /g,'_'));
-            if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byVisitorDept[key][t]=v;else delete cfg.byVisitorDept[key][t];}
+            if(el){const v=parseInt((el.value||'').trim())||0;if(v>0)cfg.byVisitorDept[key][t]=v;else delete cfg.byVisitorDept[key][t];}
           });
           ri++;
         });
