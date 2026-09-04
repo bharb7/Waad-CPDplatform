@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D26-visits-editable-dept-kickout-fix">
+<meta name="app-build" content="2026-09-04-D27-visit-tracker-obs-driven">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -429,7 +429,7 @@ const SEED_VISITS=[
   {id:"V0119",year:"2026/2027",date:"",teacher:"Junaid Golandaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
   {id:"V0120",year:"2026/2027",date:"",teacher:"Dina Kamal",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela Pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''}
 ];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitType:'',visitDateFrom:'',visitDateTo:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -650,7 +650,7 @@ function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u
 // actually reached the database, no matter what the app showed.
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Lesson Observation',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 // mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
 // never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
@@ -717,7 +717,7 @@ async function save(k,v){
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
     else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
-    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
+    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Lesson Observation',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
     else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
@@ -2459,204 +2459,6 @@ function loadVisits(){
   }
 }
 
-// ─── renderVisitTracker ───────────────────────────────────────────────────────
-// Full inline-editable visit tracker — edit like a spreadsheet.
-// Every cell (teacher, dept, campus, grade, date, visitor, type, status, notes)
-// is editable inline. Visitor filter pill added. Links to existing observations.
-
-function saveVisit(id, patch){
-  loadVisits();
-  S.visits=S.visits.map(v=>v.id===id?{...v,...patch}:v);
-  sset('cvVisits',S.visits);
-}
-
-function renderVisitTracker(){
-  loadVisits();
-  const role=S.session?.role||'';
-  const isTeacherRole=role==='teacher';
-  let vs=S.visits||[];
-  if(isScoped()){
-    const depts=myDepts(); const sects=mySections();
-    if(depts.length) vs=vs.filter(v=>depts.includes(v.dept));
-    if(sects.length) vs=vs.filter(v=>sects.includes(v.campus));
-  }
-  if(isTeacherRole){
-    const myName=(S.session?.name||'').toLowerCase();
-    vs=vs.filter(v=>(v.teacher||'').toLowerCase()===myName);
-  }
-
-  // Filters
-  const vd=S.visitDept||[], vc=S.visitCampus||[], vst=S.visitStatus||'';
-  const vvis=S.visitVisitor||'';
-  const vsearch=(S.visitSearch||'').toLowerCase();
-  const vnot=S.visitNotYet||false;
-  if(vd.length) vs=vs.filter(v=>vd.includes(v.dept));
-  if(vc.length) vs=vs.filter(v=>vc.includes(v.campus));
-  if(vst) vs=vs.filter(v=>v.status===vst);
-  if(vvis) vs=vs.filter(v=>(v.visitor||'').toLowerCase().includes(vvis.toLowerCase()));
-  if(vsearch) vs=vs.filter(v=>(v.teacher||'').toLowerCase().includes(vsearch)||(v.dept||'').toLowerCase().includes(vsearch)||(v.visitor||'').toLowerCase().includes(vsearch));
-  if(vnot) vs=vs.filter(v=>v.status!=='Completed');
-
-  const all=S.visits||[];
-  const totalCompleted=all.filter(v=>v.status==='Completed').length;
-  const totalPending=all.filter(v=>v.status==='Planned').length;
-  const notYetVisited=[...new Set(all.filter(v=>v.status!=='Completed').map(v=>v.teacher).filter(Boolean))].length;
-  const uniqueTeachers=[...new Set(all.map(v=>v.teacher).filter(Boolean))].length;
-
-  // Unique values for filter pills
-  const allVisitors=[...new Set(all.map(v=>v.visitor).filter(Boolean))].sort();
-  const allDepts=[...new Set(all.map(v=>v.dept).filter(Boolean))].sort();
-
-  const statusBadge=s=>s==='Completed'?'badge-green':s==='Rescheduled'?'badge-amber':s==='Cancelled'?'badge-red':'badge-gray';
-  const campusBadge=c=>c==='Girls'?'badge-red':'badge-blue';
-
-  // Observation link: find obs matching teacher name + date (or visitor = observer)
-  function linkedObs(v){
-    const t=S.teachers.find(tc=>(tc.name||'').toLowerCase()===(v.teacher||'').toLowerCase());
-    if(!t) return null;
-    return S.observations.find(o=>o.tid===t.id&&(o.date===v.date||(v.date&&o.date&&Math.abs(new Date(o.date)-new Date(v.date))<86400000)));
-  }
-
-  // Build inline-editable cell helpers
-  // Each cell uses contenteditable with data-visit-edit="fieldName" data-visit-id="id"
-  const editCell=(vid,field,val,style='')=>
-    `<td contenteditable="true" data-visit-edit="${field}" data-visit-id="${vid}" style="min-width:70px;padding:4px 6px;${style}" title="Click to edit">${esc(val||'')}</td>`;
-
-  const selectCell=(vid,field,val,options)=>
-    `<td style="padding:2px 4px"><select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;width:100%" data-visit-sel="${field}" data-visit-id="${vid}">
-      ${options.map(o=>`<option ${val===o?'selected':''} value="${o}">${o}</option>`).join('')}
-    </select></td>`;
-
-  return `
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
-  <div class="kpi" style="border-top:3px solid var(--navy)"><div class="kpi-val">${all.length}</div><div class="kpi-label">Total Visits</div></div>
-  <div class="kpi" style="border-top:3px solid var(--teal)"><div class="kpi-val">${totalCompleted}</div><div class="kpi-label">Completed</div></div>
-  <div class="kpi" style="border-top:3px solid var(--amber)"><div class="kpi-val">${totalPending}</div><div class="kpi-label">Pending</div></div>
-  <div class="kpi" style="border-top:3px solid var(--red)"><div class="kpi-val">${notYetVisited}</div><div class="kpi-label">Not Yet Visited</div></div>
-  <div class="kpi" style="border-top:3px solid var(--purple)"><div class="kpi-val">${uniqueTeachers}</div><div class="kpi-label">Active Teachers</div></div>
-</div>
-
-${!isTeacherRole?`
-<div class="card mb-3" style="padding:10px 14px">
-  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Dept:</span>
-    <div class="pill-opt ${vd.length===0?'sel':''}" data-visit-dept="">All</div>
-    ${allDepts.map(d=>`<div class="pill-opt ${vd.includes(d)?'sel':''}" data-visit-dept="${d}">${d}</div>`).join('')}
-  </div>
-  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Campus:</span>
-    <div class="pill-opt ${vc.length===0?'sel':''}" data-visit-campus="">All</div>
-    ${SECTIONS.map(s=>`<div class="pill-opt ${vc.includes(s)?'sel':''}" data-visit-campus="${s}">${s}</div>`).join('')}
-  </div>
-  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Visitor:</span>
-    <div class="pill-opt ${!vvis?'sel':''}" data-visit-visitor="">All</div>
-    ${allVisitors.map(v=>`<div class="pill-opt ${vvis===v?'sel':''}" data-visit-visitor="${v}">${v}</div>`).join('')}
-  </div>
-  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Status:</span>
-    ${['','Planned','Completed','Rescheduled','Cancelled'].map(s=>`<div class="pill-opt ${vst===s?'sel':''}" data-visit-status="${s}">${s||'All'}</div>`).join('')}
-  </div>
-  <div class="flex items-center gap-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Search:</span>
-    <input class="form-control" id="visit-search-box" placeholder="🔍 Teacher, visitor…" value="${esc(S.visitSearch||'')}" style="width:200px;padding:5px 9px;font-size:12px">
-    <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="visit-not-yet-cb" ${vnot?'checked':''}> Not-yet-visited only</label>
-    ${(vd.length||vc.length||vst||vvis||vsearch||vnot)?`<button class="btn btn-ghost btn-sm" onclick="S.visitDept=[];S.visitCampus=[];S.visitStatus='';S.visitVisitor='';S.visitSearch='';S.visitNotYet=false;render()">✕ Clear all</button>`:''}
-  </div>
-</div>`:''
-}
-
-<div class="flex justify-between items-center mb-2">
-  <div class="flex gap-2 items-center">
-    ${canEdit()?`<button class="btn btn-primary btn-sm" data-visit-add>+ Add Visit</button>`:''}
-    ${canEdit()?'<button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ CSV</button>':''}
-    <span class="text-xs" style="color:var(--teal);font-weight:600">✎ Click any cell to edit</span>
-  </div>
-  <span class="text-xs text-muted">${vs.length} of ${(S.visits||[]).length} visits shown</span>
-</div>
-
-${vs.length?`
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
-<table style="border-collapse:collapse;width:100%;min-width:900px">
-  <thead>
-    <tr style="background:var(--navy);color:#fff;font-size:11px">
-      <th style="padding:8px 6px;text-align:left;white-space:nowrap">Teacher</th>
-      <th style="padding:8px 6px;text-align:left">Dept</th>
-      <th style="padding:8px 6px;text-align:left">Campus</th>
-      <th style="padding:8px 6px;text-align:left">Grade</th>
-      <th style="padding:8px 6px;text-align:left">Date</th>
-      <th style="padding:8px 6px;text-align:left">Visitor</th>
-      <th style="padding:8px 6px;text-align:left">Type</th>
-      <th style="padding:8px 6px;text-align:left">Status</th>
-      <th style="padding:8px 6px;text-align:left">Notes</th>
-      <th style="padding:8px 6px;text-align:left">🔗 Obs</th>
-      ${canEdit()?'<th style="padding:8px 6px"></th>':''}
-    </tr>
-  </thead>
-  <tbody>
-  ${vs.map((v,i)=>{
-    const obs=linkedObs(v);
-    const rowBg=i%2===0?'#fff':'#f9fafb';
-    const statusColor=v.status==='Completed'?'#d1fae5':v.status==='Rescheduled'?'#fef3c7':v.status==='Cancelled'?'#fee2e2':'';
-    return `<tr style="background:${statusColor||rowBg};border-bottom:1px solid var(--border);font-size:12px">
-      <td style="padding:2px 4px">
-        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;font-weight:600;min-width:140px" data-visit-sel="teacher" data-visit-id="${v.id}">
-          <option value="">— Select teacher —</option>
-          ${S.teachers.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(tc=>`<option ${v.teacher===tc.name?'selected':''} value="${tc.name}">${tc.name} (${tc.dept||''})</option>`).join('')}
-        </select>
-      </td>
-      <td style="padding:2px 4px">
-        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="dept" data-visit-id="${v.id}">
-          <option value="">—</option>
-          ${['Arabic Language','Social Studies','Islamic Studies','Mathematics','Computer Science','PE & Arts','English','Science','Humanities','Other'].map(d=>`<option ${v.dept===d?'selected':''} value="${d}">${d}</option>`).join('')}
-        </select>
-      </td>
-      <td style="padding:2px 4px">
-        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="campus" data-visit-id="${v.id}">
-          ${['Boys','Girls'].map(s=>`<option ${v.campus===s?'selected':''} value="${s}">${s}</option>`).join('')}
-        </select>
-      </td>
-      ${editCell(v.id,'grade',v.grade,'width:70px')}
-      <td style="padding:2px 4px">
-        <input type="date" class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;width:130px" value="${v.date||''}" data-visit-date="${v.id}">
-      </td>
-      <td style="padding:2px 4px">
-        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;min-width:130px" data-visit-sel="visitor" data-visit-id="${v.id}">
-          <option value="">— Select visitor —</option>
-          ${allVisitors.map(vis=>`<option ${v.visitor===vis?'selected':''} value="${vis}">${vis}</option>`).join('')}
-          ${v.visitor&&!allVisitors.includes(v.visitor)?`<option selected value="${esc(v.visitor)}">${esc(v.visitor)}</option>`:''}
-          <option value="__custom__">✎ Type a name…</option>
-        </select>
-      </td>
-      <td style="padding:2px 4px">
-        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="type" data-visit-id="${v.id}">
-          ${['Learning Walk','Lesson Observation','Developmental Visit','Evaluative Visit','Diagnostic Visit'].map(t=>`<option ${v.type===t?'selected':''} value="${t}">${t}</option>`).join('')}
-        </select>
-      </td>
-      <td style="padding:2px 4px">
-        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="status" data-visit-id="${v.id}">
-          ${['Planned','Completed','Rescheduled','Cancelled'].map(s=>`<option ${v.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
-        </select>
-      </td>
-      ${editCell(v.id,'completedNotes',v.completedNotes,'min-width:120px;color:var(--muted);font-style:italic')}
-      <td style="padding:4px 6px;text-align:center">
-        ${(()=>{
-          const t2=S.teachers.find(tc=>(tc.name||'').toLowerCase()===(v.teacher||'').toLowerCase());
-          const allObs=t2?S.observations.filter(o=>o.tid===t2.id):[];
-          if(!allObs.length)return '<span style="font-size:10px;color:#d1d5db">0</span>';
-          return '<button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;border-radius:4px;color:var(--teal);border:1px solid var(--teal)" data-visit-obs-jump="'+esc(v.teacher||'')+'" title="'+allObs.length+' observation(s) for '+esc(v.teacher||'')+'">'
-            +allObs.length+' obs</button>';
-        })()}
-      </td>
-      ${canEdit()?`<td style="padding:2px 4px"><button class="btn btn-danger" style="font-size:10px;padding:2px 6px" data-visit-del="${v.id}" title="Delete visit">✕</button></td>`:''}
-    </tr>`;
-  }).join('')}
-  </tbody>
-</table>
-</div>`
-:'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No visits match current filters.</div>'}
-`;}
-
 
 function renderDeptTLCList(){
   let items=scopedDeptTLC().slice();
@@ -3692,7 +3494,7 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
-      techSelector('obs-tech','obs-custom-tech',techVal,data.customTech||'')+
+      FS('obs-visit-type','Visit Type',['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Lesson Observation')+
       '<p class="text-xs text-muted mb-2">Hover (or tap ℹ rubric) on any criterion to see what each score 1–5 means, and add a note under each one to justify your rating.</p>'+
       '<div id="obs-domains">' +
       getDomains().map(d=>`<div class="card" style="border-left:4px solid var(--navy);margin-bottom:10px;padding:10px 12px">
@@ -3721,7 +3523,8 @@ function renderModal(type, data={}){
       '</div>'+
       G2(FI('obs-conf','Confidence (1-5)',data.conf||'','number'),FS('obs-scope','Scope',['teacher','dept','boys','girls','school'],data.scope||'teacher'))+
       G2(FTA('obs-www','Key Strengths (WWW)',data.www||''),FTA('obs-ebi','Areas for Development (EBI)',data.ebi||''))+
-      FTA('obs-action','Action Step',data.action||''),
+      FTA('obs-action','Action Step',data.action||'')+
+      FTA('obs-note','Visit Tracker Note (brief note visible in the Visit Tracker)',data.visitNote||'',2),
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-obs>${isEdit?'Update Observation':'Save Observation'}</button>`
     );
   }
@@ -4166,7 +3969,20 @@ function renderModal(type, data={}){
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-role>${editKey?'Update Role':'Save Role'}</button>`
     );
   }
-  if(type==='addDept'){
+  if(type==='visitTargets'){
+    const tgt=getVisitTargets();
+    const gt=tgt.targets||{};
+    const VISIT_TYPES_LOCAL=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    return M('⚙ Visit Targets (per term, whole school)',
+      '<p class="text-xs text-muted mb-3">Set how many of each visit type should be completed per term across the school. These drive the progress indicators in the Visit Tracker.</p>'
+      +'<div style="display:flex;flex-direction:column;gap:10px">'
+      +VISIT_TYPES_LOCAL.map(t=>`<div class="flex items-center gap-3"><label style="min-width:170px;font-size:13px;font-weight:600">${t}</label><input type="number" class="form-control" id="vt-${t.replace(/\s+/g,'_')}" value="${gt[t]||''}" placeholder="0" min="0" style="width:80px;padding:4px 8px"></div>`).join('')
+      +'</div>',
+      `<button class="btn btn-ghost" data-close-modal>Cancel</button>
+       <button class="btn btn-success" id="save-visit-targets-btn">Save Targets</button>`
+    );
+  }
+    if(type==='addDept'){
     const custom=sget('customDepts')||[];
     return M('🏫 Manage Departments',
       '<div class="form-group"><label class="form-label">Add New Department</label>'
@@ -4628,6 +4444,8 @@ function bindEvents(){
       comments,
       scores,conf:parseInt(gv('obs-conf'))||0,
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
+      visitType:gv('obs-visit-type')||'Lesson Observation',
+      visitNote:gv('obs-note')||'',
       autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false
     };
     S.observations=editId?S.observations.map(o=>o.id===editId?obs:o):[...S.observations,obs];
@@ -5792,132 +5610,67 @@ function bindEvents(){
 
   // ── Visit Tracker: all interactive handlers ──────────────────────────────────
 
-  // Filter pills
+  // Dept pills
   document.querySelectorAll('[data-visit-dept]').forEach(el=>{
     el.onclick=()=>{const d=el.dataset.visitDept;if(d===''){S.visitDept=[];}else{if(!S.visitDept)S.visitDept=[];const i=S.visitDept.indexOf(d);if(i>=0)S.visitDept.splice(i,1);else S.visitDept.push(d);}render();};
   });
+  // Campus pills
   document.querySelectorAll('[data-visit-campus]').forEach(el=>{
     el.onclick=()=>{const c=el.dataset.visitCampus;if(c===''){S.visitCampus=[];}else{if(!S.visitCampus)S.visitCampus=[];const i=S.visitCampus.indexOf(c);if(i>=0)S.visitCampus.splice(i,1);else S.visitCampus.push(c);}render();};
   });
+  // Visitor pills
   document.querySelectorAll('[data-visit-visitor]').forEach(el=>{
     el.onclick=()=>{S.visitVisitor=el.dataset.visitVisitor;render();};
   });
-  document.querySelectorAll('[data-visit-status]').forEach(el=>{
-    el.onclick=()=>{S.visitStatus=el.dataset.visitStatus;render();};
+  // Type pills
+  document.querySelectorAll('[data-visit-type]').forEach(el=>{
+    el.onclick=()=>{S.visitType=el.dataset.visitType;render();};
   });
+  // Search
   const visitSearchBox=document.getElementById('visit-search-box');
   if(visitSearchBox){
     visitSearchBox.oninput=()=>{S.visitSearch=visitSearchBox.value;};
     visitSearchBox.onkeydown=e=>{if(e.key==='Enter'||e.key==='Escape')render();};
   }
+  // Not-yet-visited
   const visitNotYetCb=document.getElementById('visit-not-yet-cb');
   if(visitNotYetCb) visitNotYetCb.onchange=()=>{S.visitNotYet=visitNotYetCb.checked;render();};
-
-  // ── Inline contenteditable cells (teacher name, visitor, grade, notes) ──────
-  document.querySelectorAll('[data-visit-edit]').forEach(el=>{
-    const vid=el.dataset.visitId, field=el.dataset.visitEdit;
-    el.style.outline='none';
-    el.style.cursor='text';
-    el.onfocus=()=>{el.style.background='#fffbeb';el.style.outline='2px solid var(--amber)';};
-    el.onblur=()=>{
-      el.style.background='';el.style.outline='none';
-      saveVisit(vid,{[field]:el.textContent.trim()});
-      showToast('Saved ✓');
-    };
-    el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.blur();}};
-  });
-
-  // ── Select dropdowns (dept, campus, type, status, teacher) ─────────────────
-  document.querySelectorAll('[data-visit-sel]').forEach(el=>{
-    el.onchange=()=>{
-      const vid=el.dataset.visitId, field=el.dataset.visitSel;
-      const patch={[field]:el.value};
-      // When teacher changes: auto-fill dept, campus, grade from teacher record
-      // Handle custom visitor name
-      if(field==='visitor'&&el.value==='__custom__'){
-        const name=prompt('Enter visitor name:','');
-        if(name&&name.trim()){
-          saveVisit(vid,{visitor:name.trim()});
-          showToast('Visitor saved ✓');
-          render();
-        } else {
-          el.value=saveVisit.visitor||''; // revert
-        }
-        return;
-      }
-      if(field==='teacher'&&el.value){
-        const t=S.teachers.find(tc=>tc.name===el.value);
-        if(t){
-          if(t.dept) patch.dept=t.dept;
-          if(t.section) patch.campus=t.section;
-          if(t.grades&&t.grades.length) patch.grade=t.grades[0];
-          if(t.stage) patch.stage=t.stage;
-        }
-      }
-      saveVisit(vid,patch);
-      showToast('Saved ✓');
-      if(field==='status'||field==='teacher') render();
-    };
-  });
-
-  // ── Date picker ───────────────────────────────────────────────────────────────
-  document.querySelectorAll('[data-visit-date]').forEach(el=>{
-    el.onchange=()=>{
-      saveVisit(el.dataset.visitDate,{date:el.value});
-      showToast('Date saved ✓');
-    };
-  });
-
-  // ── Observation count jump button ────────────────────────────────────────────
+  // Date range
+  const visitDateFrom=document.getElementById('visit-date-from');
+  const visitDateTo=document.getElementById('visit-date-to');
+  if(visitDateFrom) visitDateFrom.onchange=()=>{S.visitDateFrom=visitDateFrom.value;render();};
+  if(visitDateTo) visitDateTo.onchange=()=>{S.visitDateTo=visitDateTo.value;render();};
+  // Obs jump button
   document.querySelectorAll('[data-visit-obs-jump]').forEach(el=>{
-    el.onclick=()=>{
-      const name=el.dataset.visitObsJump;
-      S.fwSearch=name;
-      S.fwTab='obs';
-      S.view='fieldwork';
-      render();
-    };
+    el.onclick=()=>{S.fwSearch=el.dataset.visitObsJump;S.fwTab='obs';S.view='fieldwork';render();};
   });
-
-    // ── Delete visit ─────────────────────────────────────────────────────────────
-  document.querySelectorAll('[data-visit-del]').forEach(el=>{
-    el.onclick=()=>{
-      if(!confirm('Delete this visit record?'))return;
-      loadVisits();
-      S.visits=S.visits.filter(v=>v.id!==el.dataset.visitDel);
-      sset('cvVisits',S.visits);
-      showToast('Visit deleted');
-      render();
-    };
-  });
-
-  // ── Add new visit ─────────────────────────────────────────────────────────────
-  const visitAddBtn=document.querySelector('[data-visit-add]');
-  if(visitAddBtn){
-    visitAddBtn.onclick=()=>{
-      loadVisits();
-      const newV={
-        id:'V'+String(Date.now()).slice(-6),
-        year:'2026/2027',date:'',teacher:'',dept:'',campus:'Boys',
-        grade:'',stage:'',team:'',visitor:'',
-        type:'Learning Walk',status:'Planned',reason:'',
-        completedNotes:'',completedAt:''
-      };
-      S.visits=[newV,...S.visits];
-      sset('cvVisits',S.visits);
-      showToast('New visit row added — click cells to edit');
-      render();
-    };
-  }
-
-  // ── CSV Export ────────────────────────────────────────────────────────────────
+  // CSV export
   const visitExportBtn=document.getElementById('visit-export-btn');
   if(visitExportBtn) visitExportBtn.onclick=()=>{
-    loadVisits();
-    exportCSV('classroom-visits-'+new Date().toISOString().split('T')[0]+'.csv',
-      (S.visits||[]).map(v=>({ID:v.id,Teacher:v.teacher,Department:v.dept,Campus:v.campus,Grade:v.grade,Stage:v.stage,Visitor:v.visitor,Type:v.type,Date:v.date,Status:v.status,Notes:v.completedNotes||'',Reason:v.reason||''}))
-    );
+    const allObs=S.observations||[];
+    const rows=allObs.map(o=>{
+      const t=S.teachers.find(tc=>tc.id===o.tid);
+      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Type:o.visitType||'Lesson Observation',WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
+    });
+    exportCSV('visit-tracker-'+new Date().toISOString().split('T')[0]+'.csv',rows);
   };
+  // Save visit targets
+  const saveVTBtn=document.getElementById('save-visit-targets-btn');
+  if(saveVTBtn){
+    saveVTBtn.onclick=()=>{
+      const VTYPES=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const tgt=getVisitTargets();
+      const gt=tgt.targets||{};
+      VTYPES.forEach(t=>{
+        const key=t.replace(/\s+/g,'_');
+        const el=document.getElementById('vt-'+key);
+        if(el){const v=parseInt(el.value)||0;if(v>0)gt[t]=v;else delete gt[t];}
+      });
+      saveVisitTargets({...tgt,targets:gt});
+      showToast('Targets saved \u2713');
+      S.modal=null;render();
+    };
+  }
 
 
   // ── Add Department modal ─────────────────────────────────────────────────────
@@ -6697,4 +6450,246 @@ boot();
 
 </script>
 </body>
-</html>
+</html>// ─── renderVisitTracker ───────────────────────────────────────────────────────
+// Reads LIVE from S.observations — no separate seed store needed.
+// Each observation = one visit record. Filters: dept, campus, visitor,
+// type, date-range, not-yet-visited. Targets panel per visitor (editable).
+// Indicator shows progress toward each visit type target per term.
+
+const VISIT_TYPES=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+const VISIT_TYPE_COLORS={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+const VISIT_TYPE_SHORT={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+
+function getVisitTargets(){return sget('visitTargets')||{targets:{},perVisitor:{}};}
+function saveVisitTargets(t){sset('visitTargets',t);}
+
+function obsToVisit(o){
+  const t=S.teachers.find(tc=>tc.id===o.tid);
+  return{
+    id:'obs-'+o.id,
+    teacher:t?t.name:'',
+    dept:t?t.dept:'',
+    campus:t?t.section:'',
+    grade:t&&t.grades&&t.grades.length?t.grades[0]:'',
+    stage:t?t.stage:'',
+    date:o.date||'',
+    visitor:o.observer||'',
+    type:o.visitType||'Lesson Observation',
+    status:'Completed',
+    www:o.www||'',
+    ebi:o.ebi||'',
+    action:o.action||'',
+    note:o.visitNote||'',
+    obsId:o.id
+  };
+}
+
+function renderVisitTracker(){
+  const role=S.session?.role||'';
+  const isTeacherRole=role==='teacher';
+
+  // Build visits from observations
+  let allObs=S.observations||[];
+  if(isScoped()){
+    const depts=myDepts(),sects=mySections();
+    if(depts.length) allObs=allObs.filter(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);return t&&depts.includes(t.dept);});
+    if(sects.length) allObs=allObs.filter(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);return t&&sects.includes(t.section);});
+  }
+  if(isTeacherRole){
+    const myName=(S.session?.name||'').toLowerCase();
+    allObs=allObs.filter(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);return t&&t.name.toLowerCase()===myName;});
+  }
+
+  let visits=allObs.map(obsToVisit);
+
+  // Read filters from state
+  const vd=S.visitDept||[], vc=S.visitCampus||[], vst=S.visitStatus||'';
+  const vvis=S.visitVisitor||'', vtype=S.visitType||'';
+  const vsearch=(S.visitSearch||'').toLowerCase();
+  const vnot=S.visitNotYet||false;
+  const vDateFrom=S.visitDateFrom||'', vDateTo=S.visitDateTo||'';
+
+  // Filtered view
+  let fv=visits;
+  if(vd.length) fv=fv.filter(v=>vd.includes(v.dept));
+  if(vc.length) fv=fv.filter(v=>vc.includes(v.campus));
+  if(vvis) fv=fv.filter(v=>(v.visitor||'').toLowerCase()===vvis.toLowerCase());
+  if(vtype) fv=fv.filter(v=>v.type===vtype);
+  if(vsearch) fv=fv.filter(v=>
+    (v.teacher||'').toLowerCase().includes(vsearch)||
+    (v.dept||'').toLowerCase().includes(vsearch)||
+    (v.visitor||'').toLowerCase().includes(vsearch)
+  );
+  if(vDateFrom) fv=fv.filter(v=>v.date>=vDateFrom);
+  if(vDateTo) fv=fv.filter(v=>v.date<=vDateTo);
+  if(vnot){
+    // "Not yet visited" = teachers in S.teachers with zero completed visits
+    const visitedNames=new Set(visits.map(v=>v.teacher));
+    fv=visits.filter(v=>!visitedNames.has(v.teacher)); // show zero-visit teachers
+    // Actually: show teachers who have NO observations at all
+    const allTeachersInScope=S.teachers.filter(t=>{
+      if(isScoped()){const d=myDepts(),s=mySections();if(d.length&&!d.includes(t.dept))return false;if(s.length&&!s.includes(t.section))return false;}
+      return true;
+    });
+    const visitedTeachers=new Set(visits.map(v=>v.teacher));
+    const unvisited=allTeachersInScope.filter(t=>!visitedTeachers.has(t.name));
+    // Build synthetic "not visited" rows for display
+    fv=unvisited.map(t=>({id:'nv-'+t.id,teacher:t.name,dept:t.dept,campus:t.section,grade:'',stage:t.stage,date:'',visitor:'',type:'',status:'Not Visited',www:'',ebi:'',action:'',note:'',obsId:null}));
+  }
+
+  // Sort by date desc
+  fv=fv.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  // KPIs from all (unfiltered) visits
+  const allTeachersInScope=S.teachers.filter(t=>{
+    if(isScoped()){const d=myDepts(),s=mySections();if(d.length&&!d.includes(t.dept))return false;if(s.length&&!s.includes(t.section))return false;}
+    return true;
+  });
+  const visitedTeachers=new Set(visits.map(v=>v.teacher));
+  const notYetCount=allTeachersInScope.filter(t=>!visitedTeachers.has(t.name)).length;
+  const typeBreakdown=VISIT_TYPES.map(t=>({type:t,count:visits.filter(v=>v.type===t).length}));
+  const uniqueVisitors=[...new Set(visits.map(v=>v.visitor).filter(Boolean))].sort();
+  const allDepts=[...new Set(visits.map(v=>v.dept).filter(Boolean))].sort();
+
+  // Targets
+  const tgt=getVisitTargets();
+  const globalTargets=tgt.targets||{};
+
+  // Status badge
+  const statusBadge=s=>s==='Completed'?'badge-green':s==='Not Visited'?'badge-red':'badge-gray';
+
+  // Active filter count for "clear all" button
+  const hasFilters=vd.length||vc.length||vvis||vtype||vsearch||vDateFrom||vDateTo||vnot;
+
+  return `
+<!-- ── KPI Row ──────────────────────────────────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+  <div class="kpi" style="border-top:3px solid var(--navy)"><div class="kpi-val">${visits.length}</div><div class="kpi-label">Total Visits Done</div></div>
+  <div class="kpi" style="border-top:3px solid var(--teal)"><div class="kpi-val">${visitedTeachers.size}</div><div class="kpi-label">Teachers Visited</div></div>
+  <div class="kpi" style="border-top:3px solid var(--red)"><div class="kpi-val">${notYetCount}</div><div class="kpi-label">Not Yet Visited</div></div>
+  <div class="kpi" style="border-top:3px solid var(--purple)"><div class="kpi-val">${uniqueVisitors.length}</div><div class="kpi-label">Active Visitors</div></div>
+</div>
+
+<!-- ── Visit Type Breakdown ─────────────────────────────────────────────────── -->
+<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+  ${VISIT_TYPES.map(t=>{
+    const count=visits.filter(v=>v.type===t).length;
+    const target=globalTargets[t]||0;
+    const pct=target?Math.min(100,Math.round(count/target*100)):0;
+    const col=VISIT_TYPE_COLORS[t];
+    return `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:130px;border-left:4px solid ${col}">
+      <div style="font-size:10px;font-weight:700;color:${col};margin-bottom:3px">${VISIT_TYPE_SHORT[t]}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--navy)">${count}${target?'<span style="font-size:12px;color:var(--muted);font-weight:400"> /'+target+'</span>':''}</div>
+      ${target?`<div style="height:4px;background:#e5e7eb;border-radius:2px;margin-top:4px"><div style="height:4px;border-radius:2px;background:${col};width:${pct}%"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">${pct}% of target</div>`:'<div style="font-size:9px;color:var(--muted)">No target set</div>'}
+    </div>`;
+  }).join('')}
+  ${canEdit()?`<div style="background:#f9fafb;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;cursor:pointer" onclick="S.modal=renderModal('visitTargets');render()">
+    <span style="font-size:11px;color:var(--muted)">⚙ Set Targets</span>
+  </div>`:''}
+</div>
+
+<!-- ── Filters ──────────────────────────────────────────────────────────────── -->
+${!isTeacherRole?`
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Dept:</span>
+    <div class="pill-opt ${vd.length===0?'sel':''}" data-visit-dept="">All</div>
+    ${allDepts.map(d=>`<div class="pill-opt ${vd.includes(d)?'sel':''}" data-visit-dept="${d}">${d}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Campus:</span>
+    <div class="pill-opt ${vc.length===0?'sel':''}" data-visit-campus="">All</div>
+    ${SECTIONS.map(s=>`<div class="pill-opt ${vc.includes(s)?'sel':''}" data-visit-campus="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Visitor:</span>
+    <div class="pill-opt ${!vvis?'sel':''}" data-visit-visitor="">All</div>
+    ${uniqueVisitors.map(v=>`<div class="pill-opt ${vvis===v?'sel':''}" data-visit-visitor="${v}">${v}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Type:</span>
+    <div class="pill-opt ${!vtype?'sel':''}" data-visit-type="">All</div>
+    ${VISIT_TYPES.map(t=>`<div class="pill-opt ${vtype===t?'sel':''}" data-visit-type="${t}" style="${vtype===t?'':'border-left:3px solid '+VISIT_TYPE_COLORS[t]}">${VISIT_TYPE_SHORT[t]}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Date:</span>
+    <label style="font-size:11px">From <input type="date" id="visit-date-from" value="${vDateFrom}" style="padding:2px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px"></label>
+    <label style="font-size:11px">To <input type="date" id="visit-date-to" value="${vDateTo}" style="padding:2px 5px;font-size:11px;border:1px solid var(--border);border-radius:4px"></label>
+  </div>
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Search:</span>
+    <input class="form-control" id="visit-search-box" placeholder="🔍 Teacher, visitor…" value="${esc(S.visitSearch||'')}" style="width:190px;padding:5px 9px;font-size:12px">
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+      <input type="checkbox" id="visit-not-yet-cb" ${vnot?'checked':''}> Not-yet-visited only
+    </label>
+    ${hasFilters?`<button class="btn btn-ghost btn-sm" onclick="S.visitDept=[];S.visitCampus=[];S.visitStatus='';S.visitVisitor='';S.visitSearch='';S.visitNotYet=false;S.visitType='';S.visitDateFrom='';S.visitDateTo='';render()">✕ Clear all</button>`:''}
+  </div>
+</div>`:''}
+
+<div class="flex justify-between items-center mb-2">
+  <div class="flex gap-2 items-center">
+    ${canEdit()?`<button class="btn btn-primary btn-sm" data-modal="obs">+ New Visit (Observation)</button>`:''}
+    <button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ CSV</button>
+  </div>
+  <span class="text-xs text-muted">${fv.length} record${fv.length!==1?'s':''} shown</span>
+</div>
+
+<!-- ── Table ─────────────────────────────────────────────────────────────────── -->
+${fv.length?`
+<div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+<table style="border-collapse:collapse;width:100%;min-width:920px;font-size:12px">
+  <thead>
+    <tr style="background:var(--navy);color:#fff;font-size:11px">
+      <th style="padding:8px 8px;text-align:left">Teacher</th>
+      <th style="padding:8px 6px;text-align:left">Dept</th>
+      <th style="padding:8px 6px;text-align:left">Campus</th>
+      <th style="padding:8px 6px;text-align:left">Grade</th>
+      <th style="padding:8px 6px;text-align:left">Date</th>
+      <th style="padding:8px 6px;text-align:left">Visitor</th>
+      <th style="padding:8px 6px;text-align:left">Type</th>
+      <th style="padding:8px 6px;text-align:left">Status</th>
+      <th style="padding:8px 6px;text-align:left">Note / WWW / EBI</th>
+      <th style="padding:8px 6px;text-align:center"># Visits</th>
+      <th style="padding:8px 6px;text-align:center">↗</th>
+    </tr>
+  </thead>
+  <tbody>
+  ${fv.map((v,i)=>{
+    const rowBg=i%2===0?'#fff':'#f9fafb';
+    const vcol=v.type?VISIT_TYPE_COLORS[v.type]||'#9ca3af':'#9ca3af';
+    // Count all visits for this teacher (unfiltered)
+    const tchVisits=visits.filter(x=>x.teacher===v.teacher);
+    const tchByType=VISIT_TYPES.map(t=>({t,c:tchVisits.filter(x=>x.type===t).length})).filter(x=>x.c>0);
+    const noteDisplay=[v.note,v.www?'WWW: '+v.www.slice(0,40):null,v.ebi?'EBI: '+v.ebi.slice(0,30):null].filter(Boolean).join(' · ');
+    return `<tr style="background:${v.status==='Not Visited'?'#fef2f2':rowBg};border-bottom:1px solid var(--border)">
+      <td style="padding:6px 8px;font-weight:600;direction:auto;white-space:nowrap">${esc(v.teacher||'—')}</td>
+      <td style="padding:6px 6px"><span class="badge badge-blue" style="font-size:10px">${esc(v.dept||'—')}</span></td>
+      <td style="padding:6px 6px"><span class="badge ${v.campus==='Girls'?'badge-red':'badge-blue'}" style="font-size:10px">${esc(v.campus||'—')}</span></td>
+      <td style="padding:6px 6px;color:var(--muted)">${esc(v.grade||'—')}</td>
+      <td style="padding:6px 6px;white-space:nowrap;color:var(--muted)">${v.date||'<span style="color:#d1d5db">—</span>'}</td>
+      <td style="padding:6px 6px;white-space:nowrap">${esc(v.visitor||'—')}</td>
+      <td style="padding:6px 6px">
+        ${v.type?`<span class="badge" style="font-size:10px;background:${vcol}18;color:${vcol};border:1px solid ${vcol}44">${VISIT_TYPE_SHORT[v.type]||esc(v.type)}</span>`:'<span style="color:#d1d5db">—</span>'}
+      </td>
+      <td style="padding:6px 6px"><span class="badge ${statusBadge(v.status)}" style="font-size:10px">${v.status}</span></td>
+      <td style="padding:6px 6px;color:var(--muted);max-width:200px;font-size:11px;white-space:normal">${noteDisplay?esc(noteDisplay.slice(0,90))+(noteDisplay.length>90?'…':''):'—'}</td>
+      <td style="padding:6px 6px;text-align:center">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:13px;font-weight:700;color:var(--navy)">${tchVisits.length}</span>
+          <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:90px">
+            ${tchByType.map(x=>`<span title="${x.t}: ${x.c}" style="font-size:9px;background:${VISIT_TYPE_COLORS[x.t]}18;color:${VISIT_TYPE_COLORS[x.t]};border:1px solid ${VISIT_TYPE_COLORS[x.t]}44;border-radius:3px;padding:0 3px">${VISIT_TYPE_SHORT[x.t]}×${x.c}</span>`).join('')}
+          </div>
+        </div>
+      </td>
+      <td style="padding:6px 6px;text-align:center">
+        ${v.obsId?`<button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;border-radius:4px;color:var(--teal);border:1px solid var(--teal)" data-visit-obs-jump="${esc(v.teacher||'')}" title="Go to observation">↗ Obs</button>`:'<span style="color:#e5e7eb">—</span>'}
+      </td>
+    </tr>`;
+  }).join('')}
+  </tbody>
+</table>
+</div>`
+:'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(vnot?'All teachers in scope have been visited — great work! 🎉':'No visits recorded yet. Use + New Visit to add an observation.')+'</div>'}
+`;}
+
+
