@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D25-visit-tracker-portfolio-admin">
+<meta name="app-build" content="2026-09-04-D26-visits-editable-dept-kickout-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -223,7 +223,18 @@ const SEED_USERS = [
 // duplicate of 'Safaih Alzahrani' (username "Safiah", kept, she's actively using those
 // credentials).
 const DEFAULT_DELETED_SEED_USERS=['f0875924-7820-4122-b2bf-5fdbba6b8066','22d4fc82-88c4-48c1-8a64-f091fe725908','o5qndcc7_mqh2xr8x'];
-const DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','Other'];
+// DEPTS is now dynamic — admins can add departments from the Teachers tab
+// Base list + any custom ones stored in localStorage
+const BASE_DEPTS=['Mathematics','Physics','Chemistry','Biology','Science','English','Arabic','Islamic','Social Studies','ICT','PE','Art','Humanities','French','Other'];
+let DEPTS=(()=>{const custom=sget('customDepts')||[];return[...new Set([...BASE_DEPTS,...custom])].sort();})();
+function addCustomDept(name){
+  if(!name||DEPTS.includes(name))return false;
+  const custom=sget('customDepts')||[];
+  custom.push(name);
+  sset('customDepts',custom);
+  DEPTS=[...new Set([...BASE_DEPTS,...custom])].sort();
+  return true;
+}
 const TLC_APPLICATION_OPTIONS=['Collaborative Protocol','Active Learning'];
 const SECTIONS=['Boys','Girls'];
 // 'KG/Primary' used to live inside DEPTS (wrongly mixing a grade-band into the subject-department
@@ -1768,6 +1779,7 @@ function renderTeachers(){
     <button class="btn btn-primary" data-modal="teacher">+ Add Teacher</button>
     <button class="btn btn-ghost" data-modal="bulkTeachers">+ Bulk Add</button>
     <button class="btn btn-ghost" data-modal="group">+ Add Group</button>
+    <button class="btn btn-ghost" data-modal="addDept">+ Department</button>
     <button class="btn btn-ghost" data-dedupe-teachers title="Find and remove teachers with the exact same name, keeping the older record">🧹 Remove Duplicates</button>
     ${canEdit()?'<button class="btn btn-ghost" onclick="S.adminPortfolioTeacherId=null;S.modal=renderModal(\'portfolioViewer\');render()">🎓 View Portfolios</button>':''}
   </div>`:'<div></div>'}
@@ -2587,7 +2599,12 @@ ${vs.length?`
     const rowBg=i%2===0?'#fff':'#f9fafb';
     const statusColor=v.status==='Completed'?'#d1fae5':v.status==='Rescheduled'?'#fef3c7':v.status==='Cancelled'?'#fee2e2':'';
     return `<tr style="background:${statusColor||rowBg};border-bottom:1px solid var(--border);font-size:12px">
-      ${editCell(v.id,'teacher',v.teacher,'font-weight:600')}
+      <td style="padding:2px 4px">
+        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;font-weight:600;min-width:140px" data-visit-sel="teacher" data-visit-id="${v.id}">
+          <option value="">— Select teacher —</option>
+          ${S.teachers.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(tc=>`<option ${v.teacher===tc.name?'selected':''} value="${tc.name}">${tc.name} (${tc.dept||''})</option>`).join('')}
+        </select>
+      </td>
       <td style="padding:2px 4px">
         <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="dept" data-visit-id="${v.id}">
           <option value="">—</option>
@@ -2603,7 +2620,14 @@ ${vs.length?`
       <td style="padding:2px 4px">
         <input type="date" class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;width:130px" value="${v.date||''}" data-visit-date="${v.id}">
       </td>
-      ${editCell(v.id,'visitor',v.visitor)}
+      <td style="padding:2px 4px">
+        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;min-width:130px" data-visit-sel="visitor" data-visit-id="${v.id}">
+          <option value="">— Select visitor —</option>
+          ${allVisitors.map(vis=>`<option ${v.visitor===vis?'selected':''} value="${vis}">${vis}</option>`).join('')}
+          ${v.visitor&&!allVisitors.includes(v.visitor)?`<option selected value="${esc(v.visitor)}">${esc(v.visitor)}</option>`:''}
+          <option value="__custom__">✎ Type a name…</option>
+        </select>
+      </td>
       <td style="padding:2px 4px">
         <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="type" data-visit-id="${v.id}">
           ${['Learning Walk','Lesson Observation','Developmental Visit','Evaluative Visit','Diagnostic Visit'].map(t=>`<option ${v.type===t?'selected':''} value="${t}">${t}</option>`).join('')}
@@ -2616,9 +2640,13 @@ ${vs.length?`
       </td>
       ${editCell(v.id,'completedNotes',v.completedNotes,'min-width:120px;color:var(--muted);font-style:italic')}
       <td style="padding:4px 6px;text-align:center">
-        ${obs
-          ?`<button class="btn btn-ghost" style="font-size:10px;padding:2px 6px;border-radius:4px;color:var(--teal);border-color:var(--teal)" onclick="S.fwTab='obs';S.view='fieldwork';render()" title="View linked observation (${obs.date})">🔗 View</button>`
-          :`<span style="font-size:10px;color:#d1d5db">—</span>`}
+        ${(()=>{
+          const t2=S.teachers.find(tc=>(tc.name||'').toLowerCase()===(v.teacher||'').toLowerCase());
+          const allObs=t2?S.observations.filter(o=>o.tid===t2.id):[];
+          if(!allObs.length)return '<span style="font-size:10px;color:#d1d5db">0</span>';
+          return '<button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;border-radius:4px;color:var(--teal);border:1px solid var(--teal)" data-visit-obs-jump="'+esc(v.teacher||'')+'" title="'+allObs.length+' observation(s) for '+esc(v.teacher||'')+'">'
+            +allObs.length+' obs</button>';
+        })()}
       </td>
       ${canEdit()?`<td style="padding:2px 4px"><button class="btn btn-danger" style="font-size:10px;padding:2px 6px" data-visit-del="${v.id}" title="Delete visit">✕</button></td>`:''}
     </tr>`;
@@ -4138,7 +4166,21 @@ function renderModal(type, data={}){
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-role>${editKey?'Update Role':'Save Role'}</button>`
     );
   }
-  if(type==='portfolioViewer'){
+  if(type==='addDept'){
+    const custom=sget('customDepts')||[];
+    return M('🏫 Manage Departments',
+      '<div class="form-group"><label class="form-label">Add New Department</label>'
+      +'<div class="flex gap-2"><input class="form-control" id="new-dept-input" placeholder="e.g. Drama, Design Technology…" style="flex:1"><button class="btn btn-success" id="save-new-dept-btn">Add</button></div></div>'
+      +'<div class="form-group"><label class="form-label">Current Departments</label>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">'
+      +DEPTS.map(d=>'<span class="badge badge-blue" style="font-size:12px;padding:4px 10px">'+esc(d)
+        +(custom.includes(d)?(' <button onclick="const c=sget(\'customDepts\')||[];sset(\'customDepts\',c.filter(x=>x!==\''+d+'\'));DEPTS=[...new Set([...BASE_DEPTS,...(sget(\'customDepts\')||[])]).values()].sort();S.modal=renderModal(\'addDept\');render()" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:4px;font-size:11px">✕</button>'):'')
+        +'</span>').join('')
+      +'</div></div>',
+      '<button class="btn btn-ghost" data-close-modal>Done</button>'
+    );
+  }
+    if(type==='portfolioViewer'){
     const curId=data.teacherId||S.adminPortfolioTeacherId||'';
     return M('🎓 Teacher Portfolio Viewer',
       '<div class="form-group"><label class="form-label">Select Teacher</label>'
@@ -5785,13 +5827,36 @@ function bindEvents(){
     el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.blur();}};
   });
 
-  // ── Select dropdowns (dept, campus, type, status) ────────────────────────────
+  // ── Select dropdowns (dept, campus, type, status, teacher) ─────────────────
   document.querySelectorAll('[data-visit-sel]').forEach(el=>{
     el.onchange=()=>{
       const vid=el.dataset.visitId, field=el.dataset.visitSel;
-      saveVisit(vid,{[field]:el.value});
+      const patch={[field]:el.value};
+      // When teacher changes: auto-fill dept, campus, grade from teacher record
+      // Handle custom visitor name
+      if(field==='visitor'&&el.value==='__custom__'){
+        const name=prompt('Enter visitor name:','');
+        if(name&&name.trim()){
+          saveVisit(vid,{visitor:name.trim()});
+          showToast('Visitor saved ✓');
+          render();
+        } else {
+          el.value=saveVisit.visitor||''; // revert
+        }
+        return;
+      }
+      if(field==='teacher'&&el.value){
+        const t=S.teachers.find(tc=>tc.name===el.value);
+        if(t){
+          if(t.dept) patch.dept=t.dept;
+          if(t.section) patch.campus=t.section;
+          if(t.grades&&t.grades.length) patch.grade=t.grades[0];
+          if(t.stage) patch.stage=t.stage;
+        }
+      }
+      saveVisit(vid,patch);
       showToast('Saved ✓');
-      if(field==='status') render(); // re-render to update row color
+      if(field==='status'||field==='teacher') render();
     };
   });
 
@@ -5803,7 +5868,18 @@ function bindEvents(){
     };
   });
 
-  // ── Delete visit ─────────────────────────────────────────────────────────────
+  // ── Observation count jump button ────────────────────────────────────────────
+  document.querySelectorAll('[data-visit-obs-jump]').forEach(el=>{
+    el.onclick=()=>{
+      const name=el.dataset.visitObsJump;
+      S.fwSearch=name;
+      S.fwTab='obs';
+      S.view='fieldwork';
+      render();
+    };
+  });
+
+    // ── Delete visit ─────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-visit-del]').forEach(el=>{
     el.onclick=()=>{
       if(!confirm('Delete this visit record?'))return;
@@ -5842,6 +5918,26 @@ function bindEvents(){
       (S.visits||[]).map(v=>({ID:v.id,Teacher:v.teacher,Department:v.dept,Campus:v.campus,Grade:v.grade,Stage:v.stage,Visitor:v.visitor,Type:v.type,Date:v.date,Status:v.status,Notes:v.completedNotes||'',Reason:v.reason||''}))
     );
   };
+
+
+  // ── Add Department modal ─────────────────────────────────────────────────────
+  const saveDeptBtn=document.getElementById('save-new-dept-btn');
+  if(saveDeptBtn){
+    saveDeptBtn.onclick=()=>{
+      const inp=document.getElementById('new-dept-input');
+      if(!inp)return;
+      const name=(inp.value||'').trim();
+      if(!name)return;
+      if(DEPTS.includes(name)){showToast('Department already exists');return;}
+      if(addCustomDept(name)){
+        inp.value='';
+        showToast('Department "'+name+'" added ✓');
+        S.modal=renderModal('addDept');render();
+      }
+    };
+    const inp=document.getElementById('new-dept-input');
+    if(inp) inp.onkeydown=e=>{if(e.key==='Enter')saveDeptBtn.click();};
+  }
 
   // Portfolio viewer teacher selector (inside modal)
 
@@ -6191,8 +6287,17 @@ async function refreshLiveData(){
 // mid-edit. This makes every future deploy self-propagate to already-open tabs without anyone
 // needing to be told to manually hard-refresh.
 let _newVersionReloadQueued=false;
+let _lastActivity=Date.now();
+// Track user activity so we don't disrupt active sessions
+['click','keydown','touchstart','mousemove'].forEach(ev=>{
+  document.addEventListener(ev,()=>{_lastActivity=Date.now();},{passive:true});
+});
+
 async function checkForNewVersion(){
   if(S.modal||_newVersionReloadQueued)return;
+  // Never auto-reload if user has been active in last 10 minutes
+  const idleMs=Date.now()-_lastActivity;
+  if(idleMs<600000)return; // 10 min idle threshold
   try{
     const r=await fetch(location.pathname+'?_v='+Date.now(),{cache:'no-store'});
     if(!r.ok)return;
@@ -6200,8 +6305,12 @@ async function checkForNewVersion(){
     const m=html.match(/<meta name="app-build" content="([^"]+)"/);
     if(m&&m[1]&&m[1]!==BUILD_VERSION){
       _newVersionReloadQueued=true;
-      showToast('A newer version of this app is available — refreshing…');
-      setTimeout(()=>location.reload(),1800);
+      // Show a persistent non-intrusive banner instead of forcing reload
+      const banner=document.createElement('div');
+      banner.id='update-banner';
+      banner.style.cssText='position:fixed;bottom:16px;right:16px;background:#163A5F;color:#fff;padding:12px 16px;border-radius:8px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.25)';
+      banner.innerHTML='🔄 New version available <button onclick="location.reload()" style="background:#1D9BD7;color:#fff;border:none;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px">Update now</button> <button onclick="document.getElementById(\'update-banner\').remove()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:12px">Later</button>';
+      if(!document.getElementById('update-banner'))document.body.appendChild(banner);
     }
   }catch(e){/* best-effort — silent */}
 }
