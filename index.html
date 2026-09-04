@@ -418,7 +418,7 @@ const SEED_VISITS=[
   {id:"V0119",year:"2026/2027",date:"",teacher:"Junaid Golandaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
   {id:"V0120",year:"2026/2027",date:"",teacher:"Dina Kamal",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela Pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''}
 ];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -2448,15 +2448,23 @@ function loadVisits(){
 }
 
 // ─── renderVisitTracker ───────────────────────────────────────────────────────
+// Full inline-editable visit tracker — edit like a spreadsheet.
+// Every cell (teacher, dept, campus, grade, date, visitor, type, status, notes)
+// is editable inline. Visitor filter pill added. Links to existing observations.
+
+function saveVisit(id, patch){
+  loadVisits();
+  S.visits=S.visits.map(v=>v.id===id?{...v,...patch}:v);
+  sset('cvVisits',S.visits);
+}
+
 function renderVisitTracker(){
   loadVisits();
-  // Scope: HOD sees own dept, HOS sees own section, teacher sees own name
   const role=S.session?.role||'';
   const isTeacherRole=role==='teacher';
   let vs=S.visits||[];
   if(isScoped()){
-    const depts=myDepts();
-    const sects=mySections();
+    const depts=myDepts(); const sects=mySections();
     if(depts.length) vs=vs.filter(v=>depts.includes(v.dept));
     if(sects.length) vs=vs.filter(v=>sects.includes(v.campus));
   }
@@ -2465,95 +2473,156 @@ function renderVisitTracker(){
     vs=vs.filter(v=>(v.teacher||'').toLowerCase()===myName);
   }
 
-  // Apply filters
-  const vd=S.visitDept||[];
-  const vc=S.visitCampus||[];
-  const vst=S.visitStatus||'';
+  // Filters
+  const vd=S.visitDept||[], vc=S.visitCampus||[], vst=S.visitStatus||'';
+  const vvis=S.visitVisitor||'';
   const vsearch=(S.visitSearch||'').toLowerCase();
   const vnot=S.visitNotYet||false;
   if(vd.length) vs=vs.filter(v=>vd.includes(v.dept));
   if(vc.length) vs=vs.filter(v=>vc.includes(v.campus));
   if(vst) vs=vs.filter(v=>v.status===vst);
+  if(vvis) vs=vs.filter(v=>(v.visitor||'').toLowerCase().includes(vvis.toLowerCase()));
   if(vsearch) vs=vs.filter(v=>(v.teacher||'').toLowerCase().includes(vsearch)||(v.dept||'').toLowerCase().includes(vsearch)||(v.visitor||'').toLowerCase().includes(vsearch));
   if(vnot) vs=vs.filter(v=>v.status!=='Completed');
 
   const all=S.visits||[];
-  const totalAll=all.length;
   const totalCompleted=all.filter(v=>v.status==='Completed').length;
   const totalPending=all.filter(v=>v.status==='Planned').length;
-  const totalRescheduled=all.filter(v=>v.status==='Rescheduled').length;
-  const uniqueTeachers=[...new Set(all.map(v=>v.teacher).filter(Boolean))].length;
   const notYetVisited=[...new Set(all.filter(v=>v.status!=='Completed').map(v=>v.teacher).filter(Boolean))].length;
+  const uniqueTeachers=[...new Set(all.map(v=>v.teacher).filter(Boolean))].length;
+
+  // Unique values for filter pills
+  const allVisitors=[...new Set(all.map(v=>v.visitor).filter(Boolean))].sort();
+  const allDepts=[...new Set(all.map(v=>v.dept).filter(Boolean))].sort();
 
   const statusBadge=s=>s==='Completed'?'badge-green':s==='Rescheduled'?'badge-amber':s==='Cancelled'?'badge-red':'badge-gray';
   const campusBadge=c=>c==='Girls'?'badge-red':'badge-blue';
 
+  // Observation link: find obs matching teacher name + date (or visitor = observer)
+  function linkedObs(v){
+    const t=S.teachers.find(tc=>(tc.name||'').toLowerCase()===(v.teacher||'').toLowerCase());
+    if(!t) return null;
+    return S.observations.find(o=>o.tid===t.id&&(o.date===v.date||(v.date&&o.date&&Math.abs(new Date(o.date)-new Date(v.date))<86400000)));
+  }
+
+  // Build inline-editable cell helpers
+  // Each cell uses contenteditable with data-visit-edit="fieldName" data-visit-id="id"
+  const editCell=(vid,field,val,style='')=>
+    `<td contenteditable="true" data-visit-edit="${field}" data-visit-id="${vid}" style="min-width:70px;padding:4px 6px;${style}" title="Click to edit">${esc(val||'')}</td>`;
+
+  const selectCell=(vid,field,val,options)=>
+    `<td style="padding:2px 4px"><select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;width:100%" data-visit-sel="${field}" data-visit-id="${vid}">
+      ${options.map(o=>`<option ${val===o?'selected':''} value="${o}">${o}</option>`).join('')}
+    </select></td>`;
+
   return `
 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
-  <div class="kpi" style="border-top:3px solid var(--navy)"><div class="kpi-val">${totalAll}</div><div class="kpi-label">Total Planned</div></div>
+  <div class="kpi" style="border-top:3px solid var(--navy)"><div class="kpi-val">${all.length}</div><div class="kpi-label">Total Visits</div></div>
   <div class="kpi" style="border-top:3px solid var(--teal)"><div class="kpi-val">${totalCompleted}</div><div class="kpi-label">Completed</div></div>
   <div class="kpi" style="border-top:3px solid var(--amber)"><div class="kpi-val">${totalPending}</div><div class="kpi-label">Pending</div></div>
   <div class="kpi" style="border-top:3px solid var(--red)"><div class="kpi-val">${notYetVisited}</div><div class="kpi-label">Not Yet Visited</div></div>
   <div class="kpi" style="border-top:3px solid var(--purple)"><div class="kpi-val">${uniqueTeachers}</div><div class="kpi-label">Active Teachers</div></div>
 </div>
+
 ${!isTeacherRole?`
 <div class="card mb-3" style="padding:10px 14px">
   <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Department:</span>
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Dept:</span>
     <div class="pill-opt ${vd.length===0?'sel':''}" data-visit-dept="">All</div>
-    ${[...new Set((S.visits||[]).map(v=>v.dept).filter(Boolean))].sort().map(d=>`<div class="pill-opt ${vd.includes(d)?'sel':''}" data-visit-dept="${d}">${d}</div>`).join('')}
+    ${allDepts.map(d=>`<div class="pill-opt ${vd.includes(d)?'sel':''}" data-visit-dept="${d}">${d}</div>`).join('')}
   </div>
   <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Campus:</span>
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Campus:</span>
     <div class="pill-opt ${vc.length===0?'sel':''}" data-visit-campus="">All</div>
     ${SECTIONS.map(s=>`<div class="pill-opt ${vc.includes(s)?'sel':''}" data-visit-campus="${s}">${s}</div>`).join('')}
   </div>
   <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Status:</span>
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Visitor:</span>
+    <div class="pill-opt ${!vvis?'sel':''}" data-visit-visitor="">All</div>
+    ${allVisitors.map(v=>`<div class="pill-opt ${vvis===v?'sel':''}" data-visit-visitor="${v}">${v}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Status:</span>
     ${['','Planned','Completed','Rescheduled','Cancelled'].map(s=>`<div class="pill-opt ${vst===s?'sel':''}" data-visit-status="${s}">${s||'All'}</div>`).join('')}
   </div>
   <div class="flex items-center gap-2" style="flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Search:</span>
-    <input class="form-control" id="visit-search-box" placeholder="🔍 Teacher, visitor, department…" value="${esc(S.visitSearch||'')}" style="width:240px;padding:5px 9px;font-size:12px">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Search:</span>
+    <input class="form-control" id="visit-search-box" placeholder="🔍 Teacher, visitor…" value="${esc(S.visitSearch||'')}" style="width:200px;padding:5px 9px;font-size:12px">
     <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="visit-not-yet-cb" ${vnot?'checked':''}> Not-yet-visited only</label>
-    ${(vd.length||vc.length||vst||vsearch||vnot)?`<button class="btn btn-ghost btn-sm" onclick="S.visitDept=[];S.visitCampus=[];S.visitStatus='';S.visitSearch='';S.visitNotYet=false;render()">✕ Clear all</button>`:''}
+    ${(vd.length||vc.length||vst||vvis||vsearch||vnot)?`<button class="btn btn-ghost btn-sm" onclick="S.visitDept=[];S.visitCampus=[];S.visitStatus='';S.visitVisitor='';S.visitSearch='';S.visitNotYet=false;render()">✕ Clear all</button>`:''}
   </div>
-</div>`:''}
-<div class="flex justify-between items-center mb-3">
-  <div class="flex gap-2">
-    ${canEdit()?'<button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ Export CSV</button>':''}
+</div>`:''
+}
+
+<div class="flex justify-between items-center mb-2">
+  <div class="flex gap-2 items-center">
+    ${canEdit()?`<button class="btn btn-primary btn-sm" data-visit-add>+ Add Visit</button>`:''}
+    ${canEdit()?'<button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ CSV</button>':''}
+    <span class="text-xs" style="color:var(--teal);font-weight:600">✎ Click any cell to edit</span>
   </div>
-  <span class="text-xs text-muted">${vs.length} visit${vs.length!==1?'s':''} shown</span>
+  <span class="text-xs text-muted">${vs.length} of ${(S.visits||[]).length} visits shown</span>
 </div>
+
 ${vs.length?`
-<div style="overflow-x:auto">
-<table>
-  <thead><tr>
-    <th>Teacher</th><th>Department</th><th>Campus</th><th>Grade</th><th>Stage</th>
-    <th>Visitor</th><th>Type</th><th>Date</th><th>Status</th>
-    ${canEdit()?'<th>Notes</th><th></th>':''}
-  </tr></thead>
+<div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+<table style="border-collapse:collapse;width:100%;min-width:900px">
+  <thead>
+    <tr style="background:var(--navy);color:#fff;font-size:11px">
+      <th style="padding:8px 6px;text-align:left;white-space:nowrap">Teacher</th>
+      <th style="padding:8px 6px;text-align:left">Dept</th>
+      <th style="padding:8px 6px;text-align:left">Campus</th>
+      <th style="padding:8px 6px;text-align:left">Grade</th>
+      <th style="padding:8px 6px;text-align:left">Date</th>
+      <th style="padding:8px 6px;text-align:left">Visitor</th>
+      <th style="padding:8px 6px;text-align:left">Type</th>
+      <th style="padding:8px 6px;text-align:left">Status</th>
+      <th style="padding:8px 6px;text-align:left">Notes</th>
+      <th style="padding:8px 6px;text-align:left">🔗 Obs</th>
+      ${canEdit()?'<th style="padding:8px 6px"></th>':''}
+    </tr>
+  </thead>
   <tbody>
-  ${vs.map(v=>`<tr>
-    <td style="font-weight:600;direction:auto">${esc(v.teacher||'—')}</td>
-    <td><span class="badge badge-blue" style="font-size:10px">${esc(v.dept||'—')}</span></td>
-    <td><span class="badge ${campusBadge(v.campus)}" style="font-size:10px">${esc(v.campus||'—')}</span></td>
-    <td class="text-xs">${esc(v.grade||'—')}</td>
-    <td class="text-xs text-muted">${esc(v.stage||'—')}</td>
-    <td class="text-xs">${esc(v.visitor||'—')}</td>
-    <td><span class="badge badge-purple" style="font-size:10px">${esc(v.type||'Learning Walk')}</span></td>
-    <td class="text-xs">${v.date||'<span style="color:#d1d5db">TBD</span>'}</td>
-    <td>${canEdit()
-      ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:108px;border-radius:4px" data-visit-status-sel="${v.id}">
+  ${vs.map((v,i)=>{
+    const obs=linkedObs(v);
+    const rowBg=i%2===0?'#fff':'#f9fafb';
+    const statusColor=v.status==='Completed'?'#d1fae5':v.status==='Rescheduled'?'#fef3c7':v.status==='Cancelled'?'#fee2e2':'';
+    return `<tr style="background:${statusColor||rowBg};border-bottom:1px solid var(--border);font-size:12px">
+      ${editCell(v.id,'teacher',v.teacher,'font-weight:600')}
+      <td style="padding:2px 4px">
+        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="dept" data-visit-id="${v.id}">
+          <option value="">—</option>
+          ${['Arabic Language','Social Studies','Islamic Studies','Mathematics','Computer Science','PE & Arts','English','Science','Humanities','Other'].map(d=>`<option ${v.dept===d?'selected':''} value="${d}">${d}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:2px 4px">
+        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="campus" data-visit-id="${v.id}">
+          ${['Boys','Girls'].map(s=>`<option ${v.campus===s?'selected':''} value="${s}">${s}</option>`).join('')}
+        </select>
+      </td>
+      ${editCell(v.id,'grade',v.grade,'width:70px')}
+      <td style="padding:2px 4px">
+        <input type="date" class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px;width:130px" value="${v.date||''}" data-visit-date="${v.id}">
+      </td>
+      ${editCell(v.id,'visitor',v.visitor)}
+      <td style="padding:2px 4px">
+        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="type" data-visit-id="${v.id}">
+          ${['Learning Walk','Lesson Observation','Developmental Visit','Evaluative Visit','Diagnostic Visit'].map(t=>`<option ${v.type===t?'selected':''} value="${t}">${t}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:2px 4px">
+        <select class="form-control" style="padding:2px 4px;font-size:11px;border-radius:4px" data-visit-sel="status" data-visit-id="${v.id}">
           ${['Planned','Completed','Rescheduled','Cancelled'].map(s=>`<option ${v.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
-        </select>`
-      :`<span class="badge ${statusBadge(v.status)}">${esc(v.status)}</span>`}
-    </td>
-    ${canEdit()?`
-    <td class="text-xs text-muted" style="max-width:140px">${v.completedNotes?esc(v.completedNotes.slice(0,50))+(v.completedNotes.length>50?'…':''):(v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')}</td>
-    <td><button class="btn btn-sm btn-ghost" data-visit-log="${v.id}" title="Add completion notes">✏</button></td>
-    `:''}
-  </tr>`).join('')}
+        </select>
+      </td>
+      ${editCell(v.id,'completedNotes',v.completedNotes,'min-width:120px;color:var(--muted);font-style:italic')}
+      <td style="padding:4px 6px;text-align:center">
+        ${obs
+          ?`<button class="btn btn-ghost" style="font-size:10px;padding:2px 6px;border-radius:4px;color:var(--teal);border-color:var(--teal)" onclick="S.fwTab='obs';S.view='fieldwork';render()" title="View linked observation (${obs.date})">🔗 View</button>`
+          :`<span style="font-size:10px;color:#d1d5db">—</span>`}
+      </td>
+      ${canEdit()?`<td style="padding:2px 4px"><button class="btn btn-danger" style="font-size:10px;padding:2px 6px" data-visit-del="${v.id}" title="Delete visit">✕</button></td>`:''}
+    </tr>`;
+  }).join('')}
   </tbody>
 </table>
 </div>`
@@ -5678,49 +5747,94 @@ function bindEvents(){
   });
 
 
-  // ── Visit Tracker filter pills ───────────────────────────────────────────────
+
+  // ── Visit Tracker: all interactive handlers ──────────────────────────────────
+
+  // Filter pills
   document.querySelectorAll('[data-visit-dept]').forEach(el=>{
     el.onclick=()=>{const d=el.dataset.visitDept;if(d===''){S.visitDept=[];}else{if(!S.visitDept)S.visitDept=[];const i=S.visitDept.indexOf(d);if(i>=0)S.visitDept.splice(i,1);else S.visitDept.push(d);}render();};
   });
   document.querySelectorAll('[data-visit-campus]').forEach(el=>{
     el.onclick=()=>{const c=el.dataset.visitCampus;if(c===''){S.visitCampus=[];}else{if(!S.visitCampus)S.visitCampus=[];const i=S.visitCampus.indexOf(c);if(i>=0)S.visitCampus.splice(i,1);else S.visitCampus.push(c);}render();};
   });
+  document.querySelectorAll('[data-visit-visitor]').forEach(el=>{
+    el.onclick=()=>{S.visitVisitor=el.dataset.visitVisitor;render();};
+  });
   document.querySelectorAll('[data-visit-status]').forEach(el=>{
     el.onclick=()=>{S.visitStatus=el.dataset.visitStatus;render();};
   });
   const visitSearchBox=document.getElementById('visit-search-box');
   if(visitSearchBox){
-    visitSearchBox.oninput=()=>{S.visitSearch=visitSearchBox.value;render();};
-    visitSearchBox.onkeydown=e=>{if(e.key==='Escape'){S.visitSearch='';render();}};
+    visitSearchBox.oninput=()=>{S.visitSearch=visitSearchBox.value;};
+    visitSearchBox.onkeydown=e=>{if(e.key==='Enter'||e.key==='Escape')render();};
   }
   const visitNotYetCb=document.getElementById('visit-not-yet-cb');
   if(visitNotYetCb) visitNotYetCb.onchange=()=>{S.visitNotYet=visitNotYetCb.checked;render();};
-  // Inline status dropdown changes
-  document.querySelectorAll('[data-visit-status-sel]').forEach(el=>{
+
+  // ── Inline contenteditable cells (teacher name, visitor, grade, notes) ──────
+  document.querySelectorAll('[data-visit-edit]').forEach(el=>{
+    const vid=el.dataset.visitId, field=el.dataset.visitEdit;
+    el.style.outline='none';
+    el.style.cursor='text';
+    el.onfocus=()=>{el.style.background='#fffbeb';el.style.outline='2px solid var(--amber)';};
+    el.onblur=()=>{
+      el.style.background='';el.style.outline='none';
+      saveVisit(vid,{[field]:el.textContent.trim()});
+      showToast('Saved ✓');
+    };
+    el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}if(e.key==='Escape'){el.blur();}};
+  });
+
+  // ── Select dropdowns (dept, campus, type, status) ────────────────────────────
+  document.querySelectorAll('[data-visit-sel]').forEach(el=>{
     el.onchange=()=>{
-      const vid=el.dataset.visitStatusSel;
-      loadVisits();
-      S.visits=S.visits.map(v=>v.id===vid?{...v,status:el.value,completedAt:el.value==='Completed'&&!v.completedAt?new Date().toISOString():v.completedAt}:v);
-      sset('cvVisits',S.visits);
-      showToast('Visit status updated ✓');
-      // Don't full render - keeps focus
+      const vid=el.dataset.visitId, field=el.dataset.visitSel;
+      saveVisit(vid,{[field]:el.value});
+      showToast('Saved ✓');
+      if(field==='status') render(); // re-render to update row color
     };
   });
-  // Log completion notes button
-  document.querySelectorAll('[data-visit-log]').forEach(el=>{
+
+  // ── Date picker ───────────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-visit-date]').forEach(el=>{
+    el.onchange=()=>{
+      saveVisit(el.dataset.visitDate,{date:el.value});
+      showToast('Date saved ✓');
+    };
+  });
+
+  // ── Delete visit ─────────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-visit-del]').forEach(el=>{
     el.onclick=()=>{
-      const vid=el.dataset.visitLog;
+      if(!confirm('Delete this visit record?'))return;
       loadVisits();
-      const v=S.visits.find(x=>x.id===vid);if(!v)return;
-      const notes=prompt('Completion notes (optional):', v.completedNotes||'');
-      if(notes===null)return;
-      S.visits=S.visits.map(x=>x.id===vid?{...x,completedNotes:notes,status:notes&&x.status==='Planned'?'Completed':x.status,completedAt:notes&&!x.completedAt?new Date().toISOString():x.completedAt}:x);
+      S.visits=S.visits.filter(v=>v.id!==el.dataset.visitDel);
       sset('cvVisits',S.visits);
-      showToast('Visit logged ✓');
+      showToast('Visit deleted');
       render();
     };
   });
-  // Visit CSV export
+
+  // ── Add new visit ─────────────────────────────────────────────────────────────
+  const visitAddBtn=document.querySelector('[data-visit-add]');
+  if(visitAddBtn){
+    visitAddBtn.onclick=()=>{
+      loadVisits();
+      const newV={
+        id:'V'+String(Date.now()).slice(-6),
+        year:'2026/2027',date:'',teacher:'',dept:'',campus:'Boys',
+        grade:'',stage:'',team:'',visitor:'',
+        type:'Learning Walk',status:'Planned',reason:'',
+        completedNotes:'',completedAt:''
+      };
+      S.visits=[newV,...S.visits];
+      sset('cvVisits',S.visits);
+      showToast('New visit row added — click cells to edit');
+      render();
+    };
+  }
+
+  // ── CSV Export ────────────────────────────────────────────────────────────────
   const visitExportBtn=document.getElementById('visit-export-btn');
   if(visitExportBtn) visitExportBtn.onclick=()=>{
     loadVisits();
@@ -5728,15 +5842,8 @@ function bindEvents(){
       (S.visits||[]).map(v=>({ID:v.id,Teacher:v.teacher,Department:v.dept,Campus:v.campus,Grade:v.grade,Stage:v.stage,Visitor:v.visitor,Type:v.type,Date:v.date,Status:v.status,Notes:v.completedNotes||'',Reason:v.reason||''}))
     );
   };
+
   // Portfolio viewer teacher selector (inside modal)
-  const portfolioTeacherSel=document.getElementById('portfolio-teacher-sel');
-  if(portfolioTeacherSel){
-    portfolioTeacherSel.onchange=()=>{
-      S.adminPortfolioTeacherId=portfolioTeacherSel.value;
-      S.modal=renderModal('portfolioViewer',{teacherId:portfolioTeacherSel.value});
-      render();
-    };
-  }
 
   // ── My Portal tabs ───────────────────────────────────────────────────────
   document.querySelectorAll('[data-myportal-tab]').forEach(el=>{
