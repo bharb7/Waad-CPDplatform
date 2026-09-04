@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-08-16-D24-lw-cpd-media-sync">
+<meta name="app-build" content="2026-09-04-D25-visit-tracker-portfolio-admin">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -297,7 +297,128 @@ const SEED_SCHEDULE=[{id:'sc1',category:'Individual - Leadership Training',progr
 const SEED_GROUPS=[{id:'11111111-0000-4000-8000-000000000001',name:'Math & Science TLC',color:'#1F4E79'},{id:'11111111-0000-4000-8000-000000000002',name:'English & Humanities TLC',color:'#0F6E56'},{id:'11111111-0000-4000-8000-000000000003',name:'Science ICT & Primary TLC',color:'#3C3489'}];
 // Cleared per request — this was hardcoded demo/placeholder data (Fatima Al-Rashid, Omar Hassan, etc.) never shown once real teacher rows exist in Supabase; emptied so the Teachers tab starts fresh for real data entry.
 const SEED_TEACHERS=[];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+
+// ── Classroom Visit Tracker seed (2026-27 plan, 117 visits) ──────────────────
+const SEED_VISITS=[
+  {id:"V0001",year:"2026/2027",date:"2026-09-06",teacher:"Ahmed Hemida",dept:"Arabic Language",campus:"Boys",grade:"Grade 6",stage:"National Identity",team:"",visitor:"Mohammed Ismail",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0002",year:"2026/2027",date:"2026-09-06",teacher:"Abdulkhaliq Alghamdi",dept:"Social Studies",campus:"Boys",grade:"Grade 7",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0003",year:"2026/2027",date:"2026-09-06",teacher:"Abdurrahman Alzhrani",dept:"Islamic Studies",campus:"Boys",grade:"Grade 8",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0004",year:"2026/2027",date:"2026-09-07",teacher:"Ibrahim Alqurashi",dept:"Arabic Language",campus:"Boys",grade:"Grade 10",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0005",year:"2026/2027",date:"2026-09-07",teacher:"Mohamed Ramadan Ebrahim",dept:"Arabic Language",campus:"Boys",grade:"Grade 9",stage:"National Identity",team:"",visitor:"Mohammed Ismail",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0006",year:"2026/2027",date:"2026-09-07",teacher:"Majed Alofi",dept:"Islamic Studies",campus:"Boys",grade:"Grade 9",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0007",year:"2026/2027",date:"2026-09-08",teacher:"Mohammed Alghamdi",dept:"Islamic Studies",campus:"Boys",grade:"Grade 10",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0008",year:"2026/2027",date:"2026-09-08",teacher:"Mohammed Ismail",dept:"Arabic Language",campus:"Boys",grade:"Grade 7",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0009",year:"2026/2027",date:"2026-09-08",teacher:"Omar Alkunaydiri",dept:"Islamic Studies",campus:"Boys",grade:"Grade 4",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0010",year:"2026/2027",date:"2026-09-09",teacher:"Osama Althuwaybi",dept:"Social Studies",campus:"Boys",grade:"Grade 10",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0011",year:"2026/2027",date:"2026-09-09",teacher:"Sayed Hussein Mahmoud Hussein",dept:"Arabic Language",campus:"Boys",grade:"Grade 4",stage:"National Identity",team:"",visitor:"Mohammed Ismail",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0012",year:"2026/2027",date:"2026-09-09",teacher:"Saleh Ali Alattas",dept:"Social Studies",campus:"Boys",grade:"Grade 5",stage:"National Identity",team:"",visitor:"Ibrahim Makkawi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0013",year:"2026/2027",date:"",teacher:"Alyh Alghamdi",dept:"Islamic Studies",campus:"Girls",grade:"Grade 11",stage:"National Identity",team:"",visitor:"Ashwag Al Marwani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0014",year:"2026/2027",date:"",teacher:"Amal Saad Alghamdi",dept:"Arabic Language",campus:"Girls",grade:"Grade 6",stage:"National Identity",team:"",visitor:"Ashwag Al Marwani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0015",year:"2026/2027",date:"",teacher:"Areej Alghamdi",dept:"Islamic Studies",campus:"Girls",grade:"Grade 1",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0016",year:"2026/2027",date:"",teacher:"Areej Salmany",dept:"Islamic Studies",campus:"Girls",grade:"Grade 6",stage:"National Identity",team:"",visitor:"Aliyah Al-Ghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0017",year:"2026/2027",date:"",teacher:"Ashjan Rayzah",dept:"Arabic Language",campus:"Girls",grade:"Grade 2",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0018",year:"2026/2027",date:"",teacher:"Deemah Abdullah Aljoaid",dept:"Islamic Studies",campus:"Girls",grade:"Grade 2",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0019",year:"2026/2027",date:"",teacher:"Fatimah Alfakeeh",dept:"Arabic Language",campus:"Girls",grade:"Kindergarten",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0020",year:"2026/2027",date:"",teacher:"Hala Essa Alansari",dept:"Social Studies",campus:"Girls",grade:"Grade 9",stage:"National Identity",team:"",visitor:"Jawaher Al-Sufyani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0021",year:"2026/2027",date:"",teacher:"Jawaher Alsufyani",dept:"Social Studies",campus:"Girls",grade:"Grade 4",stage:"National Identity",team:"",visitor:"Ashwag Al Marwani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0022",year:"2026/2027",date:"",teacher:"Mona Alahmadi",dept:"Islamic Studies",campus:"Girls",grade:"Grade 8",stage:"National Identity",team:"",visitor:"Aliyah Al-Ghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0023",year:"2026/2027",date:"",teacher:"Maha Althagafi",dept:"Arabic Language",campus:"Girls",grade:"Grade 4",stage:"National Identity",team:"",visitor:"Amal Saad Alghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0024",year:"2026/2027",date:"",teacher:"Maha Alattas",dept:"Arabic Language",campus:"Girls",grade:"Grade 7",stage:"National Identity",team:"",visitor:"Amal Saad Alghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0025",year:"2026/2027",date:"",teacher:"Maryam Almazroui",dept:"Islamic Studies",campus:"Girls",grade:"Grade 4",stage:"National Identity",team:"",visitor:"Aliyah Al-Ghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0026",year:"2026/2027",date:"",teacher:"Mashael Althubaiti",dept:"Islamic Studies",campus:"Girls",grade:"Grade 9",stage:"National Identity",team:"",visitor:"Aliyah Al-Ghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0027",year:"2026/2027",date:"",teacher:"Mezina Alsaywed",dept:"Arabic Language",campus:"Girls",grade:"Grade 10",stage:"National Identity",team:"",visitor:"",type:"Learning Walk",status:"Rescheduled",reason:"\u0627\u0644\u0645\u0639\u0644\u0645\u0629 \u063a\u0627\u0626\u0628\u0629 \u0625\u062c\u0627\u0632\u0629 \u0648\u0636\u0639",completedNotes:'',completedAt:''},
+  {id:"V0028",year:"2026/2027",date:"",teacher:"Mona Faisal Aljehani",dept:"Arabic Language",campus:"Girls",grade:"Grade 3",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0029",year:"2026/2027",date:"",teacher:"Roaa Kashkari",dept:"Arabic Language",campus:"Girls",grade:"Grade 1",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0030",year:"2026/2027",date:"",teacher:"Sara Albathi",dept:"Islamic Studies",campus:"Girls",grade:"Grade 4",stage:"National Identity",team:"",visitor:"",type:"Learning Walk",status:"Rescheduled",reason:"\u0627\u0644\u0645\u0639\u0644\u0645\u0629 \u063a\u0627\u0626\u0628\u0629 \u0625\u062c\u0627\u0632\u0629 \u0648\u0636\u0639",completedNotes:'',completedAt:''},
+  {id:"V0031",year:"2026/2027",date:"",teacher:"Shahad Alotaibi",dept:"Arabic Language",campus:"Girls",grade:"Kindergarten",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0032",year:"2026/2027",date:"",teacher:"Suad Alzahrani",dept:"Arabic Language",campus:"Girls",grade:"Grade 11",stage:"National Identity",team:"",visitor:"Amal Saad Alghamdi",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0033",year:"2026/2027",date:"",teacher:"Tahani Alsenei",dept:"Arabic Language",campus:"Girls",grade:"Grade 1",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0034",year:"2026/2027",date:"",teacher:"Tahani Abualsaud",dept:"Arabic Language",campus:"Girls",grade:"Kindergarten",stage:"National Identity",team:"",visitor:"Zainab Haidara",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0035",year:"2026/2027",date:"",teacher:"Zainab Hydarah",dept:"Arabic Language",campus:"Girls",grade:"Grade 5",stage:"National Identity",team:"",visitor:"Ashwag Al Marwani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0036",year:"2026/2027",date:"",teacher:"Maha Alattas",dept:"Arabic Language",campus:"Girls",grade:"Grade 7",stage:"National Identity",team:"",visitor:"",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0038",year:"2026/2027",date:"",teacher:"Heebatullah Yasir",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Taahera Sharief",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0039",year:"2026/2027",date:"",teacher:"Charity",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Taahera Sharief",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0040",year:"2026/2027",date:"",teacher:"Chloe",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Ayesha Ansari",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0041",year:"2026/2027",date:"",teacher:"Taahera Sharief",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Ayesha Ansari",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0042",year:"2026/2027",date:"",teacher:"Rabia Ishtiaq",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Eman Mohamed",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0043",year:"2026/2027",date:"",teacher:"Hanan Halim Aman",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Eman Mohamed",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0044",year:"2026/2027",date:"",teacher:"Nihma Almawla",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0045",year:"2026/2027",date:"",teacher:"Amal Abdulhameed Mansoor",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Eman Mohamed",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0046",year:"2026/2027",date:"",teacher:"Shagufta Parvee Shaikh",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Chenai Nayakwende",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0047",year:"2026/2027",date:"",teacher:"Anum Sheikharrehman",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Ayesha Ansari",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0048",year:"2026/2027",date:"",teacher:"Eman Mohamed",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Anum Sheikharrehman",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0049",year:"2026/2027",date:"",teacher:"Naymah Adnan",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Chenai Nayakwende",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0050",year:"2026/2027",date:"",teacher:"Mohammad Abdelfattah",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0051",year:"2026/2027",date:"",teacher:"Aladdin Ferjani",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0052",year:"2026/2027",date:"",teacher:"Mogamad Lukie",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0053",year:"2026/2027",date:"",teacher:"Imran Asghar",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0054",year:"2026/2027",date:"",teacher:"Anthony Khalil",dept:"PE & Arts",campus:"Boys",grade:"Grade 8",stage:"PE & Arts",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0055",year:"2026/2027",date:"",teacher:"Ahmed Almoutaz Ghalib El Maghrabi",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0056",year:"2026/2027",date:"",teacher:"Sleiman Alkarim",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0057",year:"2026/2027",date:"",teacher:"Mohamad Saleh",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0058",year:"2026/2027",date:"",teacher:"Adam Griss",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0059",year:"2026/2027",date:"",teacher:"Shayan Siddiqui",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0060",year:"2026/2027",date:"",teacher:"Eman Alharbi",dept:"Mathematics",campus:"Girls",grade:"Grade 2",stage:"Math & ICT",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0061",year:"2026/2027",date:"",teacher:"Charizka Deventer",dept:"Mathematics",campus:"Girls",grade:"Grade 3",stage:"Math & ICT",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0062",year:"2026/2027",date:"",teacher:"Sara Bahaaeldin Hemdan",dept:"Mathematics",campus:"Girls",grade:"Grade 4",stage:"Math & ICT",team:"",visitor:"Rugaya Lukie",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0063",year:"2026/2027",date:"",teacher:"Abdurrahman Geylani",dept:"Mathematics",campus:"Boys",grade:"Grade 5",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0064",year:"2026/2027",date:"",teacher:"Duaa Aljabery",dept:"Mathematics",campus:"Girls",grade:"Grade 6",stage:"Math & ICT",team:"",visitor:"Rugaya Lukie",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0065",year:"2026/2027",date:"",teacher:"Souhaim Najah",dept:"Mathematics",campus:"Girls",grade:"Grade 7",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0066",year:"2026/2027",date:"",teacher:"Sohaib Liaquat",dept:"Mathematics",campus:"Girls",grade:"Grade 8",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0067",year:"2026/2027",date:"",teacher:"Mohammad Helmy",dept:"Mathematics",campus:"Boys",grade:"Grade 4",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0068",year:"2026/2027",date:"",teacher:"Muhammad Zafar",dept:"Mathematics",campus:"Boys",grade:"Grade 11",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0069",year:"2026/2027",date:"",teacher:"Nasir Malik",dept:"Mathematics",campus:"Boys",grade:"Grade 10",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0070",year:"2026/2027",date:"",teacher:"AbdulJalil Kiwan",dept:"Mathematics",campus:"Boys",grade:"Grade 11",stage:"Math & ICT",team:"",visitor:"Saadallah Chaker",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0071",year:"2026/2027",date:"",teacher:"Hiba Alwani",dept:"Mathematics",campus:"Girls",grade:"Grade 12",stage:"Math & ICT",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0072",year:"2026/2027",date:"",teacher:"Mona Tashkandi",dept:"Mathematics",campus:"Girls",grade:"Grade 10",stage:"Math & ICT",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0073",year:"2026/2027",date:"",teacher:"Aisha Bibi",dept:"Mathematics",campus:"Girls",grade:"Grade 1",stage:"Math & ICT",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0074",year:"2026/2027",date:"",teacher:"Reem Tarabein",dept:"Mathematics",campus:"Girls",grade:"Kindergarten",stage:"Math & ICT",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0075",year:"2026/2027",date:"",teacher:"Huda Al Ghamdi",dept:"Mathematics",campus:"Girls",grade:"Kindergarten",stage:"Math & ICT",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0076",year:"2026/2027",date:"",teacher:"Ghalia Arab",dept:"Mathematics",campus:"Girls",grade:"Kindergarten",stage:"Math & ICT",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0077",year:"2026/2027",date:"",teacher:"Yamen Ibrahim Zahreddine",dept:"Computer Science",campus:"Boys",grade:"Grade 10",stage:"Math & ICT",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0078",year:"2026/2027",date:"",teacher:"Fuad Binyusuf",dept:"Computer Science",campus:"Boys",grade:"Grade 6",stage:"Math & ICT",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0079",year:"2026/2027",date:"",teacher:"Shujaat Shah",dept:"Computer Science",campus:"Boys",grade:"Grade 10",stage:"Math & ICT",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0080",year:"2026/2027",date:"",teacher:"Sadia Ali",dept:"Computer Science",campus:"Girls",grade:"Grade 8",stage:"Math & ICT",team:"",visitor:"Safiah Alzahrani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0081",year:"2026/2027",date:"",teacher:"Reem Alqannas",dept:"Computer Science",campus:"Girls",grade:"Grade 6",stage:"Math & ICT",team:"",visitor:"Chenai Nayakwende",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0082",year:"2026/2027",date:"",teacher:"Mirna",dept:"Mathematics",campus:"Girls",grade:"Grade 8",stage:"Math & ICT",team:"",visitor:"Safiah Alzahrani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0083",year:"2026/2027",date:"",teacher:"Juna",dept:"Mathematics",campus:"Girls",grade:"Grade 10",stage:"Math & ICT",team:"",visitor:"Chenai Nayakwende",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0084",year:"2026/2027",date:"",teacher:"Shaimaa Rajallah",dept:"PE & Arts",campus:"Girls",grade:"Grade 1",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0085",year:"2026/2027",date:"",teacher:"Jihene Naser",dept:"PE & Arts",campus:"Girls",grade:"Grade 7",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0086",year:"2026/2027",date:"",teacher:"Mahabba Bakhsh",dept:"PE & Arts",campus:"Girls",grade:"Grade 6",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0087",year:"2026/2027",date:"",teacher:"Rawan Sarraj",dept:"PE & Arts",campus:"Girls",grade:"Grade 2",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0088",year:"2026/2027",date:"",teacher:"Hager Mahmoud",dept:"PE & Arts",campus:"Girls",grade:"Grade 1",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0089",year:"2026/2027",date:"",teacher:"Noura Assiri",dept:"PE & Arts",campus:"Girls",grade:"Grade 3",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0090",year:"2026/2027",date:"",teacher:"Shahad Alamoudi",dept:"PE & Arts",campus:"Girls",grade:"Grade 5",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0091",year:"2026/2027",date:"",teacher:"Najat Ali",dept:"PE & Arts",campus:"Girls",grade:"Grade 8",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0092",year:"2026/2027",date:"",teacher:"Sara Alzhrani",dept:"PE & Arts",campus:"Girls",grade:"Grade 7",stage:"PE & Arts",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0093",year:"2026/2027",date:"",teacher:"Anthony Khalil",dept:"PE & Arts",campus:"Boys",grade:"Grade 8",stage:"PE & Arts",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0094",year:"2026/2027",date:"",teacher:"FAHAD HAKAMI",dept:"PE & Arts",campus:"Boys",grade:"Grade 6",stage:"PE & Arts",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0095",year:"2026/2027",date:"",teacher:"NADER ABOUZAID",dept:"PE & Arts",campus:"Boys",grade:"Grade 10",stage:"PE & Arts",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0096",year:"2026/2027",date:"",teacher:"Ahmed Albaz",dept:"PE & Arts",campus:"Boys",grade:"Grade 8",stage:"PE & Arts",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0097",year:"2026/2027",date:"",teacher:"Hussam",dept:"PE & Arts",campus:"Boys",grade:"Grade 8",stage:"PE & Arts",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0100",year:"2026/2027",date:"",teacher:"Fatin Haidar",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0101",year:"2026/2027",date:"",teacher:"Alaa Jamal",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Rabia Ishtiaq",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0102",year:"2026/2027",date:"",teacher:"Hiba Abdulkalam",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Taghrid Osman",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0103",year:"2026/2027",date:"",teacher:"Sofia Ansari",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Taghrid Osman",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0104",year:"2026/2027",date:"",teacher:"Ahmed Mohammed Saani Fahrudeen",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0105",year:"2026/2027",date:"",teacher:"Georges Ibrahim",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0106",year:"2026/2027",date:"",teacher:"Esraa Mohamed",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Taghrid Osman",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0107",year:"2026/2027",date:"2026-09-17",teacher:"Omar Abdouni",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Golandaz",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0108",year:"2026/2027",date:"",teacher:"Junaid Golandaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Bilal Harb",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0109",year:"2026/2027",date:"",teacher:"Taghrid Osman",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Dina Kamal",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0110",year:"2026/2027",date:"",teacher:"Muhammad Akhtar",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0111",year:"2026/2027",date:"2026-09-09",teacher:"Mark Moe",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Muhammad Akhtar",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0112",year:"2026/2027",date:"",teacher:"Anisha Murade",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Rabiha Mhealden Alyamani",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0113",year:"2026/2027",date:"",teacher:"Wijdan Ataitallah Alhazmi",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Dina Kamal",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0114",year:"2026/2027",date:"2026-09-09",teacher:"Ali Rada",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Golandaz",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0115",year:"2026/2027",date:"",teacher:"Farah Mohammed Alchaarani",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela Pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0116",year:"2026/2027",date:"",teacher:"Mohammed Korkomaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0117",year:"2026/2027",date:"2026-09-07",teacher:"Alaa Hussein",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Mohammed Korkomaz",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0118",year:"2026/2027",date:"",teacher:"Mariam ElMaassarani",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0119",year:"2026/2027",date:"",teacher:"Junaid Golandaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
+  {id:"V0120",year:"2026/2027",date:"",teacher:"Dina Kamal",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela Pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''}
+];
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -1574,6 +1695,43 @@ ${cats.map(cat=>{
 ${filteredSched.length===0?`<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No programmes match the current filters. <button class="btn btn-ghost btn-sm ml-2" onclick="S.schedMonthFilter='';S.schedDateFrom='';S.schedDateTo='';render()">Clear filters</button></div>`:''}
 `}
 
+
+// ─── Admin Portfolio Viewer ───────────────────────────────────────────────────
+function renderAdminPortfolioViewer(teacherId){
+  const t=teacherId?S.teachers.find(tc=>tc.id===teacherId):null;
+  if(!t)return`<div style="text-align:center;color:var(--muted);padding:30px;font-style:italic;border-radius:8px;background:var(--light)"><div style="font-size:40px;margin-bottom:8px">🎓</div><div>Select a teacher above to view their portfolio</div></div>`;
+  const userRec=S.users.find(u=>u.name===t.name||(u.name||'').trim()===(t.name||'').trim());
+  const portfolio=userRec?.portfolio||{folders:[]};
+  const folders=portfolio.folders||[];
+  const FOLDER_COLORS=['#163A5F','#0F6E56','#E8743B','#5C3D99','#D6295E','#1D9BD7'];
+  if(!folders.length)return`<div class="card" style="border-top:3px solid var(--purple);padding:20px">
+    <div style="font-weight:700;font-size:14px;color:var(--purple);margin-bottom:4px">🎓 ${esc(t.name)} — Portfolio</div>
+    <div class="text-xs text-muted mb-3">${esc(t.dept||'')} · ${esc(t.section||'')} · ${esc(t.stage||'')}</div>
+    <div style="text-align:center;color:var(--muted);padding:20px;font-style:italic;background:var(--light);border-radius:8px">This teacher has not added any portfolio folders yet.</div>
+  </div>`;
+  return`<div class="card" style="border-top:3px solid var(--purple)">
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--purple)">🎓 ${esc(t.name)} — Portfolio</div>
+        <div class="text-xs text-muted">${esc(t.dept||'')} · ${esc(t.section||'')} · ${esc(t.stage||'')} · ${folders.length} folder(s) · ${folders.reduce((a,f)=>a+(f.items||[]).length,0)} items</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      ${folders.map((f,fi)=>`<div style="background:var(--light);border-radius:8px;padding:10px 12px;border-left:4px solid ${FOLDER_COLORS[fi%FOLDER_COLORS.length]}">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">${esc(f.name)} <span class="badge badge-gray" style="font-size:9px">${(f.items||[]).length} items</span></div>
+        ${(f.items||[]).length?`<div style="display:flex;flex-direction:column;gap:5px">
+          ${(f.items||[]).map(item=>`<div style="background:#fff;border-radius:5px;padding:6px 8px;font-size:11px">
+            <div style="font-weight:600">${esc(item.name||'')}${item.type?` <span class="text-xs text-muted">(${esc(item.type)})</span>`:''}</div>
+            ${item.note?`<div class="text-xs text-muted">${esc(item.note.slice(0,80))}${item.note.length>80?'…':''}</div>`:''}
+            ${item.url?`<a href="${esc(item.url)}" target="_blank" class="text-xs" style="color:#1d4ed8">↗ View</a>`:''}
+            ${item.fileData?`<a href="${item.fileData.dataUrl||'#'}" download="${esc(item.fileData.name||'file')}" class="text-xs" style="color:#1d4ed8;display:block">📎 ${esc(item.fileData.name||'Download')}</a>`:''}
+          </div>`).join('')}
+        </div>`:`<div class="text-xs text-muted" style="font-style:italic">Empty folder</div>`}
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function renderTeachers(){
   const q=(S.teacherSearch||'').toLowerCase();
   let teachers=scopedTeachers();
@@ -1611,6 +1769,7 @@ function renderTeachers(){
     <button class="btn btn-ghost" data-modal="bulkTeachers">+ Bulk Add</button>
     <button class="btn btn-ghost" data-modal="group">+ Add Group</button>
     <button class="btn btn-ghost" data-dedupe-teachers title="Find and remove teachers with the exact same name, keeping the older record">🧹 Remove Duplicates</button>
+    ${canEdit()?'<button class="btn btn-ghost" onclick="S.adminPortfolioTeacherId=null;S.modal=renderModal(\'portfolioViewer\');render()">🎓 View Portfolios</button>':''}
   </div>`:'<div></div>'}
   <div class="flex items-center gap-2">
     <input class="form-control" id="teacher-search-box" placeholder="🔍 Search name or department…" value="${esc(S.teacherSearch||'')}" style="width:220px;padding:5px 9px;font-size:12px">
@@ -1781,6 +1940,7 @@ function renderFieldwork(){
   <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">Observations (${obs.length})</button>
   <button class="tab ${tab==='lw'?'active':''}" data-fw-tab="lw">Learning Walks (${lws.filter(l=>!isDomainLW(l)).length})</button>
   <button class="tab ${tab==='dlw'?'active':''}" data-fw-tab="dlw">LW by Domain (${lws.filter(l=>isDomainLW(l)).length})</button>
+  <button class="tab ${tab==='visits'?'active':''}" data-fw-tab="visits">📊 Visit Tracker (${(S.visits||[]).length})</button>
 </div>
 
 ${tab==='obs'?`
@@ -1929,6 +2089,8 @@ ${tab==='cpd'?`
   }).join('')}
   ${!cpds.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No CPD sessions yet.</div>':''}
 `:''}
+
+${tab==='visits'?renderVisitTracker():''}
 `}
 
 function renderMyPortal(){
@@ -1972,6 +2134,7 @@ function renderMyPortal(){
   <button class="tab ${tab==='schedule'?'active':''}" data-myportal-tab="schedule">🗓 My Schedule (${mySchedule.length})</button>
   <button class="tab ${tab==='resources'?'active':''}" data-myportal-tab="resources">📂 Resources</button>
   <button class="tab ${tab==='portfolio'?'active':''}" data-myportal-tab="portfolio">🎓 Portfolio</button>
+  <button class="tab ${tab==='myvisits'?'active':''}" data-myportal-tab="myvisits">📋 My Visits</button>
 </div>
 
 ${tab==='overview'?`
@@ -2248,8 +2411,155 @@ ${tab==='portfolio'?`
     :'<div class="text-xs text-muted" style="font-style:italic">Empty folder — tap + to add items</div>')
     +'</div>').join('')+'</div>');
   })()}
+
+\${tab==='myvisits'?(()=>{
+  loadVisits();
+  const myName=(S.session?.name||'').toLowerCase();
+  const myVs=(S.visits||[]).filter(v=>(v.teacher||'').toLowerCase()===myName);
+  const statusBadge=s=>s==='Completed'?'badge-green':s==='Rescheduled'?'badge-amber':s==='Cancelled'?'badge-red':'badge-gray';
+  return '<div style=\"margin-bottom:10px\"><div style=\"font-size:14px;font-weight:700;color:var(--navy)\">📋 My Scheduled Visits</div>'
+    +'<div class=\"text-xs text-muted\">'+myVs.length+' visit'+(myVs.length!==1?'s':'')+' planned for you this academic year</div></div>'
+    +(myVs.length?'<div style=\"overflow-x:auto\"><table><thead><tr><th>Visitor</th><th>Type</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
+      +myVs.map(v=>'<tr>'
+        +'<td class=\"text-xs font-semibold\">'+esc(v.visitor||'—')+'</td>'
+        +'<td><span class=\"badge badge-purple\" style=\"font-size:10px\">'+esc(v.type||'Learning Walk')+'</span></td>'
+        +'<td class=\"text-xs\">'+( v.date||'<span style=\"color:#d1d5db\">TBD</span>')+'</td>'
+        +'<td><span class=\"badge '+statusBadge(v.status)+'\" style=\"font-size:10px\">'+esc(v.status)+'</span></td>'
+        +'<td class=\"text-xs text-muted\">'+(v.completedNotes?esc(v.completedNotes.slice(0,50)):v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table></div>'
+    :'<div class=\"card\" style=\"text-align:center;color:var(--muted);padding:30px;font-style:italic\">No visits scheduled for you yet.</div>');
+})():''}
 `:''}
 `}
+
+
+// ─── loadVisits: merge seed with any locally-saved status changes ─────────────
+function loadVisits(){
+  const local=sget('cvVisits')||[];
+  if(!local.length){
+    S.visits=SEED_VISITS.map(v=>({...v}));
+    sset('cvVisits',S.visits);
+  } else {
+    const localMap={};
+    local.forEach(v=>{localMap[v.id]=v;});
+    S.visits=SEED_VISITS.map(v=>localMap[v.id]?{...v,...localMap[v.id]}:{...v});
+  }
+}
+
+// ─── renderVisitTracker ───────────────────────────────────────────────────────
+function renderVisitTracker(){
+  loadVisits();
+  // Scope: HOD sees own dept, HOS sees own section, teacher sees own name
+  const role=S.session?.role||'';
+  const isTeacherRole=role==='teacher';
+  let vs=S.visits||[];
+  if(isScoped()){
+    const depts=myDepts();
+    const sects=mySections();
+    if(depts.length) vs=vs.filter(v=>depts.includes(v.dept));
+    if(sects.length) vs=vs.filter(v=>sects.includes(v.campus));
+  }
+  if(isTeacherRole){
+    const myName=(S.session?.name||'').toLowerCase();
+    vs=vs.filter(v=>(v.teacher||'').toLowerCase()===myName);
+  }
+
+  // Apply filters
+  const vd=S.visitDept||[];
+  const vc=S.visitCampus||[];
+  const vst=S.visitStatus||'';
+  const vsearch=(S.visitSearch||'').toLowerCase();
+  const vnot=S.visitNotYet||false;
+  if(vd.length) vs=vs.filter(v=>vd.includes(v.dept));
+  if(vc.length) vs=vs.filter(v=>vc.includes(v.campus));
+  if(vst) vs=vs.filter(v=>v.status===vst);
+  if(vsearch) vs=vs.filter(v=>(v.teacher||'').toLowerCase().includes(vsearch)||(v.dept||'').toLowerCase().includes(vsearch)||(v.visitor||'').toLowerCase().includes(vsearch));
+  if(vnot) vs=vs.filter(v=>v.status!=='Completed');
+
+  const all=S.visits||[];
+  const totalAll=all.length;
+  const totalCompleted=all.filter(v=>v.status==='Completed').length;
+  const totalPending=all.filter(v=>v.status==='Planned').length;
+  const totalRescheduled=all.filter(v=>v.status==='Rescheduled').length;
+  const uniqueTeachers=[...new Set(all.map(v=>v.teacher).filter(Boolean))].length;
+  const notYetVisited=[...new Set(all.filter(v=>v.status!=='Completed').map(v=>v.teacher).filter(Boolean))].length;
+
+  const statusBadge=s=>s==='Completed'?'badge-green':s==='Rescheduled'?'badge-amber':s==='Cancelled'?'badge-red':'badge-gray';
+  const campusBadge=c=>c==='Girls'?'badge-red':'badge-blue';
+
+  return `
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+  <div class="kpi" style="border-top:3px solid var(--navy)"><div class="kpi-val">${totalAll}</div><div class="kpi-label">Total Planned</div></div>
+  <div class="kpi" style="border-top:3px solid var(--teal)"><div class="kpi-val">${totalCompleted}</div><div class="kpi-label">Completed</div></div>
+  <div class="kpi" style="border-top:3px solid var(--amber)"><div class="kpi-val">${totalPending}</div><div class="kpi-label">Pending</div></div>
+  <div class="kpi" style="border-top:3px solid var(--red)"><div class="kpi-val">${notYetVisited}</div><div class="kpi-label">Not Yet Visited</div></div>
+  <div class="kpi" style="border-top:3px solid var(--purple)"><div class="kpi-val">${uniqueTeachers}</div><div class="kpi-label">Active Teachers</div></div>
+</div>
+${!isTeacherRole?`
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Department:</span>
+    <div class="pill-opt ${vd.length===0?'sel':''}" data-visit-dept="">All</div>
+    ${[...new Set((S.visits||[]).map(v=>v.dept).filter(Boolean))].sort().map(d=>`<div class="pill-opt ${vd.includes(d)?'sel':''}" data-visit-dept="${d}">${d}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Campus:</span>
+    <div class="pill-opt ${vc.length===0?'sel':''}" data-visit-campus="">All</div>
+    ${SECTIONS.map(s=>`<div class="pill-opt ${vc.includes(s)?'sel':''}" data-visit-campus="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Status:</span>
+    ${['','Planned','Completed','Rescheduled','Cancelled'].map(s=>`<div class="pill-opt ${vst===s?'sel':''}" data-visit-status="${s}">${s||'All'}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:80px">Search:</span>
+    <input class="form-control" id="visit-search-box" placeholder="🔍 Teacher, visitor, department…" value="${esc(S.visitSearch||'')}" style="width:240px;padding:5px 9px;font-size:12px">
+    <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="visit-not-yet-cb" ${vnot?'checked':''}> Not-yet-visited only</label>
+    ${(vd.length||vc.length||vst||vsearch||vnot)?`<button class="btn btn-ghost btn-sm" onclick="S.visitDept=[];S.visitCampus=[];S.visitStatus='';S.visitSearch='';S.visitNotYet=false;render()">✕ Clear all</button>`:''}
+  </div>
+</div>`:''}
+<div class="flex justify-between items-center mb-3">
+  <div class="flex gap-2">
+    ${canEdit()?'<button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ Export CSV</button>':''}
+  </div>
+  <span class="text-xs text-muted">${vs.length} visit${vs.length!==1?'s':''} shown</span>
+</div>
+${vs.length?`
+<div style="overflow-x:auto">
+<table>
+  <thead><tr>
+    <th>Teacher</th><th>Department</th><th>Campus</th><th>Grade</th><th>Stage</th>
+    <th>Visitor</th><th>Type</th><th>Date</th><th>Status</th>
+    ${canEdit()?'<th>Notes</th><th></th>':''}
+  </tr></thead>
+  <tbody>
+  ${vs.map(v=>`<tr>
+    <td style="font-weight:600;direction:auto">${esc(v.teacher||'—')}</td>
+    <td><span class="badge badge-blue" style="font-size:10px">${esc(v.dept||'—')}</span></td>
+    <td><span class="badge ${campusBadge(v.campus)}" style="font-size:10px">${esc(v.campus||'—')}</span></td>
+    <td class="text-xs">${esc(v.grade||'—')}</td>
+    <td class="text-xs text-muted">${esc(v.stage||'—')}</td>
+    <td class="text-xs">${esc(v.visitor||'—')}</td>
+    <td><span class="badge badge-purple" style="font-size:10px">${esc(v.type||'Learning Walk')}</span></td>
+    <td class="text-xs">${v.date||'<span style="color:#d1d5db">TBD</span>'}</td>
+    <td>${canEdit()
+      ?`<select class="form-control" style="padding:2px 4px;font-size:11px;width:108px;border-radius:4px" data-visit-status-sel="${v.id}">
+          ${['Planned','Completed','Rescheduled','Cancelled'].map(s=>`<option ${v.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
+        </select>`
+      :`<span class="badge ${statusBadge(v.status)}">${esc(v.status)}</span>`}
+    </td>
+    ${canEdit()?`
+    <td class="text-xs text-muted" style="max-width:140px">${v.completedNotes?esc(v.completedNotes.slice(0,50))+(v.completedNotes.length>50?'…':''):(v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')}</td>
+    <td><button class="btn btn-sm btn-ghost" data-visit-log="${v.id}" title="Add completion notes">✏</button></td>
+    `:''}
+  </tr>`).join('')}
+  </tbody>
+</table>
+</div>`
+:'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No visits match current filters.</div>'}
+`;}
+
 
 function renderDeptTLCList(){
   let items=scopedDeptTLC().slice();
@@ -3759,7 +4069,19 @@ function renderModal(type, data={}){
       `<button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-success" data-save-role>${editKey?'Update Role':'Save Role'}</button>`
     );
   }
-  if(type==='care'){
+  if(type==='portfolioViewer'){
+    const curId=data.teacherId||S.adminPortfolioTeacherId||'';
+    return M('🎓 Teacher Portfolio Viewer',
+      '<div class="form-group"><label class="form-label">Select Teacher</label>'
+      +'<select class="form-control" id="portfolio-teacher-sel">'
+      +'<option value="">— Choose a teacher —</option>'
+      +S.teachers.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(tc=>'<option value="'+tc.id+'"'+(curId===tc.id?' selected':'')+'>'+esc(tc.name)+' ('+esc(tc.dept||'')+')</option>').join('')
+      +'</select></div>'
+      +(curId?renderAdminPortfolioViewer(curId):'<div style="text-align:center;color:var(--muted);padding:30px;font-style:italic;background:var(--light);border-radius:8px;margin-top:10px">Select a teacher above to view their portfolio</div>'),
+      '<button class="btn btn-ghost" data-close-modal>Close</button>'
+    );
+  }
+    if(type==='care'){
     const tabs=['overview','templates','examples','reflection','criteria','resources'];
     const tLabels={overview:'Overview',templates:'Templates',examples:'Examples',reflection:'Reflection Qs',criteria:'Success Criteria',resources:'Resources'};
     const CARE_CONTENT={
@@ -5354,6 +5676,67 @@ function bindEvents(){
       S.schedCats=current.filter((_,i)=>i!==ci);save('schedCats',S.schedCats);showToast('Category removed ✓');render();
     };
   });
+
+
+  // ── Visit Tracker filter pills ───────────────────────────────────────────────
+  document.querySelectorAll('[data-visit-dept]').forEach(el=>{
+    el.onclick=()=>{const d=el.dataset.visitDept;if(d===''){S.visitDept=[];}else{if(!S.visitDept)S.visitDept=[];const i=S.visitDept.indexOf(d);if(i>=0)S.visitDept.splice(i,1);else S.visitDept.push(d);}render();};
+  });
+  document.querySelectorAll('[data-visit-campus]').forEach(el=>{
+    el.onclick=()=>{const c=el.dataset.visitCampus;if(c===''){S.visitCampus=[];}else{if(!S.visitCampus)S.visitCampus=[];const i=S.visitCampus.indexOf(c);if(i>=0)S.visitCampus.splice(i,1);else S.visitCampus.push(c);}render();};
+  });
+  document.querySelectorAll('[data-visit-status]').forEach(el=>{
+    el.onclick=()=>{S.visitStatus=el.dataset.visitStatus;render();};
+  });
+  const visitSearchBox=document.getElementById('visit-search-box');
+  if(visitSearchBox){
+    visitSearchBox.oninput=()=>{S.visitSearch=visitSearchBox.value;render();};
+    visitSearchBox.onkeydown=e=>{if(e.key==='Escape'){S.visitSearch='';render();}};
+  }
+  const visitNotYetCb=document.getElementById('visit-not-yet-cb');
+  if(visitNotYetCb) visitNotYetCb.onchange=()=>{S.visitNotYet=visitNotYetCb.checked;render();};
+  // Inline status dropdown changes
+  document.querySelectorAll('[data-visit-status-sel]').forEach(el=>{
+    el.onchange=()=>{
+      const vid=el.dataset.visitStatusSel;
+      loadVisits();
+      S.visits=S.visits.map(v=>v.id===vid?{...v,status:el.value,completedAt:el.value==='Completed'&&!v.completedAt?new Date().toISOString():v.completedAt}:v);
+      sset('cvVisits',S.visits);
+      showToast('Visit status updated ✓');
+      // Don't full render - keeps focus
+    };
+  });
+  // Log completion notes button
+  document.querySelectorAll('[data-visit-log]').forEach(el=>{
+    el.onclick=()=>{
+      const vid=el.dataset.visitLog;
+      loadVisits();
+      const v=S.visits.find(x=>x.id===vid);if(!v)return;
+      const notes=prompt('Completion notes (optional):', v.completedNotes||'');
+      if(notes===null)return;
+      S.visits=S.visits.map(x=>x.id===vid?{...x,completedNotes:notes,status:notes&&x.status==='Planned'?'Completed':x.status,completedAt:notes&&!x.completedAt?new Date().toISOString():x.completedAt}:x);
+      sset('cvVisits',S.visits);
+      showToast('Visit logged ✓');
+      render();
+    };
+  });
+  // Visit CSV export
+  const visitExportBtn=document.getElementById('visit-export-btn');
+  if(visitExportBtn) visitExportBtn.onclick=()=>{
+    loadVisits();
+    exportCSV('classroom-visits-'+new Date().toISOString().split('T')[0]+'.csv',
+      (S.visits||[]).map(v=>({ID:v.id,Teacher:v.teacher,Department:v.dept,Campus:v.campus,Grade:v.grade,Stage:v.stage,Visitor:v.visitor,Type:v.type,Date:v.date,Status:v.status,Notes:v.completedNotes||'',Reason:v.reason||''}))
+    );
+  };
+  // Portfolio viewer teacher selector (inside modal)
+  const portfolioTeacherSel=document.getElementById('portfolio-teacher-sel');
+  if(portfolioTeacherSel){
+    portfolioTeacherSel.onchange=()=>{
+      S.adminPortfolioTeacherId=portfolioTeacherSel.value;
+      S.modal=renderModal('portfolioViewer',{teacherId:portfolioTeacherSel.value});
+      render();
+    };
+  }
 
   // ── My Portal tabs ───────────────────────────────────────────────────────
   document.querySelectorAll('[data-myportal-tab]').forEach(el=>{
