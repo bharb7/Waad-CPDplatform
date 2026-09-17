@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D31-saving-bug-fixed">
+<meta name="app-build" content="2026-09-17-D31-remove-LO-editable-positions-dashboard-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-09-04-D31-saving-bug-fixed';
+const BUILD_VERSION='2026-08-16-D24-lw-cpd-media-sync';
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -650,7 +650,7 @@ function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u
 // actually reached the database, no matter what the app showed.
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Lesson Observation',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 // mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
 // never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
@@ -717,7 +717,7 @@ async function save(k,v){
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
     else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
-    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Lesson Observation',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
+    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
     else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
@@ -1586,7 +1586,7 @@ function renderDashboard(){
     ${DH_PILLARS.map(p=>{const on=S.dhM[p.id]!==undefined?S.dhM[p.id]:true;return `<div class="flex items-center gap-2 mb-2 p-2" style="background:${on?p.c+'18':'#f9fafb'};border-radius:6px;cursor:${canEdit()?'pointer':'default'}" ${canEdit()?'data-toggle-dh="'+p.id+'"':''}><div style="width:20px;height:20px;border-radius:4px;background:${on?p.c:'#e5e7eb'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${p.id}</div><span style="font-size:12px;font-weight:600;color:${on?p.c:'#9ca3af'}">${p.l}</span>${on?'<span style="margin-left:auto;font-size:10px;color:'+p.c+'">✓</span>':''}</div>`;}).join('')}
   </div>
 </div>
-${(noObs.length||lowAvg.length)?`<div class="card mb-3"><div class="card-title">⚠️ Attention Needed</div>${noObs.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef9ec;border-radius:6px"><span style="font-size:12px"><strong>${esc(t.name)}</strong> — no observations yet</span>${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}</div>`).join('')}${lowAvg.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef2f2;border-radius:6px"><span style="font-size:12px"><strong>${esc(t.name)}</strong> — avg ${tStats(t).la.toFixed(1)}/5 ⚠ needs support</span>${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}</div>`).join('')}</div>`:''}
+${(lowAvg.length)?`<div class="card mb-3"><div class="card-title">⚠️ Attention Needed</div>${lowAvg.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef2f2;border-radius:6px"><span style="font-size:12px"><strong>${esc(t.name)}</strong> — avg ${tStats(t).la.toFixed(1)}/5 ⚠ needs support</span>${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}</div>`).join('')}</div>`:''}
 <div class="card mb-3">
   <div class="flex justify-between items-center mb-3">
     <div class="card-title" style="margin:0">👩‍🏫 Teacher Progress — filtered</div>
@@ -1914,8 +1914,6 @@ ${(()=>{
 }
 
 function renderFieldwork(){
-  // Redirect removed tabs (lw/dlw) to obs
-  if(S.fwTab==='lw'||S.fwTab==='dlw')S.fwTab='obs';
   const [tab,setTab]=[S.fwTab||'obs',t=>{S.fwTab=t;render()}];
   const obs=scopedObs();
   const lws=scopedLwalks();
@@ -2456,7 +2454,8 @@ function saveVisitorProfiles(p){sset('visitorProfiles',p);}
 function getVisitTargetsCfg(){return sget('visitTargetsCfg')||{global:{},byPosition:{},byVisitorDept:{}};}
 function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);}
 
-const VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+const BASE_VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+let VISITOR_POSITIONS=[...new Set([...BASE_VISITOR_POSITIONS,...(sget('customPositions')||[])]).values()];
 
 // Get position label for a given observer name
 function visitorPosition(name){
@@ -3406,9 +3405,10 @@ function renderSettings(){
 <div class="card mt-3" style="border-top:3px solid var(--teal)">
   <div class="flex justify-between items-center mb-2">
     <div class="card-title" style="margin:0;color:var(--teal)">📊 Visit Tracker — Visitor Profiles & Targets</div>
-    <div class="flex gap-2">
+    <div class="flex gap-2" style="flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'profiles'});render()">👤 Visitor Profiles</button>
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'positions'});render()">🏷 Position Targets</button>
+      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'managePositions'});render()">✏️ Manage Positions</button>
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'depts'});render()">📚 Dept Overrides</button>
       <button class="btn btn-primary btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'progress'});render()">📊 Progress Report</button>
     </div>
@@ -3420,9 +3420,9 @@ function renderSettings(){
     const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
     if(!allObservers.length)return '<div class="text-xs text-muted" style="font-style:italic">No observations yet — observer profiles will appear here once visits are recorded.</div>';
     const cfg=getVisitTargetsCfg();
-    const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-    const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
-    const VCOL={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+    const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+    const VCOL={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
     let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">';
     allObservers.forEach(name=>{
       const pos=visitorPosition(name);
@@ -3593,7 +3593,7 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
-      FS('obs-visit-type','Visit Type',['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Lesson Observation')+
+      FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
       '<p class="text-xs text-muted mb-2">Hover (or tap ℹ rubric) on any criterion to see what each score 1–5 means, and add a note under each one to justify your rating.</p>'+
       '<div id="obs-domains">' +
       getDomains().map(d=>`<div class="card" style="border-left:4px solid var(--navy);margin-bottom:10px;padding:10px 12px">
@@ -4072,23 +4072,23 @@ function renderModal(type, data={}){
     const activeTab=data.tab||'profiles';
     const cfg=getVisitTargetsCfg();
     const profiles=getVisitorProfiles();
-    const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-    const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
-    const POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+    const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+    const POSITIONS=VISITOR_POSITIONS;
 
     // Get all unique observers from observations
     const allObservers=[...new Set((S.observations||[]).map(o=>o.observer).filter(Boolean))].sort();
 
     const tabBtn=(t,lbl)=>'<button class="btn btn-sm '+(activeTab===t?'btn-primary':'btn-ghost')+' mr-1" onclick="S.modal=renderModal(\'visitTargets\',{tab:\''+t+'\'}); render()">'+lbl+'</button>';
 
-    let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('depts','📚 By Dept')+tabBtn('progress','📊 Progress')+'</div>';
+    let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('managePositions','✏️ Positions')+tabBtn('depts','📚 By Dept')+tabBtn('progress','📊 Progress')+'</div>';
 
     if(activeTab==='global'){
-      const gt={...(cfg.global||{})};
+      const gt=globalTargets;
       body+='<p class="text-xs text-muted mb-3">Set the school-wide total visit targets for the whole term. These drive the progress bars in the Visit Tracker top section.</p>';
       body+='<div style="display:flex;flex-direction:column;gap:10px;max-width:320px">';
       VT.forEach(t=>{
-        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]||'')+'" placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
+        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]||'')+' " placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
       });
       body+='</div>';
       return M('⚙ Visit Tracker Settings',body,
@@ -4113,13 +4113,32 @@ function renderModal(type, data={}){
       );
     }
 
+    if(activeTab==='managePositions'){
+      const custom=sget('customPositions')||[];
+      body+='<p class="text-xs text-muted mb-3">Add, rename, or remove leadership positions. Built-in positions cannot be removed but custom ones can.</p>';
+      body+='<div class="form-group"><label class="form-label">Add New Position</label>';
+      body+='<div class="flex gap-2"><input class="form-control" id="new-position-input" placeholder="e.g. HOS Primary Boys, HOD Science…" style="flex:1"><button class="btn btn-success" id="save-new-position-btn">Add</button></div></div>';
+      body+='<div class="form-group"><label class="form-label">Current Positions</label>';
+      body+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+      VISITOR_POSITIONS.forEach(p=>{
+        const isCustom=custom.includes(p);
+        body+='<span class="badge badge-blue" style="font-size:12px;padding:4px 10px">'+esc(p);
+        if(isCustom) body+=' <button onclick="const c=sget(\'customPositions\')||[];sset(\'customPositions\',c.filter(x=>x!==\''+p.replace(/'/g,"\\'")+'\')); S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'}); render()" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:4px;font-size:11px">✕</button>';
+        body+='</span>';
+      });
+      body+='</div></div>';
+      return M('⚙ Visit Tracker Settings',body,
+        '<button class="btn btn-ghost" data-close-modal>Close</button>'
+      );
+    }
+
     if(activeTab==='positions'){
       body+='<p class="text-xs text-muted mb-3">Set default visit targets per term for each leadership position. These apply to all visitors with that position unless overridden by department.</p>';
       body+='<div style="max-height:420px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px 8px;text-align:left">Position</th>'+VT.map(t=>'<th style="padding:6px;text-align:center;white-space:nowrap">'+VTS[t]+'</th>').join('')+'</tr></thead><tbody>';
       POSITIONS.forEach((pos,i)=>{
         const byPos=(cfg.byPosition&&cfg.byPosition[pos])||{};
         body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(pos)+'</td>';
-        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+'" placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
+        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+' " placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
         body+='<input type="hidden" id="vpos-name-'+i+'" value="'+esc(pos)+'">';
         body+='</tr>';
       });
@@ -4140,7 +4159,7 @@ function renderModal(type, data={}){
           const key=pos+'||'+dept;
           const byVD=(cfg.byVisitorDept&&cfg.byVisitorDept[key])||{};
           body+='<tr style="background:'+(ri%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:4px 8px;font-size:11px">'+esc(pos)+'</td><td style="padding:4px 8px;font-weight:600;font-size:11px">'+esc(dept)+'</td>';
-          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+'" placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
+          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+' " placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
           body+='<input type="hidden" id="vdept-pos-'+ri+'" value="'+esc(pos)+'"><input type="hidden" id="vdept-dept-'+ri+'" value="'+esc(dept)+'">';
           body+='</tr>';
           ri++;
@@ -4173,7 +4192,7 @@ function renderModal(type, data={}){
             const cnt=myObs.filter(o=>o.visitType===t).length;
             const tgt=getTargetFor(name,t);
             const pct=tgt?Math.min(100,Math.round(cnt/tgt*100)):0;
-            const col={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'}[t]||'#6b7280';
+            const col={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'}[t]||'#6b7280';
             body+='<div style="min-width:90px;background:#f9fafb;border-radius:6px;padding:6px 8px;border-left:3px solid '+col+'">';
             body+='<div style="font-size:9px;font-weight:700;color:'+col+'">'+VTS[t]+'</div>';
             body+='<div style="font-size:16px;font-weight:800;color:var(--navy)">'+cnt+(tgt?'<span style="font-size:11px;font-weight:400;color:var(--muted)">/'+tgt+'</span>':'')+'</div>';
@@ -4651,7 +4670,7 @@ function bindEvents(){
       comments,
       scores,conf:parseInt(gv('obs-conf'))||0,
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
-      visitType:gv('obs-visit-type')||'Lesson Observation',
+      visitType:gv('obs-visit-type')||'Learning Walk',
       visitNote:gv('obs-note')||'',
       autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false
     };
@@ -5857,7 +5876,7 @@ function bindEvents(){
     const allObs=S.observations||[];
     const rows=allObs.map(o=>{
       const t=S.teachers.find(tc=>tc.id===o.tid);
-      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Type:o.visitType||'Lesson Observation',WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
+      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Type:o.visitType||'Learning Walk',WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
     });
     exportCSV('visit-tracker-'+new Date().toISOString().split('T')[0]+'.csv',rows);
   };
@@ -5865,7 +5884,7 @@ function bindEvents(){
   const saveGlobalBtn=document.getElementById('save-global-targets-btn');
   if(saveGlobalBtn){
     saveGlobalBtn.onclick=()=>{
-      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
       const cfg=getVisitTargetsCfg();
       if(!cfg.global)cfg.global={};
       // Also save to legacy visitTargets for backward compat
@@ -5906,15 +5925,15 @@ function bindEvents(){
   const savePosBtn=document.getElementById('save-pos-targets-btn');
   if(savePosBtn){
     savePosBtn.onclick=()=>{
-      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-      const POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+      const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const POSITIONS=VISITOR_POSITIONS;
       const cfg=getVisitTargetsCfg();
       if(!cfg.byPosition)cfg.byPosition={};
       POSITIONS.forEach((pos,i)=>{
         if(!cfg.byPosition[pos])cfg.byPosition[pos]={};
         VT.forEach(t=>{
           const el=document.getElementById('vpos-'+i+'-'+t.replace(/ /g,'_'));
-          if(el){const v=parseInt((el.value||'').trim())||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
+          if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
         });
       });
       saveVisitTargetsCfg(cfg);
@@ -5926,7 +5945,7 @@ function bindEvents(){
   const saveDeptTargetsBtn=document.getElementById('save-dept-targets-btn');
   if(saveDeptTargetsBtn){
     saveDeptTargetsBtn.onclick=()=>{
-      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
       const deptPositions=['HOD (Head of Department)','Mid-Leader'];
       const cfg=getVisitTargetsCfg();
       if(!cfg.byVisitorDept)cfg.byVisitorDept={};
@@ -5937,7 +5956,7 @@ function bindEvents(){
           if(!cfg.byVisitorDept[key])cfg.byVisitorDept[key]={};
           VT.forEach(t=>{
             const el=document.getElementById('vdept-'+ri+'-'+t.replace(/ /g,'_'));
-            if(el){const v=parseInt((el.value||'').trim())||0;if(v>0)cfg.byVisitorDept[key][t]=v;else delete cfg.byVisitorDept[key][t];}
+            if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byVisitorDept[key][t]=v;else delete cfg.byVisitorDept[key][t];}
           });
           ri++;
         });
@@ -5966,6 +5985,29 @@ function bindEvents(){
     };
     const inp=document.getElementById('new-dept-input');
     if(inp) inp.onkeydown=e=>{if(e.key==='Enter')saveDeptBtn.click();};
+  }
+
+  // Add new position handler
+  const savePosNewBtn=document.getElementById('save-new-position-btn');
+  if(savePosNewBtn){
+    savePosNewBtn.onclick=()=>{
+      const inp=document.getElementById('new-position-input');
+      if(!inp)return;
+      const name=(inp.value||'').trim();
+      if(!name)return;
+      if(VISITOR_POSITIONS.includes(name)){showToast('Position already exists');return;}
+      const custom=sget('customPositions')||[];
+      custom.push(name);
+      sset('customPositions',custom);
+      // Refresh VISITOR_POSITIONS array in-place
+      VISITOR_POSITIONS.length=0;
+      [...new Set([...BASE_VISITOR_POSITIONS,...custom])].forEach(p=>VISITOR_POSITIONS.push(p));
+      inp.value='';
+      showToast('Position "'+name+'" added ✓');
+      S.modal=renderModal('visitTargets',{tab:'managePositions'});render();
+    };
+    const inp=document.getElementById('new-position-input');
+    if(inp) inp.onkeydown=e=>{if(e.key==='Enter')savePosNewBtn.click();};
   }
 
   // Portfolio viewer teacher selector (inside modal)
@@ -6729,9 +6771,9 @@ async function boot(){
 // type, date-range, not-yet-visited. Targets panel per visitor (editable).
 // Indicator shows progress toward each visit type target per term.
 
-const VISIT_TYPES=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-const VISIT_TYPE_COLORS={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
-const VISIT_TYPE_SHORT={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+const VISIT_TYPES=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+const VISIT_TYPE_COLORS={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+const VISIT_TYPE_SHORT={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
 
 function getVisitTargets(){return sget('visitTargets')||{targets:{},perVisitor:{}};}
 function saveVisitTargets(t){sset('visitTargets',t);}
@@ -6747,7 +6789,7 @@ function obsToVisit(o){
     stage:t?t.stage:'',
     date:o.date||'',
     visitor:o.observer||'',
-    type:o.visitType||'Lesson Observation',
+    type:o.visitType||'Learning Walk',
     status:'Completed',
     www:o.www||'',
     ebi:o.ebi||'',
@@ -6886,9 +6928,9 @@ ${(()=>{
   // Only show strip if visitor profiles have been configured
   const profiles=getVisitorProfiles();
   const hasProfiles=Object.keys(profiles).length>0;
-  const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-  const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
-  const VCOL={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+  const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+  const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+  const VCOL={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
   const posColor=(pos)=>pos==='Academic Head'?'var(--purple)':pos.startsWith('HOS')?'var(--navy)':pos.startsWith('HOD')?'var(--teal)':pos.startsWith('Mid')?'var(--amber)':'#9ca3af';
   return '<div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">👁 Visitor Progress — click any card to filter ↓</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
