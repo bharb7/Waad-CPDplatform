@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-17-D31-remove-LO-editable-positions-dashboard-fix">
+<meta name="app-build" content="2026-09-18-D32-settings-layout-fix-observer-position-visit-tracker">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -2457,10 +2457,18 @@ function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);}
 const BASE_VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
 let VISITOR_POSITIONS=[...new Set([...BASE_VISITOR_POSITIONS,...(sget('customPositions')||[])]).values()];
 
-// Get position label for a given observer name
+// Get position label for a given observer name.
+// Priority: (1) Visitor Profiles setting, (2) most recent observation's recorded position, (3) 'Other'
 function visitorPosition(name){
   const p=getVisitorProfiles();
-  return (p[name]&&p[name].position)||'Other';
+  if(p[name]&&p[name].position) return p[name].position;
+  // Fall back to the position stamped on the most recent observation by this observer
+  const obs=(S.observations||[]).filter(o=>o.observer===name&&o.observerPosition);
+  if(obs.length){
+    const latest=obs.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
+    if(latest.observerPosition) return latest.observerPosition;
+  }
+  return 'Other';
 }
 function visitorDept(name){
   const p=getVisitorProfiles();
@@ -3409,7 +3417,6 @@ function renderSettings(){
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'profiles'});render()">👤 Visitor Profiles</button>
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'positions'});render()">🏷 Position Targets</button>
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'managePositions'});render()">✏️ Manage Positions</button>
-      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'depts'});render()">📚 Dept Overrides</button>
       <button class="btn btn-primary btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'progress'});render()">📊 Progress Report</button>
     </div>
   </div>
@@ -3457,8 +3464,6 @@ function renderSettings(){
   })()}
 </div>
 <!-- ── END Visit Tracker Settings ────────────────────────────────────────────── -->
-  </div>
-</div>
 <div class="card">
   <div class="card-title">🔑 Role Permissions</div>
   <div style="overflow-x:auto"><table>
@@ -3593,6 +3598,7 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
+      FS('obs-observer-position','Observer Position',VISITOR_POSITIONS,data.observerPosition||visitorPosition(data.observer||userName))+
       FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
       '<p class="text-xs text-muted mb-2">Hover (or tap ℹ rubric) on any criterion to see what each score 1–5 means, and add a note under each one to justify your rating.</p>'+
       '<div id="obs-domains">' +
@@ -4081,7 +4087,7 @@ function renderModal(type, data={}){
 
     const tabBtn=(t,lbl)=>'<button class="btn btn-sm '+(activeTab===t?'btn-primary':'btn-ghost')+' mr-1" onclick="S.modal=renderModal(\'visitTargets\',{tab:\''+t+'\'}); render()">'+lbl+'</button>';
 
-    let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('managePositions','✏️ Positions')+tabBtn('depts','📚 By Dept')+tabBtn('progress','📊 Progress')+'</div>';
+    let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('managePositions','✏️ Positions')+tabBtn('progress','📊 Progress')+'</div>';
 
     if(activeTab==='global'){
       const gt=globalTargets;
@@ -4119,12 +4125,19 @@ function renderModal(type, data={}){
       body+='<div class="form-group"><label class="form-label">Add New Position</label>';
       body+='<div class="flex gap-2"><input class="form-control" id="new-position-input" placeholder="e.g. HOS Primary Boys, HOD Science…" style="flex:1"><button class="btn btn-success" id="save-new-position-btn">Add</button></div></div>';
       body+='<div class="form-group"><label class="form-label">Current Positions</label>';
-      body+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
-      VISITOR_POSITIONS.forEach(p=>{
+      body+='<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">';
+      VISITOR_POSITIONS.forEach((p,pi)=>{
         const isCustom=custom.includes(p);
-        body+='<span class="badge badge-blue" style="font-size:12px;padding:4px 10px">'+esc(p);
-        if(isCustom) body+=' <button onclick="const c=sget(\'customPositions\')||[];sset(\'customPositions\',c.filter(x=>x!==\''+p.replace(/'/g,"\\'")+'\')); S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'}); render()" style="background:none;border:none;color:inherit;cursor:pointer;margin-left:4px;font-size:11px">✕</button>';
-        body+='</span>';
+        const inputId='pos-rename-'+pi;
+        body+='<div style="display:flex;align-items:center;gap:6px;background:var(--light);border-radius:6px;padding:5px 8px">';
+        body+='<input class="form-control" id="'+inputId+'" value="'+esc(p)+'" '+(isCustom?'':'readonly style="background:#f3f4f6;color:var(--muted)"')+' style="flex:1;font-size:12px;padding:3px 7px">';
+        if(isCustom){
+          body+='<button class="btn btn-sm btn-ghost" onclick="(function(){const input=document.getElementById(\''+inputId+'\');const newName=(input.value||getpostName||\''+esc(p)+'\').trim();if(!newName)return;const c=sget(\'customPositions\')||[];const idx=c.indexOf(\''+p.replace(/'/g,"\\'")+'\');if(idx>=0){c[idx]=newName;sset(\'customPositions\',c);VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS,...c])].forEach(x=>VISITOR_POSITIONS.push(x));S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();}})()" title="Save rename">💾</button>';
+          body+='<button class="btn btn-sm btn-danger" onclick="const c=sget(\'customPositions\')||[];sset(\'customPositions\',c.filter(x=>x!==\''+p.replace(/'/g,"\\'")+'\'));VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS,...sget(\'customPositions\')||[]])].forEach(x=>VISITOR_POSITIONS.push(x));S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render()" title="Remove">✕</button>';
+        } else {
+          body+='<span style="font-size:10px;color:var(--muted);white-space:nowrap">built-in</span>';
+        }
+        body+='</div>';
       });
       body+='</div></div>';
       return M('⚙ Visit Tracker Settings',body,
@@ -4666,6 +4679,7 @@ function bindEvents(){
     const obs={
       ...(existing||{}),
       id:editId||uid(),tid:tid||null,date:gv('obs-date'),observer:gv('obs-obs'),
+      observerPosition:gv('obs-observer-position')||'',
       scope:gv('obs-scope'),bio:bio==='— None —'||bio===''?'':bio,customTech:customTech||'',
       comments,
       scores,conf:parseInt(gv('obs-conf'))||0,
@@ -6789,6 +6803,7 @@ function obsToVisit(o){
     stage:t?t.stage:'',
     date:o.date||'',
     visitor:o.observer||'',
+    visitorPosition:o.observerPosition||visitorPosition(o.observer||''),
     type:o.visitType||'Learning Walk',
     status:'Completed',
     www:o.www||'',
@@ -7019,6 +7034,7 @@ ${fv.length?`
       <th style="padding:8px 6px;text-align:left">Grade</th>
       <th style="padding:8px 6px;text-align:left">Date</th>
       <th style="padding:8px 6px;text-align:left">Visitor</th>
+      <th style="padding:8px 6px;text-align:left">Position</th>
       <th style="padding:8px 6px;text-align:left">Type</th>
       <th style="padding:8px 6px;text-align:left">Status</th>
       <th style="padding:8px 6px;text-align:left">Note / WWW / EBI</th>
@@ -7041,6 +7057,7 @@ ${fv.length?`
       <td style="padding:6px 6px;color:var(--muted)">${esc(v.grade||'—')}</td>
       <td style="padding:6px 6px;white-space:nowrap;color:var(--muted)">${v.date||'<span style="color:#d1d5db">—</span>'}</td>
       <td style="padding:6px 6px;white-space:nowrap">${esc(v.visitor||'—')}</td>
+      <td style="padding:6px 6px;white-space:nowrap;font-size:10px;color:var(--muted)">${esc(v.visitorPosition||'—')}</td>
       <td style="padding:6px 6px">
         ${v.type?`<span class="badge" style="font-size:10px;background:${vcol}18;color:${vcol};border:1px solid ${vcol}44">${VISIT_TYPE_SHORT[v.type]||esc(v.type)}</span>`:'<span style="color:#d1d5db">—</span>'}
       </td>
