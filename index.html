@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-18-D32-settings-layout-fix-observer-position-visit-tracker">
+<meta name="app-build" content="2026-09-18-D34-targets-no-global-fallback-accurate-visitor-cards">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -515,6 +515,13 @@ async function loadAll(){
       else S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
       if(br.customDomains){S.customDomains=br.customDomains;sset('customDomains',S.customDomains);}
       else S.customDomains=sget('customDomains')||null;
+      // visitTargetsCfg, visitorProfiles, customPositions — persisted in branding blob so they survive refresh and sync across devices
+      if(br.visitTargetsCfg){sset('visitTargetsCfg',br.visitTargetsCfg);}
+      if(br.visitorProfiles){sset('visitorProfiles',br.visitorProfiles);}
+      if(br.customPositions&&br.customPositions.length){sset('customPositions',br.customPositions);}
+      if(br.hiddenPositions){sset('hiddenPositions',br.hiddenPositions);}
+      // Rebuild VISITOR_POSITIONS: built-ins minus hidden, plus custom
+      {const _hp=sget('hiddenPositions')||[];const _cp=sget('customPositions')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(p=>!_hp.includes(p)),..._cp])].forEach(p=>VISITOR_POSITIONS.push(p));}
       // Merge local + remote Schedule Categories instead of one overwriting the other —
       // a category added on this device must survive even if the last save to Supabase
       // (a PATCH on `schools`) failed silently, and a category added elsewhere must still
@@ -561,7 +568,10 @@ async function saveSchoolSettings(retrying){
   const payload={branding:{name:S.branding.name||'Waad Academy',logo:S.branding.logo||'',partners:S.branding.partners||[],
     online_users:S.branding.online_users||{},activity_log:S.branding.activity_log||[],
     roleCfg:S.roleCfg,customDomains:S.customDomains||null,schedCats:S.schedCats||null,
-    deletedSeedUsers:S.deletedSeedUsers||DEFAULT_DELETED_SEED_USERS},mech_overrides:S.mechM,dh_overrides:S.dhM};
+    deletedSeedUsers:S.deletedSeedUsers||DEFAULT_DELETED_SEED_USERS,
+    visitTargetsCfg:sget('visitTargetsCfg')||{},
+    visitorProfiles:sget('visitorProfiles')||{},
+    customPositions:sget('customPositions')||[],hiddenPositions:sget('hiddenPositions')||[]},mech_overrides:S.mechM,dh_overrides:S.dhM};
   try{
     // IMPORTANT: 'Prefer: return=minimal' used to hide a real bug here — PostgREST returns
     // HTTP 200/204 "success" even when an RLS UPDATE policy on `schools` silently blocks the
@@ -2450,12 +2460,18 @@ ${tab==='portfolio'?`
 // visitTargetsCfg: { global: {type:n}, byPosition: { HOD: {LW:5,LO:2,...} }, byVisitorDept: { 'HOD||Math': {LW:3} } }
 
 function getVisitorProfiles(){return sget('visitorProfiles')||{};}
-function saveVisitorProfiles(p){sset('visitorProfiles',p);}
+function saveVisitorProfiles(p){sset('visitorProfiles',p);saveSchoolSettings();}
 function getVisitTargetsCfg(){return sget('visitTargetsCfg')||{global:{},byPosition:{},byVisitorDept:{}};}
-function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);}
+function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);saveSchoolSettings();}
 
 const BASE_VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
-let VISITOR_POSITIONS=[...new Set([...BASE_VISITOR_POSITIONS,...(sget('customPositions')||[])]).values()];
+// hiddenPositions: built-in positions the admin has hidden from active use
+// (they still exist as data values on old observations, just won't appear in new dropdowns)
+function getHiddenPositions(){return sget('hiddenPositions')||[];}
+let VISITOR_POSITIONS=[...new Set([
+  ...BASE_VISITOR_POSITIONS.filter(p=>!getHiddenPositions().includes(p)),
+  ...(sget('customPositions')||[])
+]).values()];
 
 // Get position label for a given observer name.
 // Priority: (1) Visitor Profiles setting, (2) most recent observation's recorded position, (3) 'Other'
@@ -2475,21 +2491,22 @@ function visitorDept(name){
   return (p[name]&&p[name].dept)||'';
 }
 
-// Get target for a visitor given their position + dept + visit type
+// Get target for a visitor given their position + dept + visit type.
+// Global (School Totals) targets are school-wide totals only — they drive the
+// type-breakdown cards at the top of Visit Tracker, NOT per-visitor targets.
+// Per-visitor targets come only from byPosition or byVisitorDept.
 function getTargetFor(visitorName, visitType){
   const cfg=getVisitTargetsCfg();
   const pos=visitorPosition(visitorName);
   const dept=visitorDept(visitorName);
-  // Most specific: visitor+dept override
+  // Most specific: position+dept override
   const key=pos+'||'+dept;
   if(cfg.byVisitorDept&&cfg.byVisitorDept[key]&&cfg.byVisitorDept[key][visitType]!=null)
-    return cfg.byVisitorDept[key][visitType];
-  // Position-level default
+    return Number(cfg.byVisitorDept[key][visitType])||0;
+  // Position-level target
   if(cfg.byPosition&&cfg.byPosition[pos]&&cfg.byPosition[pos][visitType]!=null)
-    return cfg.byPosition[pos][visitType];
-  // Global fallback
-  if(cfg.global&&cfg.global[visitType]!=null)
-    return cfg.global[visitType];
+    return Number(cfg.byPosition[pos][visitType])||0;
+  // No per-visitor target configured — return 0 (do not use school-wide global total)
   return 0;
 }
 
@@ -4094,7 +4111,7 @@ function renderModal(type, data={}){
       body+='<p class="text-xs text-muted mb-3">Set the school-wide total visit targets for the whole term. These drive the progress bars in the Visit Tracker top section.</p>';
       body+='<div style="display:flex;flex-direction:column;gap:10px;max-width:320px">';
       VT.forEach(t=>{
-        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]||'')+' " placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
+        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]!=null&&gt[t]!==''?String(gt[t]):'')+'" placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
       });
       body+='</div>';
       return M('⚙ Visit Tracker Settings',body,
@@ -4119,23 +4136,32 @@ function renderModal(type, data={}){
       );
     }
 
-    if(activeTab==='managePositions'){
+     if(activeTab==='managePositions'){
       const custom=sget('customPositions')||[];
-      body+='<p class="text-xs text-muted mb-3">Add, rename, or remove leadership positions. Built-in positions cannot be removed but custom ones can.</p>';
+      const hidden=getHiddenPositions();
+      // Show ALL base + custom positions so hidden built-ins can be re-enabled
+      const allPositions=[...new Set([...BASE_VISITOR_POSITIONS,...custom])];
+      body+='<p class="text-xs text-muted mb-3">Add your own positions, rename custom ones, or hide built-in positions you don\'t use. Hidden built-ins won\'t appear in new observation dropdowns — existing data is kept.</p>';
       body+='<div class="form-group"><label class="form-label">Add New Position</label>';
       body+='<div class="flex gap-2"><input class="form-control" id="new-position-input" placeholder="e.g. HOS Primary Boys, HOD Science…" style="flex:1"><button class="btn btn-success" id="save-new-position-btn">Add</button></div></div>';
       body+='<div class="form-group"><label class="form-label">Current Positions</label>';
       body+='<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">';
-      VISITOR_POSITIONS.forEach((p,pi)=>{
+      allPositions.forEach((p,pi)=>{
         const isCustom=custom.includes(p);
+        const isHidden=hidden.includes(p);
         const inputId='pos-rename-'+pi;
-        body+='<div style="display:flex;align-items:center;gap:6px;background:var(--light);border-radius:6px;padding:5px 8px">';
-        body+='<input class="form-control" id="'+inputId+'" value="'+esc(p)+'" '+(isCustom?'':'readonly style="background:#f3f4f6;color:var(--muted)"')+' style="flex:1;font-size:12px;padding:3px 7px">';
-        if(isCustom){
-          body+='<button class="btn btn-sm btn-ghost" onclick="(function(){const input=document.getElementById(\''+inputId+'\');const newName=(input.value||getpostName||\''+esc(p)+'\').trim();if(!newName)return;const c=sget(\'customPositions\')||[];const idx=c.indexOf(\''+p.replace(/'/g,"\\'")+'\');if(idx>=0){c[idx]=newName;sset(\'customPositions\',c);VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS,...c])].forEach(x=>VISITOR_POSITIONS.push(x));S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();}})()" title="Save rename">💾</button>';
-          body+='<button class="btn btn-sm btn-danger" onclick="const c=sget(\'customPositions\')||[];sset(\'customPositions\',c.filter(x=>x!==\''+p.replace(/'/g,"\\'")+'\'));VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS,...sget(\'customPositions\')||[]])].forEach(x=>VISITOR_POSITIONS.push(x));S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render()" title="Remove">✕</button>';
+        const pSafe=p.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        body+='<div style="display:flex;align-items:center;gap:6px;background:'+(isHidden?'#fef2f2':'var(--light)')+';border-radius:6px;padding:5px 8px;opacity:'+(isHidden?'.6':'1')+'">';
+        body+='<input class="form-control" id="'+inputId+'" value="'+esc(p)+'" '+(isCustom&&!isHidden?'':'readonly style="background:#f3f4f6;color:var(--muted)"')+' style="flex:1;font-size:12px;padding:3px 7px">';
+        if(isCustom&&!isHidden){
+          body+='<button class="btn btn-sm btn-ghost" onclick="(function(){const input=document.getElementById(\''+inputId+'\');const newName=(input.value||\'\'||\''+ esc(p)+'\'). trim();if(!newName)return;const c=sget(\'customPositions\')||[];const idx=c.indexOf(\''+pSafe+'\');if(idx>=0){c[idx]=newName;sset(\'customPositions\',c);const hp=getHiddenPositions();VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...c])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();}})()" title="Save rename">💾</button>';
+          body+='<button class="btn btn-sm btn-danger" onclick="(function(){const c=sget(\'customPositions\')||[];sset(\'customPositions\',c.filter(x=>x!==\''+pSafe+'\'));const hp=getHiddenPositions();VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...(sget(\'customPositions\')||[])])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();})()" title="Remove">✕</button>';
+        } else if(!isCustom&&isHidden){
+          body+='<span style="font-size:10px;color:#dc2626;white-space:nowrap">hidden</span>';
+          body+='<button class="btn btn-sm btn-ghost" style="font-size:10px;color:var(--teal)" onclick="(function(){const hp=getHiddenPositions().filter(x=>x!==\''+pSafe+'\');sset(\'hiddenPositions\',hp);const cp=sget(\'customPositions\')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...cp])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();})()" title="Re-enable">✓ Show</button>';
         } else {
           body+='<span style="font-size:10px;color:var(--muted);white-space:nowrap">built-in</span>';
+          body+='<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="(function(){const hp=getHiddenPositions();if(!hp.includes(\''+pSafe+'\'))hp.push(\''+pSafe+'\');sset(\'hiddenPositions\',hp);const cp=sget(\'customPositions\')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...cp])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();})()" title="Hide this position">✕ Hide</button>';
         }
         body+='</div>';
       });
@@ -4151,7 +4177,7 @@ function renderModal(type, data={}){
       POSITIONS.forEach((pos,i)=>{
         const byPos=(cfg.byPosition&&cfg.byPosition[pos])||{};
         body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(pos)+'</td>';
-        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+' " placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
+        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]!=null&&byPos[t]!==''?String(byPos[t]):'')+'" placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
         body+='<input type="hidden" id="vpos-name-'+i+'" value="'+esc(pos)+'">';
         body+='</tr>';
       });
@@ -4172,7 +4198,7 @@ function renderModal(type, data={}){
           const key=pos+'||'+dept;
           const byVD=(cfg.byVisitorDept&&cfg.byVisitorDept[key])||{};
           body+='<tr style="background:'+(ri%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:4px 8px;font-size:11px">'+esc(pos)+'</td><td style="padding:4px 8px;font-weight:600;font-size:11px">'+esc(dept)+'</td>';
-          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+' " placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
+          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]!=null&&byVD[t]!==''?String(byVD[t]):'')+'" placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
           body+='<input type="hidden" id="vdept-pos-'+ri+'" value="'+esc(pos)+'"><input type="hidden" id="vdept-dept-'+ri+'" value="'+esc(dept)+'">';
           body+='</tr>';
           ri++;
@@ -5906,7 +5932,7 @@ function bindEvents(){
       if(!legTgt.targets)legTgt.targets={};
       VT.forEach(t=>{
         const el=document.getElementById('vglobal-'+t.replace(/ /g,'_'));
-        if(el){const v=parseInt(el.value)||0;
+        if(el){const v=Number((el.value||'').trim());
           if(v>0){cfg.global[t]=v;legTgt.targets[t]=v;}
           else{delete cfg.global[t];delete legTgt.targets[t];}
         }
@@ -5947,8 +5973,14 @@ function bindEvents(){
         if(!cfg.byPosition[pos])cfg.byPosition[pos]={};
         VT.forEach(t=>{
           const el=document.getElementById('vpos-'+i+'-'+t.replace(/ /g,'_'));
-          if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
+          if(el){
+            const v=Number((el.value||'').trim());
+            if(v>0) cfg.byPosition[pos][t]=v;
+            else delete cfg.byPosition[pos][t];
+          }
         });
+        // Clean up empty position entry
+        if(!Object.keys(cfg.byPosition[pos]).length) delete cfg.byPosition[pos];
       });
       saveVisitTargetsCfg(cfg);
       showToast('Position targets saved ✓');
@@ -6013,6 +6045,7 @@ function bindEvents(){
       const custom=sget('customPositions')||[];
       custom.push(name);
       sset('customPositions',custom);
+      saveSchoolSettings(); // persist customPositions to DB
       // Refresh VISITOR_POSITIONS array in-place
       VISITOR_POSITIONS.length=0;
       [...new Set([...BASE_VISITOR_POSITIONS,...custom])].forEach(p=>VISITOR_POSITIONS.push(p));
