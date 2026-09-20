@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-18-D34-targets-no-global-fallback-accurate-visitor-cards">
+<meta name="app-build" content="2026-09-20-D35-obs-calendar-period-status-planned">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,15 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-16-D24-lw-cpd-media-sync';
+const BUILD_VERSION='2026-09-20-D35-obs-calendar-period-status-planned';
+/* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS grade_class TEXT DEFAULT '';
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS obs_status TEXT DEFAULT 'planned';
+   -- obs_status values: 'planned' | 'inprogress' | 'submitted'
+   -- 'submitted' = teacher can see it in their portal; 'planned'/'inprogress' = hidden from teacher
+*/
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -429,7 +437,8 @@ const SEED_VISITS=[
   {id:"V0119",year:"2026/2027",date:"",teacher:"Junaid Golandaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
   {id:"V0120",year:"2026/2027",date:"",teacher:"Dina Kamal",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela Pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''}
 ];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitType:'',visitDateFrom:'',visitDateTo:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitType:'',visitDateFrom:'',visitDateTo:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:'',
+calFilterDate:'',calFilterPeriod:'',calFilterObserver:'',calFilterDept:[],calFilterSection:[],calFilterStatus:'',calWeek:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -660,7 +669,7 @@ function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u
 // actually reached the database, no matter what the app showed.
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',timeSlot:r.time_slot||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{},obsStatus:r.obs_status||'planned'}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 // mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
 // never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
@@ -727,7 +736,7 @@ async function save(k,v){
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
     else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
-    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
+    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}),['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
     else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
@@ -1317,6 +1326,20 @@ function techSelector(selId,customId,val,customVal){
     +'</div></div>';
 }
 function handleTechChange(selId,customId){const sel=document.getElementById(selId);const wrap=document.getElementById(customId+'-wrap');if(sel&&wrap)wrap.style.display=sel.value==='Other'?'block':'none';}
+function setObsStatus(v){
+  const hidden=document.getElementById('obs-status-val');
+  if(hidden)hidden.value=v;
+  const STATUS_COLS={planned:{col:'#6b7280',bg:'#f3f4f6'},inprogress:{col:'#92400e',bg:'#fef3c7'},submitted:{col:'#065f46',bg:'#d1fae5'}};
+  ['planned','inprogress','submitted'].forEach(s=>{
+    const btn=document.getElementById('obs-status-btn-'+s);
+    if(!btn)return;
+    const sel=s===v;const c=STATUS_COLS[s]||{col:'#6b7280',bg:'#f3f4f6'};
+    btn.style.borderColor=sel?c.col:'#e5e7eb';
+    btn.style.background=sel?c.bg:'#fff';
+    btn.style.color=sel?c.col:'#6b7280';
+    btn.style.fontWeight=sel?700:400;
+  });
+}
 function getTechFromForm(selId,customId){const sel=(document.getElementById(selId)||{}).value||'';if(sel==='Other'){const cv=(document.getElementById(customId)||{}).value||'';return{bio:'Other',customTech:cv};}return{bio:sel==='— None —'||sel===''?'':sel,customTech:''};}
 // ── CPD audience: parse/collect a multi-part target-audience selection ────
 // The audience is stored as one friendly comma-joined string (e.g. "Mathematics, HOD Team, Fatima Al-Rashid")
@@ -1959,7 +1982,8 @@ function renderFieldwork(){
 </div>
 
 <div class="tabs">
-  <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">Observations (${obs.length})</button>
+  <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">📋 Observations (${obs.length})</button>
+  <button class="tab ${tab==='calendar'?'active':''}" data-fw-tab="calendar">📅 Obs Calendar</button>
   <button class="tab ${tab==='visits'?'active':''}" data-fw-tab="visits">📊 Visit Tracker (${(S.observations||[]).length})</button>
 </div>
 
@@ -2006,6 +2030,7 @@ ${tab==='obs'?`
         <div class="flex gap-1 items-center">
           ${o.bio?'<span class="badge badge-purple">'+esc(o.bio)+'</span>':''}
           ${da?'<span class="badge badge-blue">'+da.toFixed(1)+'/5</span>':''}
+          ${(()=>{const st=o.obsStatus||'planned';const stMap={planned:{cls:'badge-gray',lbl:'📅 Planned'},inprogress:{cls:'badge-amber',lbl:'⏳ In Progress'},submitted:{cls:'badge-green',lbl:'✅ Submitted'}};const sm=stMap[st]||stMap.planned;return '<span class="badge '+sm.cls+'" style="font-size:10px">'+sm.lbl+'</span>';})()}
           ${o.slLinked?'<span class="badge badge-green" style="font-size:10px">📎 Steplab</span>':''}
           ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-obs="${o.id}">✏</button><button class="btn btn-sm btn-ghost" onclick="printObs('${o.id}')" title="Print">🖨</button><button class="btn btn-sm btn-danger" data-del-obs="${o.id}">✕</button>`:''}
         </div>
@@ -2027,10 +2052,14 @@ ${tab==='obs'?`
       ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+esc(o.ebi)+'</div>':''}
       ${o.action?'<div class="text-xs mb-1"><strong>Action:</strong> '+esc(o.action)+'</div>':''}
       ${o.teacherResponse?'<div class="text-xs mb-1" style="background:#f0fdf4;padding:4px 8px;border-radius:4px;border-left:3px solid #0F6E56"><strong>👤 Teacher Response:</strong> '+esc(o.teacherResponse)+'</div>':''}
-      ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6">
+      ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${o.slLinked?'var(--teal)':'var(--muted)'}">
           <input type="checkbox" data-sl-obs="${o.id}" ${o.slLinked?'checked':''}> 📎 Logged in Steplab
         </label>
+        <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap">
+          <span style="font-size:10px;color:var(--muted);align-self:center">Status:</span>
+          ${[{v:'planned',l:'📅 Planned',col:'#6b7280',bg:'#f3f4f6'},{v:'inprogress',l:'⏳ In Progress',col:'#92400e',bg:'#fef3c7'},{v:'submitted',l:'✅ Submit',col:'#065f46',bg:'#d1fae5'}].map(s=>`<button class="btn btn-sm" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid ${(o.obsStatus||'planned')===s.v?s.col:'#e5e7eb'};background:${(o.obsStatus||'planned')===s.v?s.bg:'#fff'};color:${(o.obsStatus||'planned')===s.v?s.col:'#9ca3af'}" data-obs-setstatus="${o.id}||${s.v}">${s.l}</button>`).join('')}
+        </div>
       </div>`:''}
     </div>`;
   }).join('')}
@@ -2110,6 +2139,8 @@ ${tab==='cpd'?`
   ${!cpds.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No CPD sessions yet.</div>':''}
 `:''}
 
+${tab==='calendar'?renderObsCalendar():''}
+
 ${tab==='visits'?renderVisitTracker():''}
 `}
 
@@ -2117,7 +2148,8 @@ function renderMyPortal(){
   // Find the teacher record linked to this session by name match
   const myName=(S.session?.name||'').toLowerCase();
   const me=S.teachers.find(t=>t.name.toLowerCase()===myName);
-  const myObs=me?S.observations.filter(o=>o.tid===me.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')):[];
+  // Teachers only see observations that have been marked "submitted" by the observer
+  const myObs=me?S.observations.filter(o=>o.tid===me.id&&(o.obsStatus||'planned')==='submitted').sort((a,b)=>(b.date||'').localeCompare(a.date||'')):[];
   const myTrips=me?S.triplets.filter(t=>t.oid===me.id||t.cid===me.id||t.fid===me.id):[];
   const dept=me?.dept||'';
   const myTLC=dept?S.deptTLC.filter(g=>(g.depts||[]).includes(dept)):[];
@@ -2524,6 +2556,211 @@ function loadVisits(){
   }
 }
 
+
+// ─── Observation Calendar ─────────────────────────────────────────────────────
+// Shows all observations on a weekly calendar grid (Sun–Thu, 6 periods)
+// with rich filters. Respects role-based scoping.
+function renderObsCalendar(){
+  const PERIODS=['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6'];
+  const DAYS=['Sun','Mon','Tue','Wed','Thu'];
+  const FULL_DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  const STATUS_STYLE={planned:{bg:'#f3f4f6',col:'#374151',lbl:'📅 Planned'},inprogress:{bg:'#fef3c7',col:'#92400e',lbl:'⏳ In Prog'},submitted:{bg:'#d1fae5',col:'#065f46',lbl:'✅ Done'}};
+
+  // Get week anchor — default to current week's Sunday
+  function getWeekStart(anchor){
+    const d=anchor?new Date(anchor):new Date();
+    const day=d.getDay();
+    // Adjust so Sunday is start (day 0)
+    d.setDate(d.getDate()-day);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  const weekStartStr=S.calWeek||'';
+  const weekStart=getWeekStart(weekStartStr);
+  const weekDates=DAYS.map((_,i)=>{const d=new Date(weekStart);d.setDate(d.getDate()+i);return d;});
+  const fmtDate=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dy;};
+  const weekDateStrs=weekDates.map(fmtDate);
+
+  // All obs visible to this user (respects scoping)
+  let allObs=scopedObs();
+
+  // Filters
+  const cf=S.calFilterDate||'';
+  const cp=S.calFilterPeriod||'';
+  const co=S.calFilterObserver||'';
+  const cs=S.calFilterStatus||'';
+  const cd=S.calFilterDept||[];
+  const csect=S.calFilterSection||[];
+
+  // Build filtered list (separate from the weekly grid — for the list below the calendar)
+  let filteredObs=allObs.filter(o=>{
+    if(cp&&o.period!==cp)return false;
+    if(co&&o.observer!==co)return false;
+    if(cs&&(o.obsStatus||'planned')!==cs)return false;
+    if(cd.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!cd.includes(t.dept))return false;}
+    if(csect.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!csect.includes(t.section))return false;}
+    if(cf&&o.date!==cf)return false;
+    return true;
+  });
+
+  // Weekly grid obs: only obs for this week + filters (except date filter for the grid itself)
+  const gridObs=allObs.filter(o=>{
+    if(!weekDateStrs.includes(o.date))return false;
+    if(cp&&o.period!==cp)return false;
+    if(co&&o.observer!==co)return false;
+    if(cs&&(o.obsStatus||'planned')!==cs)return false;
+    if(cd.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!cd.includes(t.dept))return false;}
+    if(csect.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!csect.includes(t.section))return false;}
+    return true;
+  });
+
+  // Build a lookup: dateStr+period -> obs[]
+  const cellMap={};
+  gridObs.forEach(o=>{
+    const key=(o.date||'')+'||'+(o.period||'');
+    if(!cellMap[key])cellMap[key]=[];
+    cellMap[key].push(o);
+  });
+
+  // Unique values for filter dropdowns
+  const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
+  const allDepts=[...new Set(S.teachers.map(t=>t.dept).filter(Boolean))].sort();
+
+  const prevWeek=()=>{const d=new Date(weekStart);d.setDate(d.getDate()-7);return fmtDate(d);};
+  const nextWeek=()=>{const d=new Date(weekStart);d.setDate(d.getDate()+7);return fmtDate(d);};
+
+  const hasFilters=cp||co||cs||cd.length||csect.length||cf;
+
+  return `
+<!-- Calendar filter bar -->
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Period:</span>
+    <div class="pill-opt ${!cp?'sel':''}" data-cal-period="">All</div>
+    ${PERIODS.map(p=>`<div class="pill-opt ${cp===p?'sel':''}" data-cal-period="${p}">${p}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Section:</span>
+    <div class="pill-opt ${csect.length===0?'sel':''}" data-cal-sect="">All</div>
+    ${['Boys','Girls'].map(s=>`<div class="pill-opt ${csect.includes(s)?'sel':''}" data-cal-sect="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Dept:</span>
+    <div class="pill-opt ${cd.length===0?'sel':''}" data-cal-dept="">All</div>
+    ${allDepts.map(d=>`<div class="pill-opt ${cd.includes(d)?'sel':''}" data-cal-dept="${d}">${d}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Observer:</span>
+    <div class="pill-opt ${!co?'sel':''}" data-cal-observer="">All</div>
+    ${allObservers.map(v=>`<div class="pill-opt ${co===v?'sel':''}" data-cal-observer="${esc(v)}">${esc(v)}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Status:</span>
+    <div class="pill-opt ${!cs?'sel':''}" data-cal-status="">All</div>
+    ${[{v:'planned',l:'📅 Planned'},{v:'inprogress',l:'⏳ In Progress'},{v:'submitted',l:'✅ Submitted'}].map(s=>`<div class="pill-opt ${cs===s.v?'sel':''}" data-cal-status="${s.v}">${s.l}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Date:</span>
+    <input type="date" id="cal-date-filter" value="${cf}" style="padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px">
+    ${hasFilters?`<button class="btn btn-ghost btn-sm" onclick="S.calFilterPeriod='';S.calFilterObserver='';S.calFilterDept=[];S.calFilterSection=[];S.calFilterStatus='';S.calFilterDate='';render()">✕ Clear all</button>`:''}
+  </div>
+</div>
+
+<!-- Week navigation -->
+<div class="flex justify-between items-center mb-3">
+  <div class="flex gap-2 items-center">
+    <button class="btn btn-ghost btn-sm" onclick="S.calWeek='${prevWeek()}';render()">← Prev Week</button>
+    <span style="font-weight:700;font-size:13px">${weekDates[0].toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${weekDates[4].toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+    <button class="btn btn-ghost btn-sm" onclick="S.calWeek='${nextWeek()}';render()">Next Week →</button>
+    <button class="btn btn-ghost btn-sm" onclick="S.calWeek='';render()">Today</button>
+  </div>
+  <span class="text-xs text-muted">${gridObs.length} observation${gridObs.length!==1?'s':''} this week</span>
+</div>
+
+<!-- Weekly grid -->
+<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:18px">
+<table style="width:100%;border-collapse:collapse;min-width:720px">
+  <thead>
+    <tr>
+      <th style="width:80px;padding:8px 10px;background:var(--navy);color:#fff;font-size:11px;border-right:2px solid rgba(255,255,255,.2)">Period</th>
+      ${weekDates.map((d,i)=>{const today=fmtDate(new Date());const isToday=fmtDate(d)===today;return `<th style="padding:8px 6px;background:${isToday?'#1D9BD7':' var(--navy)'};color:#fff;font-size:11px;text-align:center;border-right:1px solid rgba(255,255,255,.15)">${DAYS[i]}<br><span style="font-size:10px;opacity:.8">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span></th>`;}).join('')}
+    </tr>
+  </thead>
+  <tbody>
+  ${PERIODS.map((period,pi)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;font-weight:700;font-size:11px;color:var(--navy);background:#f9fafb;border-right:2px solid var(--border);vertical-align:top;white-space:nowrap">${period}</td>
+      ${weekDates.map((d,di)=>{
+        const key=fmtDate(d)+'||'+period;
+        const cells=cellMap[key]||[];
+        const bg=di%2===0?'#fff':'#fafafa';
+        return `<td style="padding:4px 5px;vertical-align:top;border-right:1px solid #f0f0f0;background:${bg};min-height:50px">
+          ${cells.map(o=>{
+            const t=S.teachers.find(tc=>tc.id===o.tid);
+            const st=o.obsStatus||'planned';
+            const ss=STATUS_STYLE[st]||STATUS_STYLE.planned;
+            const tchSect=t?t.section:'';
+            const sectDot=tchSect==='Girls'?'🔴':tchSect==='Boys'?'🔵':'';
+            return `<div style="background:${ss.bg};border-left:3px solid ${ss.col};border-radius:4px;padding:3px 5px;margin-bottom:3px;font-size:10px">
+              <div style="font-weight:700;color:${ss.col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${sectDot} ${esc(t?t.name:'—')}</div>
+              <div style="color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">by ${esc(o.observer||'—')}</div>
+              ${t?`<div style="color:#9ca3af;font-size:9px">${esc(t.dept||'')}${o.timeSlot?' · '+o.timeSlot:''}</div>`:''}
+            </div>`;
+          }).join('')}
+          ${!cells.length?`<div style="color:#e5e7eb;font-size:9px;padding:4px;text-align:center">—</div>`:''}
+        </td>`;
+      }).join('')}
+    </tr>`).join('')}
+  </tbody>
+</table>
+</div>
+
+<!-- Filtered list of ALL matching observations (across all weeks) -->
+<div class="card" style="padding:12px 14px">
+  <div class="flex justify-between items-center mb-3">
+    <div style="font-weight:700;font-size:13px;color:var(--navy)">📋 All Matching Observations (${filteredObs.length})</div>
+    <span class="text-xs text-muted">${hasFilters?'filtered':''}</span>
+  </div>
+  ${filteredObs.length===0?`<div class="text-xs text-muted" style="font-style:italic;text-align:center;padding:20px">No observations match the selected filters.</div>`:''}
+  <div style="overflow-x:auto">
+  ${filteredObs.length?`<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:680px">
+    <thead><tr style="background:var(--navy);color:#fff;font-size:11px">
+      <th style="padding:7px 8px;text-align:left">Teacher</th>
+      <th style="padding:7px 6px">Dept</th>
+      <th style="padding:7px 6px">Section</th>
+      <th style="padding:7px 6px">Date</th>
+      <th style="padding:7px 6px">Period</th>
+      <th style="padding:7px 6px">Time</th>
+      <th style="padding:7px 6px">Observer</th>
+      <th style="padding:7px 6px">Type</th>
+      <th style="padding:7px 6px">Status</th>
+      <th style="padding:7px 6px">Score</th>
+    </tr></thead>
+    <tbody>
+    ${filteredObs.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map((o,i)=>{
+      const t=S.teachers.find(tc=>tc.id===o.tid);
+      const st=o.obsStatus||'planned';
+      const ss=STATUS_STYLE[st]||STATUS_STYLE.planned;
+      const da=domAvg(o.scores);
+      const rowBg=i%2===0?'#fff':'#f9fafb';
+      return `<tr style="background:${rowBg};border-bottom:1px solid #f3f4f6">
+        <td style="padding:6px 8px;font-weight:600;direction:auto">${esc(t?t.name:'—')}</td>
+        <td style="padding:6px 6px"><span class="badge badge-blue" style="font-size:10px">${esc(t?t.dept:'—')}</span></td>
+        <td style="padding:6px 6px"><span class="badge ${t&&t.section==='Girls'?'badge-red':'badge-blue'}" style="font-size:10px">${esc(t?t.section:'—')}</span></td>
+        <td style="padding:6px 6px;white-space:nowrap;color:var(--muted)">${o.date||'—'}</td>
+        <td style="padding:6px 6px;white-space:nowrap"><span class="badge badge-gray" style="font-size:10px">${esc(o.period||'—')}</span></td>
+        <td style="padding:6px 6px;color:var(--muted)">${esc(o.timeSlot||'—')}</td>
+        <td style="padding:6px 6px;white-space:nowrap">${esc(o.observer||'—')}</td>
+        <td style="padding:6px 6px"><span class="badge badge-purple" style="font-size:10px">${esc(o.visitType||'—')}</span></td>
+        <td style="padding:6px 6px"><span class="badge" style="font-size:10px;background:${ss.bg};color:${ss.col}">${ss.lbl}</span></td>
+        <td style="padding:6px 6px;font-weight:700;color:var(--navy)">${da>0?da.toFixed(1)+'/5':'—'}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`:''}
+  </div>
+</div>`;
+}
 
 function renderDeptTLCList(){
   let items=scopedDeptTLC().slice();
@@ -3612,11 +3849,31 @@ function renderModal(type, data={}){
     const isEdit=!!(data.id);
     const preT=data.tid||'';
     const techVal=data.customTech?'Other':(data.bio||'');
+    const PERIODS=['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6'];
+    const curStatus=data.obsStatus||'planned';
+    const statusOpts=[
+      {v:'planned',l:'📅 Planned',col:'#6b7280',bg:'#f3f4f6'},
+      {v:'inprogress',l:'⏳ In Progress',col:'#92400e',bg:'#fef3c7'},
+      {v:'submitted',l:'✅ Submitted',col:'#065f46',bg:'#d1fae5'},
+    ];
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
       FS('obs-observer-position','Observer Position',VISITOR_POSITIONS,data.observerPosition||visitorPosition(data.observer||userName))+
       FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
+      G2(
+        `<div class="form-group"><label class="form-label">Period</label><select class="form-control" id="obs-period">`+
+        `<option value="">— Select Period —</option>`+
+        PERIODS.map(p=>`<option value="${p}"${(data.period||'')===p?' selected':''}>${p}</option>`).join('')+
+        `</select></div>`,
+        FI('obs-time','Time (optional)',data.timeSlot||'','time')
+      )+
+      `<div class="form-group"><label class="form-label">Observation Status</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${statusOpts.map(s=>`<button type="button" id="obs-status-btn-${s.v}" onclick="setObsStatus('${s.v}')" style="padding:6px 14px;border-radius:6px;border:2px solid ${curStatus===s.v?s.col:'#e5e7eb'};background:${curStatus===s.v?s.bg:'#fff'};color:${curStatus===s.v?s.col:'#6b7280'};font-weight:${curStatus===s.v?700:400};font-size:12px;cursor:pointer">${s.l}</button>`).join('')}
+      </div>
+      <input type="hidden" id="obs-status-val" value="${curStatus}">
+      </div>`+
       '<p class="text-xs text-muted mb-2">Hover (or tap ℹ rubric) on any criterion to see what each score 1–5 means, and add a note under each one to justify your rating.</p>'+
       '<div id="obs-domains">' +
       getDomains().map(d=>`<div class="card" style="border-left:4px solid var(--navy);margin-bottom:10px;padding:10px 12px">
@@ -4712,6 +4969,10 @@ function bindEvents(){
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
       visitType:gv('obs-visit-type')||'Learning Walk',
       visitNote:gv('obs-note')||'',
+      period:gv('obs-period')||'',
+      timeSlot:gv('obs-time')||'',
+      gradeClass:existing?.gradeClass||'',
+      obsStatus:(document.getElementById('obs-status-val')||{}).value||'planned',
       autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false
     };
     S.observations=editId?S.observations.map(o=>o.id===editId?obs:o):[...S.observations,obs];
@@ -5759,6 +6020,28 @@ function bindEvents(){
       if(u){S.modal=renderModal('user',u);render();}
     };
   });
+
+  // ── Observation quick-status buttons ────────────────────────────────────
+  document.querySelectorAll('[data-obs-setstatus]').forEach(el=>{
+    el.onclick=()=>{
+      const[id,st]=el.dataset.obsSetstatus.split('||');
+      const idx=S.observations.findIndex(o=>o.id===id);
+      if(idx<0)return;
+      S.observations[idx]={...S.observations[idx],obsStatus:st};
+      save('obs',S.observations);
+      showToast('Observation marked '+(st==='submitted'?'Submitted ✅':st==='inprogress'?'In Progress ⏳':'Planned 📅'));
+      render();
+    };
+  });
+
+  // ── Observation Calendar filter pills ───────────────────────────────────
+  document.querySelectorAll('[data-cal-period]').forEach(el=>{el.onclick=()=>{S.calFilterPeriod=el.dataset.calPeriod;render();};});
+  document.querySelectorAll('[data-cal-observer]').forEach(el=>{el.onclick=()=>{S.calFilterObserver=el.dataset.calObserver;render();};});
+  document.querySelectorAll('[data-cal-status]').forEach(el=>{el.onclick=()=>{S.calFilterStatus=el.dataset.calStatus;render();};});
+  document.querySelectorAll('[data-cal-dept]').forEach(el=>{el.onclick=()=>{const d=el.dataset.calDept;if(d===''){S.calFilterDept=[];}else{if(!S.calFilterDept)S.calFilterDept=[];const i=S.calFilterDept.indexOf(d);if(i>=0)S.calFilterDept.splice(i,1);else S.calFilterDept.push(d);}render();};});
+  document.querySelectorAll('[data-cal-sect]').forEach(el=>{el.onclick=()=>{const s=el.dataset.calSect;if(s===''){S.calFilterSection=[];}else{if(!S.calFilterSection)S.calFilterSection=[];const i=S.calFilterSection.indexOf(s);if(i>=0)S.calFilterSection.splice(i,1);else S.calFilterSection.push(s);}render();};});
+  const calDateFilter=document.getElementById('cal-date-filter');
+  if(calDateFilter){calDateFilter.onchange=()=>{S.calFilterDate=calDateFilter.value;render();};}
 
   // ── Observation (Fieldwork) filter pills ────────────────────────────────
   document.querySelectorAll('[data-fw-dept]').forEach(el=>{
