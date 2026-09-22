@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-22-D37-partner-position-visitor-strip-targets">
+<meta name="app-build" content="2026-09-22-D38-coobs-target-calendar-partner-portfolio-safari">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-09-22-D37-partner-position-visitor-strip-targets';
+const BUILD_VERSION='2026-09-22-D38-coobs-target-calendar-partner-portfolio-safari';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -529,6 +529,8 @@ async function loadAll(){
       if(br.visitorProfiles){sset('visitorProfiles',br.visitorProfiles);}
       if(br.customPositions&&br.customPositions.length){sset('customPositions',br.customPositions);}
       if(br.hiddenPositions){sset('hiddenPositions',br.hiddenPositions);}
+      // Load all teachers' portfolios from branding blob
+      if(br.portfolios){sset('allPortfolios',br.portfolios);}
       // Rebuild VISITOR_POSITIONS: built-ins minus hidden, plus custom
       {const _hp=sget('hiddenPositions')||[];const _cp=sget('customPositions')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(p=>!_hp.includes(p)),..._cp])].forEach(p=>VISITOR_POSITIONS.push(p));}
       // Merge local + remote Schedule Categories instead of one overwriting the other —
@@ -735,7 +737,7 @@ async function save(k,v){
     // uses password_hash) — invisible for edits to existing rows (their real hash round-trips
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
-    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
+    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id))})),['username','password','sections','grades','teacher_id']);
     else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',observer_partner:o.observerPartner||'',observer_partner_position:o.observerPartnerPosition||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}),['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status','observer_partner','observer_partner_position']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
@@ -792,18 +794,27 @@ async function saveSchedRecord(row,fullArray){
     status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||'',cpd_cache:row.cpdCache||null,teacher_insights:row.teacherInsights||{}}],['time_from','time_to','cost','cpd_cache','teacher_insights']);
 }
 function getMyPortfolio(){
+  // Portfolio keyed by username — stored in localStorage and branding blob
+  const uname=S.session?.username||S.session?.name||'';
+  const allPortfolios=sget('allPortfolios')||{};
+  if(allPortfolios[uname]&&allPortfolios[uname].folders)return allPortfolios[uname];
+  // Legacy: check per-user portfolio on user record
   const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
   if(myUser&&myUser.portfolio&&myUser.portfolio.folders)return myUser.portfolio;
   return sget('myPortfolio')||{folders:[]};
 }
 function saveMyPortfolio(p){
+  const uname=S.session?.username||S.session?.name||'';
+  // Store in a shared keyed object so all teachers' portfolios persist
+  const allPortfolios=sget('allPortfolios')||{};
+  allPortfolios[uname]=p;
+  sset('allPortfolios',allPortfolios);
   sset('myPortfolio',p);
-  // Also save to user record if available
-  const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
-  if(myUser){
-    myUser.portfolio=p;
-    save('users',S.users);
-  }
+  // Persist to school branding blob so it survives device changes
+  if(!S.branding)S.branding={};
+  if(!S.branding.portfolios)S.branding.portfolios={};
+  S.branding.portfolios[uname]=p;
+  saveSchoolSettings();
 }
 async function saveSchedInsight(schedId,teacherName,text){
   const row=S.schedule.find(r=>r.id===schedId);
@@ -2722,6 +2733,7 @@ function renderObsCalendar(){
             return `<div style="background:${ss.bg};border-left:3px solid ${ss.col};border-radius:4px;padding:3px 5px;margin-bottom:3px;font-size:10px">
               <div style="font-weight:700;color:${ss.col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${sectDot} ${esc(t?t.name:'—')}</div>
               <div style="color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">by ${esc(o.observer||'—')}</div>
+              ${o.observerPartner?`<div style="color:#9ca3af;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">+ ${esc(o.observerPartner)}</div>`:''}
               ${t?`<div style="color:#9ca3af;font-size:9px">${esc(t.dept||'')}${o.timeSlot?' · '+o.timeSlot:''}</div>`:''}
             </div>`;
           }).join('')}
@@ -6437,14 +6449,35 @@ function bindEvents(){
   });
 
   // ── My Portfolio handlers ──────────────────────────────────────────────
+  // All portfolio interactions use the platform's own modal (prompt/confirm are blocked in Safari on iPad)
   const _addFolderBtn=document.querySelector('[data-add-portfolio-folder]');
   if(_addFolderBtn){
     _addFolderBtn.onclick=()=>{
-      const name=prompt('Folder name (e.g. Certificates, Strategies):','');
-      if(!name||!name.trim())return;
-      const p=getMyPortfolio();
-      p.folders=[...(p.folders||[]),{name:name.trim(),items:[]}];
-      saveMyPortfolio(p);showToast('Folder created ✓');render();
+      S.modal=`<div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h3>🗂 New Folder</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+          <div class="modal-body">
+            <div class="form-group"><label class="form-label">Folder name (e.g. Certificates, Strategies)</label>
+            <input class="form-control" id="pf-new-folder-name" placeholder="e.g. Certificates" autofocus></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-primary" id="pf-new-folder-save">Create Folder</button>
+          </div>
+        </div>
+      </div>`;
+      render();
+      setTimeout(()=>{
+        document.getElementById('pf-new-folder-name')?.focus();
+        document.getElementById('pf-new-folder-save')?.addEventListener('click',()=>{
+          const name=(document.getElementById('pf-new-folder-name')?.value||'').trim();
+          if(!name){return;}
+          const p=getMyPortfolio();
+          p.folders=[...(p.folders||[]),{name,items:[]}];
+          saveMyPortfolio(p);S.modal=null;showToast(name+' folder created ✓');render();
+        });
+        document.getElementById('pf-new-folder-name')?.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pf-new-folder-save')?.click();});
+      },50);
     };
   }
   document.querySelectorAll('[data-add-portfolio-preset]').forEach(el=>{
@@ -6460,9 +6493,25 @@ function bindEvents(){
     el.onclick=()=>{
       const fi=parseInt(el.dataset.delPortfolioFolder);
       const p=getMyPortfolio();
-      if(!confirm('Delete folder "'+p.folders[fi].name+'" and all its items?'))return;
-      p.folders.splice(fi,1);
-      saveMyPortfolio(p);showToast('Folder deleted');render();
+      const folderName=p.folders[fi]?.name||'this folder';
+      S.modal=`<div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h3>🗑 Delete Folder</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+          <div class="modal-body"><p>Delete <strong>${esc(folderName)}</strong> and all its items? This cannot be undone.</p></div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-danger" id="pf-del-folder-confirm">Delete</button>
+          </div>
+        </div>
+      </div>`;
+      render();
+      setTimeout(()=>{
+        document.getElementById('pf-del-folder-confirm')?.addEventListener('click',()=>{
+          const p2=getMyPortfolio();
+          p2.folders.splice(fi,1);
+          saveMyPortfolio(p2);S.modal=null;showToast('Folder deleted');render();
+        });
+      },50);
     };
   });
   document.querySelectorAll('[data-add-portfolio-item]').forEach(el=>{
@@ -6470,27 +6519,55 @@ function bindEvents(){
       const fi=parseInt(el.dataset.addPortfolioItem);
       const p=getMyPortfolio();
       const folder=p.folders[fi];if(!folder)return;
-      // Build a mini-modal inline
-      const itemName=prompt('Item name / title:','');
-      if(!itemName||!itemName.trim())return;
-      const itemType=prompt('Type (e.g. Certificate, Strategy, PDF, Image) — or leave blank:','');
-      const itemNote=prompt('Note or description — or leave blank:','');
-      const itemUrl=prompt('URL link (optional — or leave blank):','');
-      const item={name:itemName.trim(),type:itemType||'',note:itemNote||'',url:itemUrl||'',fileData:null,addedAt:new Date().toISOString()};
-      // File upload via hidden input
-      const fi2=fi;
-      const fileInput=document.createElement('input');
-      fileInput.type='file';fileInput.accept='image/*,.pdf,.doc,.docx,.ppt,.pptx';
-      fileInput.onchange=e=>{
-        const file=e.target.files[0];
-        if(!file){folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added ✓');render();return;}
-        if(file.size>8*1024*1024){showToast('File too large — max 8MB','error');folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added (no file)');render();return;}
-        const reader=new FileReader();
-        reader.onload=ev=>{item.fileData={name:file.name,type:file.type,dataUrl:ev.target.result};folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item + file added ✓');render();};
-        reader.readAsDataURL(file);
-      };
-      if(confirm('Do you want to attach a file (certificate, PDF, image)?')){fileInput.click();}
-      else{folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added ✓');render();}
+      S.modal=`<div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h3>➕ Add Item to "${esc(folder.name)}"</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+          <div class="modal-body">
+            <div class="form-group"><label class="form-label">Title / Name <span style="color:var(--red)">*</span></label>
+              <input class="form-control" id="pfi-name" placeholder="e.g. Cambridge Certificate" autofocus></div>
+            <div class="form-group"><label class="form-label">Type (optional)</label>
+              <input class="form-control" id="pfi-type" placeholder="e.g. Certificate, Strategy, PDF, Image"></div>
+            <div class="form-group"><label class="form-label">Note / Description (optional)</label>
+              <textarea class="form-control" id="pfi-note" rows="2" placeholder="Brief description…"></textarea></div>
+            <div class="form-group"><label class="form-label">URL link (optional)</label>
+              <input class="form-control" id="pfi-url" placeholder="https://…" type="url"></div>
+            <div class="form-group"><label class="form-label">Attach file (optional — max 8MB)</label>
+              <input type="file" id="pfi-file" accept="image/*,.pdf,.doc,.docx,.ppt,.pptx" style="font-size:13px"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-primary" id="pf-add-item-save">Add Item</button>
+          </div>
+        </div>
+      </div>`;
+      render();
+      setTimeout(()=>{
+        document.getElementById('pfi-name')?.focus();
+        document.getElementById('pf-add-item-save')?.addEventListener('click',()=>{
+          const itemName=(document.getElementById('pfi-name')?.value||'').trim();
+          if(!itemName){showToast('Please enter a title','error');return;}
+          const itemType=(document.getElementById('pfi-type')?.value||'').trim();
+          const itemNote=(document.getElementById('pfi-note')?.value||'').trim();
+          const itemUrl=(document.getElementById('pfi-url')?.value||'').trim();
+          const fileInput=document.getElementById('pfi-file');
+          const file=fileInput?.files?.[0];
+          const item={name:itemName,type:itemType,note:itemNote,url:itemUrl,fileData:null,addedAt:new Date().toISOString()};
+          const finalSave=()=>{
+            const p2=getMyPortfolio();
+            if(!p2.folders[fi])return;
+            p2.folders[fi].items=[...(p2.folders[fi].items||[]),item];
+            saveMyPortfolio(p2);S.modal=null;showToast('Item added ✓');render();
+          };
+          if(file){
+            if(file.size>8*1024*1024){showToast('File too large — max 8MB','error');finalSave();return;}
+            const reader=new FileReader();
+            reader.onload=ev=>{item.fileData={name:file.name,type:file.type,dataUrl:ev.target.result};finalSave();};
+            reader.readAsDataURL(file);
+          } else {
+            finalSave();
+          }
+        });
+      },50);
     };
   });
   document.querySelectorAll('[data-del-portfolio-item]').forEach(el=>{
@@ -7297,44 +7374,47 @@ ${(()=>{
       const col=posColor(pos);
       // Primary observations (this person was the lead observer)
       const asPrimary=obs.filter(o=>o.observer===name);
-      // Co-observations (this person was listed as partner) — counted separately for label clarity
+      // Co-observations (this person was listed as partner)
       const asPartner=obs.filter(o=>(o.observerPartner||'')===name);
-      // For target progress: count ALL visits this person was involved in (primary role)
-      // Targets apply to primary role only — co-visits shown separately as bonus info
+      // Combined: all visits this person was involved in (primary OR partner)
+      // Used for target progress — partner visits count toward the co-observer's personal target
+      const allMyObs=[...asPrimary];
+      asPartner.forEach(o=>{if(!allMyObs.find(x=>x.id===o.id))allMyObs.push(o);});
       const totalPrimary=asPrimary.length;
       const totalPartner=asPartner.length;
+      const totalAll=allMyObs.length;
       const totalTarget=VT.reduce((a,t)=>a+getTargetFor(name,t),0);
-      const pct=totalTarget?Math.min(100,Math.round(totalPrimary/totalTarget*100)):null;
+      // Progress bar uses COMBINED count (primary + partner) vs target
+      const pct=totalTarget?Math.min(100,Math.round(totalAll/totalTarget*100)):null;
       const isPrimaryObserver=asPrimary.length>0;
       const isCoObserver=asPartner.length>0;
       // Role label
-      const roleLabel=isPrimaryObserver&&isCoObserver?'Observer + Partner':isCoObserver?'Co-observer (partner)':'Observer';
+      const roleLabel=isPrimaryObserver&&isCoObserver?'Observer + Co-observer':isCoObserver?'Co-observer (partner)':'Observer';
       return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:170px;border-top:3px solid '+col+';background:#fff;cursor:pointer" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+name+'">'
         // Name + role badge
         +'<div style="font-weight:700;font-size:11px;margin-bottom:1px">'+esc(name)+'</div>'
         +'<div style="font-size:9px;color:'+col+';font-weight:600">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
         +'<div style="font-size:9px;color:var(--muted);margin-bottom:6px;font-style:italic">'+roleLabel+'</div>'
-        // Visit type breakdown for primary visits
-        +(isPrimaryObserver?'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px">'
+        // Visit type breakdown — combined (primary + co-observer visits count together)
+        +(isPrimaryObserver||isCoObserver?'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px">'
           +VT.map(t=>{
-            const cnt=asPrimary.filter(o=>o.visitType===t).length;
+            const cnt=allMyObs.filter(o=>o.visitType===t).length;
+            const cntP=asPrimary.filter(o=>o.visitType===t).length;
+            const cntCo=asPartner.filter(o=>o.visitType===t).length;
             const tgt=getTargetFor(name,t);
             if(!cnt&&!tgt)return '';
             const ok=tgt&&cnt>=tgt;
-            return '<span title="'+t+' (as lead observer)" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+'</span>';
+            const title=t+(cntCo?' ('+cntP+' lead + '+cntCo+' co-obs)':'');
+            return '<span title="'+title+'" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+(cntCo?'<sup style="font-size:7px">+'+cntCo+'co</sup>':'')+'</span>';
           }).join('')
           +'</div>'
           :'')
-        // Co-visit count row (if any partner visits)
-        +(isCoObserver
-          ?'<div style="font-size:9px;color:var(--muted);margin-bottom:4px">+ '+totalPartner+' co-visit'+(totalPartner!==1?'s':'')+' as partner</div>'
-          :'')
-        // Progress bar (primary visits vs target)
+        // Progress bar — combined count vs target
         +(pct!==null
           ?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+(pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div>'
-           +'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalPrimary+'/'+totalTarget+' ('+pct+'%) vs target</div>'
-          :(isPrimaryObserver
-            ?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalPrimary+' visit'+(totalPrimary!==1?'s':'')+' · no target set</div>'
+           +'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalAll+'/'+totalTarget+' ('+pct+'%) vs target'+(totalPartner?' · '+totalPartner+' as co-obs':'')+'</div>'
+          :((isPrimaryObserver||isCoObserver)
+            ?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalAll+' visit'+(totalAll!==1?'s':'')+' · no target set</div>'
             :''))
         +'</div>';
     }).join('')
