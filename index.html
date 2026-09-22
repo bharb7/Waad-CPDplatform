@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-22-D38-coobs-target-calendar-partner-portfolio-safari">
+<meta name="app-build" content="2026-09-22-D39-single-visitor-card-portfolio-viewer-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-09-22-D38-coobs-target-calendar-partner-portfolio-safari';
+const BUILD_VERSION='2026-09-22-D39-single-visitor-card-portfolio-viewer-fix';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -794,26 +794,36 @@ async function saveSchedRecord(row,fullArray){
     status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||'',cpd_cache:row.cpdCache||null,teacher_insights:row.teacherInsights||{}}],['time_from','time_to','cost','cpd_cache','teacher_insights']);
 }
 function getMyPortfolio(){
-  // Portfolio keyed by username — stored in localStorage and branding blob
-  const uname=S.session?.username||S.session?.name||'';
+  // Portfolio keyed by username OR name — stored in localStorage and branding blob
+  const uname=S.session?.username||'';
+  const uNameFull=S.session?.name||'';
   const allPortfolios=sget('allPortfolios')||{};
-  if(allPortfolios[uname]&&allPortfolios[uname].folders)return allPortfolios[uname];
-  // Legacy: check per-user portfolio on user record
-  const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
+  // Check by username first, then by full name
+  if(uname&&allPortfolios[uname]&&allPortfolios[uname].folders)return allPortfolios[uname];
+  if(uNameFull&&allPortfolios[uNameFull]&&allPortfolios[uNameFull].folders)return allPortfolios[uNameFull];
+  // Legacy: check branding portfolios
+  const brPortfolios=(S.branding&&S.branding.portfolios)||{};
+  if(uname&&brPortfolios[uname]&&brPortfolios[uname].folders)return brPortfolios[uname];
+  if(uNameFull&&brPortfolios[uNameFull]&&brPortfolios[uNameFull].folders)return brPortfolios[uNameFull];
+  // Legacy fallback: per-user record
+  const myUser=S.users&&S.users.find(u=>u.name===uNameFull||u.username===uname);
   if(myUser&&myUser.portfolio&&myUser.portfolio.folders)return myUser.portfolio;
   return sget('myPortfolio')||{folders:[]};
 }
 function saveMyPortfolio(p){
-  const uname=S.session?.username||S.session?.name||'';
-  // Store in a shared keyed object so all teachers' portfolios persist
+  const uname=S.session?.username||'';
+  const uNameFull=S.session?.name||'';
+  // Store under BOTH keys for reliable lookup
   const allPortfolios=sget('allPortfolios')||{};
-  allPortfolios[uname]=p;
+  if(uname)allPortfolios[uname]=p;
+  if(uNameFull)allPortfolios[uNameFull]=p;
   sset('allPortfolios',allPortfolios);
   sset('myPortfolio',p);
-  // Persist to school branding blob so it survives device changes
+  // Persist to school branding blob so it survives device changes and syncs across devices
   if(!S.branding)S.branding={};
   if(!S.branding.portfolios)S.branding.portfolios={};
-  S.branding.portfolios[uname]=p;
+  if(uname)S.branding.portfolios[uname]=p;
+  if(uNameFull)S.branding.portfolios[uNameFull]=p;
   saveSchoolSettings();
 }
 async function saveSchedInsight(schedId,teacherName,text){
@@ -1759,12 +1769,27 @@ ${filteredSched.length===0?`<div class="card" style="text-align:center;color:var
 `}
 
 
+function getPortfolioForTeacher(teacherName,teacherUsername){
+  // Look up a teacher's portfolio from the shared portfolios store (keyed by name or username)
+  const allPortfolios=sget('allPortfolios')||{};
+  const brPortfolios=(S.branding&&S.branding.portfolios)||{};
+  // Try username first, then name, then branding blob
+  if(teacherUsername&&allPortfolios[teacherUsername]&&allPortfolios[teacherUsername].folders)return allPortfolios[teacherUsername];
+  if(teacherName&&allPortfolios[teacherName]&&allPortfolios[teacherName].folders)return allPortfolios[teacherName];
+  if(teacherUsername&&brPortfolios[teacherUsername]&&brPortfolios[teacherUsername].folders)return brPortfolios[teacherUsername];
+  if(teacherName&&brPortfolios[teacherName]&&brPortfolios[teacherName].folders)return brPortfolios[teacherName];
+  // Fallback: user record (legacy)
+  const userRec=S.users&&S.users.find(u=>u.name===teacherName||u.username===teacherUsername);
+  if(userRec&&userRec.portfolio&&userRec.portfolio.folders)return userRec.portfolio;
+  return {folders:[]};
+}
+
 // ─── Admin Portfolio Viewer ───────────────────────────────────────────────────
 function renderAdminPortfolioViewer(teacherId){
   const t=teacherId?S.teachers.find(tc=>tc.id===teacherId):null;
   if(!t)return`<div style="text-align:center;color:var(--muted);padding:30px;font-style:italic;border-radius:8px;background:var(--light)"><div style="font-size:40px;margin-bottom:8px">🎓</div><div>Select a teacher above to view their portfolio</div></div>`;
   const userRec=S.users.find(u=>u.name===t.name||(u.name||'').trim()===(t.name||'').trim());
-  const portfolio=userRec?.portfolio||{folders:[]};
+  const portfolio=getPortfolioForTeacher(t.name,userRec?.username||'');
   const folders=portfolio.folders||[];
   const FOLDER_COLORS=['#163A5F','#0F6E56','#E8743B','#5C3D99','#D6295E','#1D9BD7'];
   if(!folders.length)return`<div class="card" style="border-top:3px solid var(--purple);padding:20px">
@@ -2459,9 +2484,8 @@ ${tab==='resources'?`
 `:''}
 ${tab==='portfolio'?`
   ${(()=>{
-    // Load portfolio from session user record
-    const myUser=S.users.find(u=>u.name===S.session?.name||u.username===S.session?.username);
-    const portfolio=myUser?.portfolio||sget('myPortfolio')||{folders:[],editingFolder:null};
+    // Always read from the canonical source — avoids stale myUser.portfolio after new-path saves
+    const portfolio=getMyPortfolio();
     const folders=portfolio.folders||[];
     window.__portfolio=portfolio;
     const DEFAULT_FOLDERS=['Certificates','Best Practices','Strategies','Reflections','Observations','Professional Development'];
@@ -2526,21 +2550,22 @@ let VISITOR_POSITIONS=[...new Set([
   ...(sget('customPositions')||[])
 ]).values()];
 
-// Get position label for a given observer name.
-// Priority: (1) Visitor Profiles setting, (2) most recent obs where primary observer, (3) most recent obs where partner, (4) 'Other'
 function visitorPosition(name){
   if(!name)return 'Other';
+  const nk=name.trim().toLowerCase();
   const p=getVisitorProfiles();
-  if(p[name]&&p[name].position) return p[name].position;
+  // Check profile by exact key first, then by normalized key
+  const profKey=Object.keys(p).find(k=>k.trim().toLowerCase()===nk);
+  if(profKey&&p[profKey]&&p[profKey].position) return p[profKey].position;
   const allObs=S.observations||[];
-  // Primary observer records
-  const asObserver=allObs.filter(o=>o.observer===name&&o.observerPosition);
+  // Primary observer records — normalized comparison
+  const asObserver=allObs.filter(o=>(o.observer||'').trim().toLowerCase()===nk&&o.observerPosition);
   if(asObserver.length){
     const latest=asObserver.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
     if(latest.observerPosition) return latest.observerPosition;
   }
-  // Partner records — use observerPartnerPosition when this person was the co-observer
-  const asPartner=allObs.filter(o=>o.observerPartner===name&&o.observerPartnerPosition);
+  // Partner records — normalized comparison
+  const asPartner=allObs.filter(o=>(o.observerPartner||'').trim().toLowerCase()===nk&&o.observerPartnerPosition);
   if(asPartner.length){
     const latest=asPartner.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
     if(latest.observerPartnerPosition) return latest.observerPartnerPosition;
@@ -4554,7 +4579,7 @@ function renderModal(type, data={}){
     const curId=data.teacherId||S.adminPortfolioTeacherId||'';
     return M('🎓 Teacher Portfolio Viewer',
       '<div class="form-group"><label class="form-label">Select Teacher</label>'
-      +'<select class="form-control" id="portfolio-teacher-sel">'
+      +'<select class="form-control" id="portfolio-teacher-sel" onchange="S.adminPortfolioTeacherId=this.value;S.modal=renderModal(\'portfolioViewer\');render()">'
       +'<option value="">— Choose a teacher —</option>'
       +S.teachers.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(tc=>'<option value="'+tc.id+'"'+(curId===tc.id?' selected':'')+'>'+esc(tc.name)+' ('+esc(tc.dept||'')+')</option>').join('')
       +'</select></div>'
@@ -7355,11 +7380,14 @@ function renderVisitTracker(){
 <!-- ── Per-Visitor Progress Strip ──────────────────────────────────────────── -->
 ${(()=>{
   const obs=S.observations||[];
-  // Collect every unique person who appears as primary observer OR partner
-  const allNames=[...new Set([
-    ...obs.map(o=>o.observer).filter(Boolean),
-    ...obs.map(o=>o.observerPartner).filter(Boolean)
-  ])].sort();
+  // Collect every unique person — normalize to trimmed string to prevent duplicates from whitespace/case
+  // Use a Map keyed by normalized name so the display name is preserved from first occurrence
+  const nameMap=new Map();
+  [...obs.map(o=>o.observer),...obs.map(o=>o.observerPartner)].filter(Boolean).forEach(n=>{
+    const key=n.trim().toLowerCase();
+    if(!nameMap.has(key))nameMap.set(key,n.trim());
+  });
+  const allNames=[...nameMap.values()].sort();
   if(!allNames.length)return '';
   const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
   const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
@@ -7372,10 +7400,11 @@ ${(()=>{
       const pos=visitorPosition(name);
       const dept=visitorDept(name);
       const col=posColor(pos);
-      // Primary observations (this person was the lead observer)
-      const asPrimary=obs.filter(o=>o.observer===name);
-      // Co-observations (this person was listed as partner)
-      const asPartner=obs.filter(o=>(o.observerPartner||'')===name);
+      const nameKey=name.trim().toLowerCase();
+      // Primary observations (this person was the lead observer) — normalize comparison
+      const asPrimary=obs.filter(o=>(o.observer||'').trim().toLowerCase()===nameKey);
+      // Co-observations (this person was listed as partner) — normalize comparison
+      const asPartner=obs.filter(o=>(o.observerPartner||'').trim().toLowerCase()===nameKey);
       // Combined: all visits this person was involved in (primary OR partner)
       // Used for target progress — partner visits count toward the co-observer's personal target
       const allMyObs=[...asPrimary];
