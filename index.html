@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-20-D35-obs-calendar-period-status-planned">
+<meta name="app-build" content="2026-09-22-D37-partner-position-visitor-strip-targets">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-09-20-D35-obs-calendar-period-status-planned';
+const BUILD_VERSION='2026-09-22-D37-partner-position-visitor-strip-targets';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -669,7 +669,7 @@ function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u
 // actually reached the database, no matter what the app showed.
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',timeSlot:r.time_slot||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{},obsStatus:r.obs_status||'planned'}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',observerPartner:r.observer_partner||'',observerPartnerPosition:r.observer_partner_position||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',timeSlot:r.time_slot||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{},obsStatus:r.obs_status||'planned'}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 // mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
 // never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
@@ -736,7 +736,7 @@ async function save(k,v){
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
     else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
-    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}),['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status']);
+    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',observer_partner:o.observerPartner||'',observer_partner_position:o.observerPartnerPosition||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}),['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status','observer_partner','observer_partner_position']);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
     else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
@@ -1203,6 +1203,14 @@ function totalDH(fo,ft){return DH_PILLARS.filter(p=>S.dhM[p.id]!==undefined?S.dh
 function myRole(){if(!S.session)return DEFAULT_ROLES.viewer;if(S.session.role==='admin')return DEFAULT_ROLES.admin;return S.roleCfg[S.session.role]||DEFAULT_ROLES.viewer;}
 function isAdmin(){return S.session?.role==='admin'}
 function canEdit(){return isAdmin()||myRole()?.canEdit}
+// Visit Tracker is restricted to admin-role users plus the four named school leaders.
+// All name comparisons are case-insensitive and trim-safe.
+const VISIT_TRACKER_ALLOWED_NAMES=['ibrahim mikkawi','racha','bilal harb','rabiha alyamani'];
+function canSeeVisitTracker(){
+  if(isAdmin())return true;
+  const n=(S.session?.name||'').toLowerCase().trim();
+  return VISIT_TRACKER_ALLOWED_NAMES.some(a=>n.includes(a)||a.includes(n.split(' ')[0]));
+}
 // Department Coordinators (deptHead/deptHeadPlus) are scoped by DEPARTMENT (S.session.depts).
 // Heads of Section (HOS, role key still 'cpdLead') are scoped by GRADE + SECTION instead
 // (S.session.grades / S.session.sections) — e.g. "boys, grades 4 to 8". Same `scoped:true` role
@@ -1984,7 +1992,7 @@ function renderFieldwork(){
 <div class="tabs">
   <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">📋 Observations (${obs.length})</button>
   <button class="tab ${tab==='calendar'?'active':''}" data-fw-tab="calendar">📅 Obs Calendar</button>
-  <button class="tab ${tab==='visits'?'active':''}" data-fw-tab="visits">📊 Visit Tracker (${(S.observations||[]).length})</button>
+  ${canSeeVisitTracker()?`<button class="tab ${tab==='visits'?'active':''}" data-fw-tab="visits">📊 Visit Tracker (${(S.observations||[]).length})</button>`:''}
 </div>
 
 ${tab==='obs'?`
@@ -2141,7 +2149,7 @@ ${tab==='cpd'?`
 
 ${tab==='calendar'?renderObsCalendar():''}
 
-${tab==='visits'?renderVisitTracker():''}
+${tab==='visits'?(canSeeVisitTracker()?renderVisitTracker():'<div class="card" style="text-align:center;color:var(--muted);padding:40px;font-style:italic">You do not have access to the Visit Tracker.</div>'):''}
 `}
 
 function renderMyPortal(){
@@ -2238,7 +2246,7 @@ ${tab==='obs'?`
       <div class="flex justify-between items-center mb-2">
         <div>
           <span style="font-weight:700;font-size:14px">${o.date||'—'}</span>
-          <span class="text-xs text-muted ml-2">Observed by: ${esc(o.observer||'—')}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
+          <span class="text-xs text-muted ml-2">Observed by: ${esc(o.observer||'—')}${o.observerPosition?' ('+esc(o.observerPosition)+')':''}${o.observerPartner?' + '+esc(o.observerPartner)+(o.observerPartnerPosition?' ('+esc(o.observerPartnerPosition)+')':''):''}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
         </div>
         <div class="flex gap-2 items-center">
           ${da?'<span class="badge badge-blue" style="font-size:13px;font-weight:800">'+da.toFixed(1)+'/5</span>':''}
@@ -2350,11 +2358,11 @@ ${tab==='schedule'?`
       <div class="pill-opt ${(S.portalSchedMonth||'')==''?'sel':''}" data-portal-month="">All</div>
       ${MONTHS.map(m=>`<div class="pill-opt ${S.portalSchedMonth===m?'sel':''}" data-portal-month="${m}">${m}</div>`).join('')}
     </div>
-    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    ${S.session?.role!=='teacher'?`<div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
       <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Status:</span>
       <div class="pill-opt ${(S.portalSchedStatus||'')==''?'sel':''}" data-portal-status="">All</div>
       ${['planned','active','done'].map(s=>`<div class="pill-opt ${S.portalSchedStatus===s?'sel':''}" data-portal-status="${s}">${s}</div>`).join('')}
-    </div>
+    </div>`:'<div class="flex items-center gap-2 mb-2"><span style="font-size:11px;color:var(--muted)">Showing completed sessions only.</span></div>'}
     <div class="flex items-center gap-2" style="flex-wrap:wrap">
       <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Date:</span>
       <input type="date" class="form-control" id="portal-sched-date" style="width:auto;font-size:12px;padding:4px 8px" value="${esc(S.portalSchedDate||'')}">
@@ -2364,6 +2372,8 @@ ${tab==='schedule'?`
   </div>
   ${(()=>{
     let rows=mySchedule;
+    // Teachers should only see sessions that are fully done
+    if(S.session?.role==='teacher')rows=rows.filter(r=>r.status==='done');
     if(S.portalSchedMonth)rows=rows.filter(r=>r.month===S.portalSchedMonth);
     if(S.portalSchedStatus)rows=rows.filter(r=>r.status===S.portalSchedStatus);
     if(S.portalSchedDate)rows=rows.filter(r=>{
@@ -2464,23 +2474,23 @@ ${tab==='portfolio'?`
     +'</div>').join('')+'</div>');
   })()}
 
-\${tab==='myvisits'?(()=>{
+${tab==='myvisits'?(()=>{
   loadVisits();
   const myName=(S.session?.name||'').toLowerCase();
   const myVs=(S.visits||[]).filter(v=>(v.teacher||'').toLowerCase()===myName);
   const statusBadge=s=>s==='Completed'?'badge-green':s==='Rescheduled'?'badge-amber':s==='Cancelled'?'badge-red':'badge-gray';
-  return '<div style=\"margin-bottom:10px\"><div style=\"font-size:14px;font-weight:700;color:var(--navy)\">📋 My Scheduled Visits</div>'
-    +'<div class=\"text-xs text-muted\">'+myVs.length+' visit'+(myVs.length!==1?'s':'')+' planned for you this academic year</div></div>'
-    +(myVs.length?'<div style=\"overflow-x:auto\"><table><thead><tr><th>Visitor</th><th>Type</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
+  return '<div style="margin-bottom:10px"><div style="font-size:14px;font-weight:700;color:var(--navy)">📋 My Scheduled Visits</div>'
+    +'<div class="text-xs text-muted">'+myVs.length+' visit'+(myVs.length!==1?'s':'')+' planned for you this academic year</div></div>'
+    +(myVs.length?'<div style="overflow-x:auto"><table><thead><tr><th>Visitor</th><th>Type</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
       +myVs.map(v=>'<tr>'
-        +'<td class=\"text-xs font-semibold\">'+esc(v.visitor||'—')+'</td>'
-        +'<td><span class=\"badge badge-purple\" style=\"font-size:10px\">'+esc(v.type||'Learning Walk')+'</span></td>'
-        +'<td class=\"text-xs\">'+( v.date||'<span style=\"color:#d1d5db\">TBD</span>')+'</td>'
-        +'<td><span class=\"badge '+statusBadge(v.status)+'\" style=\"font-size:10px\">'+esc(v.status)+'</span></td>'
-        +'<td class=\"text-xs text-muted\">'+(v.completedNotes?esc(v.completedNotes.slice(0,50)):v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')+'</td>'
+        +'<td class="text-xs font-semibold">'+esc(v.visitor||'—')+'</td>'
+        +'<td><span class="badge badge-purple" style="font-size:10px">'+esc(v.type||'Learning Walk')+'</span></td>'
+        +'<td class="text-xs">'+(v.date||'<span style="color:#d1d5db">TBD</span>')+'</td>'
+        +'<td><span class="badge '+statusBadge(v.status)+'" style="font-size:10px">'+esc(v.status)+'</span></td>'
+        +'<td class="text-xs text-muted">'+(v.completedNotes?esc(v.completedNotes.slice(0,50)):v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')+'</td>'
         +'</tr>').join('')
       +'</tbody></table></div>'
-    :'<div class=\"card\" style=\"text-align:center;color:var(--muted);padding:30px;font-style:italic\">No visits scheduled for you yet.</div>');
+    :'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No visits scheduled for you yet.</div>');
 })():''}
 `:''}
 `}
@@ -2506,15 +2516,23 @@ let VISITOR_POSITIONS=[...new Set([
 ]).values()];
 
 // Get position label for a given observer name.
-// Priority: (1) Visitor Profiles setting, (2) most recent observation's recorded position, (3) 'Other'
+// Priority: (1) Visitor Profiles setting, (2) most recent obs where primary observer, (3) most recent obs where partner, (4) 'Other'
 function visitorPosition(name){
+  if(!name)return 'Other';
   const p=getVisitorProfiles();
   if(p[name]&&p[name].position) return p[name].position;
-  // Fall back to the position stamped on the most recent observation by this observer
-  const obs=(S.observations||[]).filter(o=>o.observer===name&&o.observerPosition);
-  if(obs.length){
-    const latest=obs.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
+  const allObs=S.observations||[];
+  // Primary observer records
+  const asObserver=allObs.filter(o=>o.observer===name&&o.observerPosition);
+  if(asObserver.length){
+    const latest=asObserver.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
     if(latest.observerPosition) return latest.observerPosition;
+  }
+  // Partner records — use observerPartnerPosition when this person was the co-observer
+  const asPartner=allObs.filter(o=>o.observerPartner===name&&o.observerPartnerPosition);
+  if(asPartner.length){
+    const latest=asPartner.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
+    if(latest.observerPartnerPosition) return latest.observerPartnerPosition;
   }
   return 'Other';
 }
@@ -3859,6 +3877,8 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
+      FI('obs-partner','Observed with (partner — optional, free text)',data.observerPartner||'')+
+      FS('obs-partner-position','Partner Position',['— None —',...VISITOR_POSITIONS],data.observerPartnerPosition||(data.observerPartner?visitorPosition(data.observerPartner):'— None —'))+
       FS('obs-observer-position','Observer Position',VISITOR_POSITIONS,data.observerPosition||visitorPosition(data.observer||userName))+
       FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
       G2(
@@ -4962,6 +4982,8 @@ function bindEvents(){
     const obs={
       ...(existing||{}),
       id:editId||uid(),tid:tid||null,date:gv('obs-date'),observer:gv('obs-obs'),
+      observerPartner:gv('obs-partner')||'',
+      observerPartnerPosition:(gv('obs-partner-position')||'').replace('— None —',''),
       observerPosition:gv('obs-observer-position')||'',
       scope:gv('obs-scope'),bio:bio==='— None —'||bio===''?'':bio,customTech:customTech||'',
       comments,
@@ -7119,6 +7141,8 @@ function obsToVisit(o){
     stage:t?t.stage:'',
     date:o.date||'',
     visitor:o.observer||'',
+    visitorPartner:o.observerPartner||'',
+    visitorPartnerPosition:o.observerPartnerPosition||'',
     visitorPosition:o.observerPosition||visitorPosition(o.observer||''),
     type:o.visitType||'Learning Walk',
     status:'Completed',
@@ -7254,39 +7278,64 @@ function renderVisitTracker(){
 <!-- ── Per-Visitor Progress Strip ──────────────────────────────────────────── -->
 ${(()=>{
   const obs=S.observations||[];
-  const allObservers=[...new Set(obs.map(o=>o.observer).filter(Boolean))].sort();
-  if(!allObservers.length)return '';
-  // Only show strip if visitor profiles have been configured
-  const profiles=getVisitorProfiles();
-  const hasProfiles=Object.keys(profiles).length>0;
+  // Collect every unique person who appears as primary observer OR partner
+  const allNames=[...new Set([
+    ...obs.map(o=>o.observer).filter(Boolean),
+    ...obs.map(o=>o.observerPartner).filter(Boolean)
+  ])].sort();
+  if(!allNames.length)return '';
   const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
   const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
   const VCOL={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
   const posColor=(pos)=>pos==='Academic Head'?'var(--purple)':pos.startsWith('HOS')?'var(--navy)':pos.startsWith('HOD')?'var(--teal)':pos.startsWith('Mid')?'var(--amber)':'#9ca3af';
   return '<div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">👁 Visitor Progress — click any card to filter ↓</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-    +allObservers.map(name=>{
+    +allNames.map(name=>{
+      // Position resolved from: Visitor Profiles → primary obs records → partner obs records → 'Other'
       const pos=visitorPosition(name);
       const dept=visitorDept(name);
-      const myObs=obs.filter(o=>o.observer===name);
       const col=posColor(pos);
-      const totalDone=myObs.length;
+      // Primary observations (this person was the lead observer)
+      const asPrimary=obs.filter(o=>o.observer===name);
+      // Co-observations (this person was listed as partner) — counted separately for label clarity
+      const asPartner=obs.filter(o=>(o.observerPartner||'')===name);
+      // For target progress: count ALL visits this person was involved in (primary role)
+      // Targets apply to primary role only — co-visits shown separately as bonus info
+      const totalPrimary=asPrimary.length;
+      const totalPartner=asPartner.length;
       const totalTarget=VT.reduce((a,t)=>a+getTargetFor(name,t),0);
-      const pct=totalTarget?Math.min(100,Math.round(totalDone/totalTarget*100)):null;
-      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:160px;border-top:3px solid '+col+';background:#fff;cursor:pointer" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+esc(name)+'">'
+      const pct=totalTarget?Math.min(100,Math.round(totalPrimary/totalTarget*100)):null;
+      const isPrimaryObserver=asPrimary.length>0;
+      const isCoObserver=asPartner.length>0;
+      // Role label
+      const roleLabel=isPrimaryObserver&&isCoObserver?'Observer + Partner':isCoObserver?'Co-observer (partner)':'Observer';
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:170px;border-top:3px solid '+col+';background:#fff;cursor:pointer" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+name+'">'
+        // Name + role badge
         +'<div style="font-weight:700;font-size:11px;margin-bottom:1px">'+esc(name)+'</div>'
-        +'<div style="font-size:9px;color:'+col+';font-weight:600;margin-bottom:6px">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
-        +'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px">'
-        +VT.map(t=>{
-          const cnt=myObs.filter(o=>o.visitType===t).length;
-          const tgt=getTargetFor(name,t);
-          if(!cnt&&!tgt)return '';
-          const ok=tgt&&cnt>=tgt;
-          return '<span title="'+t+'" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+'</span>';
-        }).join('')
-        +'</div>'
-        +(pct!==null?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+( pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalDone+'/'+totalTarget+' ('+pct+'%)</div>'
-          :'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalDone+' visit'+(totalDone!==1?'s':'')+' · no target</div>')
+        +'<div style="font-size:9px;color:'+col+';font-weight:600">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
+        +'<div style="font-size:9px;color:var(--muted);margin-bottom:6px;font-style:italic">'+roleLabel+'</div>'
+        // Visit type breakdown for primary visits
+        +(isPrimaryObserver?'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px">'
+          +VT.map(t=>{
+            const cnt=asPrimary.filter(o=>o.visitType===t).length;
+            const tgt=getTargetFor(name,t);
+            if(!cnt&&!tgt)return '';
+            const ok=tgt&&cnt>=tgt;
+            return '<span title="'+t+' (as lead observer)" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+'</span>';
+          }).join('')
+          +'</div>'
+          :'')
+        // Co-visit count row (if any partner visits)
+        +(isCoObserver
+          ?'<div style="font-size:9px;color:var(--muted);margin-bottom:4px">+ '+totalPartner+' co-visit'+(totalPartner!==1?'s':'')+' as partner</div>'
+          :'')
+        // Progress bar (primary visits vs target)
+        +(pct!==null
+          ?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+(pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div>'
+           +'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalPrimary+'/'+totalTarget+' ('+pct+'%) vs target</div>'
+          :(isPrimaryObserver
+            ?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalPrimary+' visit'+(totalPrimary!==1?'s':'')+' · no target set</div>'
+            :''))
         +'</div>';
     }).join('')
     +'</div>';
@@ -7372,7 +7421,10 @@ ${fv.length?`
       <td style="padding:6px 6px"><span class="badge ${v.campus==='Girls'?'badge-red':'badge-blue'}" style="font-size:10px">${esc(v.campus||'—')}</span></td>
       <td style="padding:6px 6px;color:var(--muted)">${esc(v.grade||'—')}</td>
       <td style="padding:6px 6px;white-space:nowrap;color:var(--muted)">${v.date||'<span style="color:#d1d5db">—</span>'}</td>
-      <td style="padding:6px 6px;white-space:nowrap">${esc(v.visitor||'—')}</td>
+      <td style="padding:6px 6px;white-space:nowrap">
+        <div>${esc(v.visitor||'—')}</div>
+        ${v.visitorPartner?'<div style="font-size:9px;color:var(--muted);margin-top:2px">+ '+esc(v.visitorPartner)+(v.visitorPartnerPosition?' <span style="opacity:.7">('+esc(v.visitorPartnerPosition)+')</span>':'')+'</div>':''}
+      </td>
       <td style="padding:6px 6px;white-space:nowrap;font-size:10px;color:var(--muted)">${esc(v.visitorPosition||'—')}</td>
       <td style="padding:6px 6px">
         ${v.type?`<span class="badge" style="font-size:10px;background:${vcol}18;color:${vcol};border:1px solid ${vcol}44">${VISIT_TYPE_SHORT[v.type]||esc(v.type)}</span>`:'<span style="color:#d1d5db">—</span>'}
