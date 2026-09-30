@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-22-D39-single-visitor-card-portfolio-viewer-fix">
+<meta name="app-build" content="2026-09-28-D40-teacher-stage-filter-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-09-22-D39-single-visitor-card-portfolio-viewer-fix';
+const BUILD_VERSION='2026-09-28-D40-teacher-stage-filter-fix';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -251,6 +251,15 @@ const SECTIONS=['Boys','Girls'];
 // filter/target by Stage instead of the old fake "KG/Primary" department.
 const STAGES=['KG','Primary','Lower Secondary','Upper Secondary'];
 const GRADES=['KG1','KG2','KG3',...Array.from({length:12},(_,i)=>'Grade '+(i+1))];
+// D40 — READ-ONLY stage resolution for filtering. Never writes to the DB and never changes a
+// teacher's stored stage/grades. A teacher matches a Stage filter if EITHER their stored Stage
+// field matches (legacy spellings normalised) OR any grade they teach falls in that stage.
+// Grade bands (school decision — edit here only): KG1-3=KG, G1-5=Primary, G6-8=Lower Sec, G9-12=Upper Sec.
+const STAGE_NONE='__none__';
+function stageOfGrade(g){const x=String(g||'').trim().toLowerCase();if(!x)return'';if(/^kg|kindergarten/.test(x))return'KG';const m=x.match(/(\d+)/);if(!m)return'';const n=+m[1];if(n>=1&&n<=5)return'Primary';if(n>=6&&n<=8)return'Lower Secondary';if(n>=9&&n<=12)return'Upper Secondary';return'';}
+function normStageLabel(v){const x=String(v||'').trim().toLowerCase();if(!x)return[];const out=[];if(/\bkg\b|kg\d|kindergarten|foundation/.test(x))out.push('KG');if(/primary|elementary/.test(x))out.push('Primary');if(/lower\s*sec|middle/.test(x))out.push('Lower Secondary');if(/upper\s*sec|high\s*school/.test(x))out.push('Upper Secondary');return out;}
+function teacherStageSet(t){const set=new Set(normStageLabel(t&&t.stage));((t&&t.grades)||[]).forEach(g=>{const s=stageOfGrade(g);if(s)set.add(s);});return set;}
+function teacherMatchesStages(t,sel){if(!sel||!sel.length)return true;const set=teacherStageSet(t);return sel.some(s=>s===STAGE_NONE?set.size===0:set.has(s));}
 const MONTHS=['September','October','November','December','January','February','March','April','May','June','July','August'];
 const TECHS=['Strong Starts','Transitions & attention','Ratio of pupil thought','Overnarration & silence','Cold call','Think, Pair, Share','Simultaneous response','Metacognition: Obvious organisers','Behaviour for learning','Devices / AI use','Other'];
 const TECH_LP={'Think, Pair, Share':['LP2','LP5'],'Cold call':['LP4','LP5'],'Simultaneous response':['LP3','LP5'],'Ratio of pupil thought':['LP1','LP4'],'Overnarration & silence':['LP4','LP5'],'Strong Starts':['LP1','LP9'],'Transitions & attention':['LP9'],'Metacognition: Obvious organisers':['LP5','LP6'],'Behaviour for learning':['LP7','LP10'],'Devices / AI use':['LP2','LP6']};
@@ -1828,7 +1837,10 @@ function renderTeachers(){
   // Apply section filter
   if((S.tchSects||[]).length>0) teachers=teachers.filter(t=>S.tchSects.includes(t.section));
   // Apply stage filter (Primary / Lower Secondary / Upper Secondary / KG)
-  if((S.tchStages||[]).length>0) teachers=teachers.filter(t=>S.tchStages.includes(t.stage));
+  // D40: stage filter now resolves stage from the Stage field OR the grades taught (read-only),
+  // and supports a 'Not set' pill so every teacher is reachable and the counts always reconcile.
+  const tchPreStage=teachers.slice();
+  if((S.tchStages||[]).length>0) teachers=teachers.filter(t=>teacherMatchesStages(t,S.tchStages));
   // Apply search
   if(q) teachers=teachers.filter(t=>t.name.toLowerCase().includes(q)||t.dept.toLowerCase().includes(q));
   const groups=S.groups;
@@ -1848,7 +1860,8 @@ function renderTeachers(){
   <div class="flex items-center gap-2" style="flex-wrap:wrap">
     <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:72px">Stage:</span>
     <div class="pill-opt ${(S.tchStages||[]).length===0?'sel':''}" data-tch-stage="">All Stages</div>
-    ${STAGES.map(s=>`<div class="pill-opt ${(S.tchStages||[]).includes(s)?'sel':''}" data-tch-stage="${s}">${s}</div>`).join('')}
+    ${STAGES.map(s=>`<div class="pill-opt ${(S.tchStages||[]).includes(s)?'sel':''}" data-tch-stage="${s}">${s} <span style="opacity:.6">(${tchPreStage.filter(t=>teacherMatchesStages(t,[s])).length})</span></div>`).join('')}
+    <div class="pill-opt ${(S.tchStages||[]).includes(STAGE_NONE)?'sel':''}" data-tch-stage="${STAGE_NONE}" title="Teachers with no Stage and no grades recorded — edit them to assign a stage">⚠ Not set <span style="opacity:.6">(${tchPreStage.filter(t=>teacherMatchesStages(t,[STAGE_NONE])).length})</span></div>
   </div>
 </div>
 <div class="flex justify-between items-center mb-3">
@@ -4184,7 +4197,7 @@ function renderModal(type, data={}){
       FI('tch-name','Full Name (Arabic/English)',data.name||'','text','Teacher name')+
       FI('tch-email','Email (optional)',data.email||'','email','teacher@school.edu')+
       G2(FS('tch-dept','Department',DEPTS,data.dept||DEPTS[0]),FS('tch-sect','Section',SECTIONS,data.section||SECTIONS[0]))+
-      G2(FS('tch-stage','Stage',STAGES,data.stage||STAGES[0]),
+      G2(FS('tch-stage','Stage',[{v:'',l:'— Not set —'},...(data.stage&&!STAGES.includes(data.stage)?[{v:data.stage,l:data.stage+' (current)'}]:[]),...STAGES.map(s=>({v:s,l:s}))],data.stage||''),
          FS('tch-group','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],data.groupId||''))+
       `<div class="form-group"><label class="form-label">Grades Teaching (select all that apply — a teacher can teach more than one grade)</label>
        <div class="flex gap-2" style="flex-wrap:wrap">${GRADES.map(g=>`<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;background:var(--light);border-radius:5px;padding:3px 8px"><input type="checkbox" class="tch-grade-cb" value="${g}" ${tGrades.includes(g)?'checked':''}> ${g}</label>`).join('')}</div></div>`+
