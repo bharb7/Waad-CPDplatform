@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-04-D43-positions-durable">
+<meta name="app-build" content="2026-10-04-D44-precise-columns-visit-settings">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-04-D43-positions-durable';
+const BUILD_VERSION='2026-10-04-D44-precise-columns-visit-settings';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -160,21 +160,31 @@ async function sbUpsert(table,data,opts={}){if(!data||!data.length)return true;t
 // would look like it saved, then revert on refresh). This wrapper retries once without the
 // optional/new columns so the core data always saves, and only the new extra field degrades.
 const _degradedColWarned={};
+// D44: strip ONLY the column(s) the database reports as missing — never the whole optional set.
+// (D41–D43 stripped every optional column when any one was missing, so a single missing
+// "observer_position" column also dropped period, status, criterion notes and partner fields.)
+const _missingCols={};
+function missingColFromError(e){const m=String(e||'').match(/Could not find the '([^']+)' column/);return m?m[1]:null;}
+function _stripKnownMissing(table,obj){const miss=_missingCols[table];if(!miss)return obj;const c={...obj};miss.forEach(k=>delete c[k]);return c;}
 async function sbUpsertResilient(table,rows,optionalKeys){
   if(!rows||!rows.length)return true;
-  const hasOptional=optionalKeys&&optionalKeys.length;
-  const ok=await sbUpsert(table,rows,{silent:hasOptional});
-  if(ok)return true;
-  if(hasOptional){
-    const stripped=rows.map(r=>{const c={...r};optionalKeys.forEach(k=>delete c[k]);return c;});
-    const ok2=await sbUpsert(table,stripped,{silent:true});
-    if(ok2){
-      if(!_degradedColWarned[table]){
-        _degradedColWarned[table]=true;
-        showToast('Saved — but "'+optionalKeys.join(', ')+'" could not be stored because that column is missing from the "'+table+'" table in Supabase. Everything else saved correctly. Ask your developer to add the column (see SQL notes).','error');
+  const opt=optionalKeys||[];
+  let cur=rows.map(r=>_stripKnownMissing(table,r));
+  const stripped=[];
+  for(let attempt=0;attempt<=opt.length;attempt++){
+    const ok=await sbUpsert(table,cur,{silent:true});
+    if(ok){
+      if(stripped.length&&!_degradedColWarned[table+'|'+stripped.join(',')]){
+        _degradedColWarned[table+'|'+stripped.join(',')]=true;
+        showToast('Saved — but "'+stripped.join(', ')+'" could not be stored because that column is missing from the "'+table+'" table in Supabase. Everything else saved correctly.','error');
       }
       return true;
     }
+    const col=missingColFromError(LAST_DB_ERROR);
+    if(!col||!opt.includes(col))break; // a different error, or a required column → report it
+    (_missingCols[table]=_missingCols[table]||new Set()).add(col);
+    stripped.push(col);
+    cur=cur.map(r=>{const c={...r};delete c[col];return c;});
   }
   showToast('DB save error ('+table+'): '+LAST_DB_ERROR.slice(0,200),'error');
   return false;
@@ -539,6 +549,7 @@ async function loadAll(){
       if(br.customPositions&&br.customPositions.length){sset('customPositions',br.customPositions);}
       if(br.hiddenPositions){sset('hiddenPositions',br.hiddenPositions);}
       snapSyncSettings(); // D43
+      try{await vsSyncFromDb(true);}catch(_e){} // D44: per-row visit settings win over the shared blob
       // Load all teachers' portfolios from branding blob
       if(br.portfolios){sset('allPortfolios',br.portfolios);}
       // Rebuild VISITOR_POSITIONS: built-ins minus hidden, plus custom
@@ -584,7 +595,10 @@ async function saveSchoolSettings(retrying){
   sset('roleCfg',S.roleCfg);sset('mechM',S.mechM);sset('dhM',S.dhM);sset('branding',S.branding);sset('customDomains',S.customDomains);sset('schedCats',S.schedCats);sset('deletedSeedUsers',S.deletedSeedUsers);
   if(!SCHOOL_ID)return true;
   _settingsSaving=true;
-  try{await mergeSyncSettingsWithRemote();}catch(_e){} // D43
+  try{
+    if(VS_AVAILABLE){await vsPushLocalChanges();} // D44: per-row writes, immune to presence/old-device overwrites
+    else await mergeSyncSettingsWithRemote(); // D43 fallback
+  }catch(_e){}
   setTimeout(()=>{_settingsSaving=false;},4000);
   // Include online_users/activity_log so this PATCH (which replaces the whole `branding`
   // JSON column) doesn't silently wipe them out every time a setting like Schedule
@@ -836,17 +850,17 @@ async function saveObsRecord(o,cols){
   const full=obsRow(o,SCHOOL_ID);
   if(cols&&cols.length){
     const body={};cols.forEach(c=>{if(c in full)body[c]=full[c];});
-    let res=await _obsPatch(o.id,body);
-    if(!res.ok){
-      const opt=OBS_OPTIONAL_COLS.filter(k=>k in body);
-      if(opt.length){
-        const stripped={...body};opt.forEach(k=>delete stripped[k]);
-        if(Object.keys(stripped).length){
-          res=await _obsPatch(o.id,stripped);
-          if(res.ok&&!_degradedColWarned.observations){_degradedColWarned.observations=true;showToast('Saved — but "'+opt.join(', ')+'" could not be stored because that column is missing from the "observations" table in Supabase. Everything else saved correctly.','error');}
-        }
-      }
+    let cur=_stripKnownMissing('observations',body);const stripped=[];
+    let res=Object.keys(cur).length?await _obsPatch(o.id,cur):{ok:true,rows:1};
+    while(!res.ok){
+      const col=missingColFromError(LAST_DB_ERROR);
+      if(!col||!OBS_OPTIONAL_COLS.includes(col)||!(col in cur))break;
+      (_missingCols.observations=_missingCols.observations||new Set()).add(col);
+      stripped.push(col);delete cur[col];
+      if(!Object.keys(cur).length){res={ok:true,rows:1};break;}
+      res=await _obsPatch(o.id,cur);
     }
+    if(res.ok&&stripped.length&&!_degradedColWarned['observations|'+stripped.join(',')]){_degradedColWarned['observations|'+stripped.join(',')]=true;showToast('Saved — but "'+stripped.join(', ')+'" could not be stored because that column is missing from the "observations" table in Supabase. Everything else saved correctly.','error');}
     if(res.ok&&res.rows>0){OBS_LAST_WRITE[o.id]=Date.now();return true;}
     if(!res.ok){showToast('DB save error (observations): '+LAST_DB_ERROR.slice(0,200),'error');return false;}
     // 0 rows matched → the record was never stored in the DB yet; fall through to a full insert.
@@ -2700,6 +2714,67 @@ async function mergeSyncSettingsWithRemote(){
     // other keys changed on this device → keep local (the change being saved)
   });
   rebuildVisitorPositions();
+}
+// ── D44: VISIT SETTINGS IN THEIR OWN TABLE ─────────────────────────────────────────────────────
+// Root cause of positions "saving then vanishing": Visitor Profiles lived inside the school's one
+// shared settings record (branding), which EVERY open device rewrites every 30s for "who's online",
+// plus on activity logging. Each of those writes reads the record, then writes it back a moment
+// later — so when your save landed in between, the other device wrote the old profiles straight
+// back. Devices still on older builds also rewrite it from stale copies.
+// Now (when the visit_settings table exists) each person's profile is its OWN row, and targets /
+// custom / hidden positions are one row each. Nothing else in the app ever writes those rows,
+// so presence pings and old devices can no longer overwrite them. If the table does not exist yet,
+// the app keeps working exactly as in D43.
+let VS_AVAILABLE=null,VS_SEEDED=false,_vsLast=null;
+const VS_KEYS=['visitTargetsCfg','customPositions','hiddenPositions'];
+const vsProfId=n=>SCHOOL_ID+'::vp::'+String(n).trim().toLowerCase();
+const vsKeyId=k=>SCHOOL_ID+'::'+k;
+async function vsSyncFromDb(allowSeed){
+  if(!SCHOOL_ID)return false;
+  const rows=await sbGet('visit_settings','school_id=eq.'+encodeURIComponent(SCHOOL_ID)+'&select=*');
+  if(rows===null||!Array.isArray(rows)){VS_AVAILABLE=false;return false;}
+  VS_AVAILABLE=true;
+  if(!rows.length){
+    VS_SEEDED=false;
+    if(allowSeed&&isAdmin()){await vsSeedFromLocal();VS_SEEDED=true;}
+    return false; // not seeded yet → keep D43 behaviour
+  }
+  VS_SEEDED=true;
+  const prof={};const vals={};
+  rows.forEach(r=>{const v=r.value||{};if(r.key==='vp'){if(v.name)prof[v.name]={position:v.position||'',dept:v.dept||''};}else if(VS_KEYS.includes(r.key))vals[r.key]=v.data;});
+  let ch=false;
+  if(JSON.stringify(prof)!==JSON.stringify(sget('visitorProfiles')||{})){sset('visitorProfiles',prof);ch=true;}
+  VS_KEYS.forEach(k=>{if(vals[k]!==undefined&&JSON.stringify(vals[k])!==JSON.stringify(sget(k)??null)){sset(k,vals[k]);ch=true;}});
+  _vsLast={visitorProfiles:JSON.parse(JSON.stringify(prof))};VS_KEYS.forEach(k=>{_vsLast[k]=JSON.stringify(sget(k)??null);});
+  if(ch)rebuildVisitorPositions();
+  if(typeof snapSyncSettings==='function')snapSyncSettings();
+  return ch;
+}
+async function vsSeedFromLocal(){
+  const rows=[];const now=new Date().toISOString();
+  const prof=sget('visitorProfiles')||{};
+  Object.keys(prof).forEach(n=>{if(!n||!prof[n])return;rows.push({id:vsProfId(n),school_id:SCHOOL_ID,key:'vp',value:{name:n,position:prof[n].position||'',dept:prof[n].dept||''},updated_at:now});});
+  VS_KEYS.forEach(k=>{const v=sget(k);if(v!==null&&v!==undefined)rows.push({id:vsKeyId(k),school_id:SCHOOL_ID,key:k,value:{data:v},updated_at:now});});
+  if(rows.length)await sbUpsert('visit_settings',rows,{silent:true});
+  _vsLast={visitorProfiles:JSON.parse(JSON.stringify(prof))};VS_KEYS.forEach(k=>{_vsLast[k]=JSON.stringify(sget(k)??null);});
+}
+// Push ONLY what this device changed since it last synced: one row per changed person / key.
+async function vsPushLocalChanges(){
+  if(!VS_AVAILABLE||!SCHOOL_ID)return false;
+  if(!VS_SEEDED||!_vsLast){await vsSeedFromLocal();VS_SEEDED=true;return true;}
+  const now=new Date().toISOString();const ups=[];const dels=[];
+  const loc=sget('visitorProfiles')||{};const last=_vsLast.visitorProfiles||{};
+  new Set([...Object.keys(loc),...Object.keys(last)]).forEach(n=>{
+    if(JSON.stringify(loc[n]??null)===JSON.stringify(last[n]??null))return;
+    if(loc[n]===undefined)dels.push(vsProfId(n));
+    else ups.push({id:vsProfId(n),school_id:SCHOOL_ID,key:'vp',value:{name:n,position:loc[n].position||'',dept:loc[n].dept||''},updated_at:now});
+  });
+  VS_KEYS.forEach(k=>{const j=JSON.stringify(sget(k)??null);if(j!==_vsLast[k])ups.push({id:vsKeyId(k),school_id:SCHOOL_ID,key:k,value:{data:sget(k)},updated_at:now});});
+  let ok=true;
+  if(ups.length)ok=await sbUpsert('visit_settings',ups,{silent:false});
+  for(const id of dels){await sbDelete('visit_settings',id);}
+  if(ok){_vsLast.visitorProfiles=JSON.parse(JSON.stringify(loc));VS_KEYS.forEach(k=>{_vsLast[k]=JSON.stringify(sget(k)??null);});}
+  return ok;
 }
 // Everyone who appears on a Visitor Progress card — observers AND partners.
 function visitorProfileNames(){
@@ -6904,7 +6979,8 @@ async function refreshLivePermissions(){
     const schoolData=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding&limit=1');
     if(schoolData&&schoolData.length){
       const br=schoolData[0].branding||{};
-      if(applyRemoteSyncSettings(br))render(); // D43: positions/profiles/targets stay current on every device
+      if(VS_AVAILABLE&&VS_SEEDED){if(!_settingsSaving&&await vsSyncFromDb(false))render();} // D44
+      else if(applyRemoteSyncSettings(br))render(); // D43 fallback
       if(br.roleCfg){
         const merged={...DEFAULT_ROLES,...br.roleCfg};
         if(JSON.stringify(merged)!==JSON.stringify(S.roleCfg)){
