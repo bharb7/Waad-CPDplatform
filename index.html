@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-04-D42-partner-search-box">
+<meta name="app-build" content="2026-10-04-D43-positions-durable">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-04-D42-partner-search-box';
+const BUILD_VERSION='2026-10-04-D43-positions-durable';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -538,6 +538,7 @@ async function loadAll(){
       if(br.visitorProfiles){sset('visitorProfiles',br.visitorProfiles);}
       if(br.customPositions&&br.customPositions.length){sset('customPositions',br.customPositions);}
       if(br.hiddenPositions){sset('hiddenPositions',br.hiddenPositions);}
+      snapSyncSettings(); // D43
       // Load all teachers' portfolios from branding blob
       if(br.portfolios){sset('allPortfolios',br.portfolios);}
       // Rebuild VISITOR_POSITIONS: built-ins minus hidden, plus custom
@@ -582,6 +583,9 @@ async function loadAll(){
 async function saveSchoolSettings(retrying){
   sset('roleCfg',S.roleCfg);sset('mechM',S.mechM);sset('dhM',S.dhM);sset('branding',S.branding);sset('customDomains',S.customDomains);sset('schedCats',S.schedCats);sset('deletedSeedUsers',S.deletedSeedUsers);
   if(!SCHOOL_ID)return true;
+  _settingsSaving=true;
+  try{await mergeSyncSettingsWithRemote();}catch(_e){} // D43
+  setTimeout(()=>{_settingsSaving=false;},4000);
   // Include online_users/activity_log so this PATCH (which replaces the whole `branding`
   // JSON column) doesn't silently wipe them out every time a setting like Schedule
   // Categories is saved.
@@ -592,6 +596,7 @@ async function saveSchoolSettings(retrying){
     visitTargetsCfg:sget('visitTargetsCfg')||{},
     visitorProfiles:sget('visitorProfiles')||{},
     customPositions:sget('customPositions')||[],hiddenPositions:sget('hiddenPositions')||[]},mech_overrides:S.mechM,dh_overrides:S.dhM};
+  snapSyncSettings(); // D43: what we are writing becomes the new baseline
   try{
     // IMPORTANT: 'Prefer: return=minimal' used to hide a real bug here — PostgREST returns
     // HTTP 200/204 "success" even when an RLS UPDATE policy on `schools` silently blocks the
@@ -2659,6 +2664,55 @@ ${tab==='myvisits'?(()=>{
 // visitTargetsCfg: { global: {type:n}, byPosition: { HOD: {LW:5,LO:2,...} }, byVisitorDept: { 'HOD||Math': {LW:3} } }
 
 function getVisitorProfiles(){return sget('visitorProfiles')||{};}
+// ── D43: SHARED POSITION SETTINGS — merge-safe sync ─────────────────────────────────────────────
+// Visitor Profiles / targets / custom & hidden positions live in one shared settings record.
+// Before D43 every settings save wrote this device's WHOLE copy, and open devices never re-pulled
+// it — so a device opened before your position edits could silently put the old positions back.
+// Now: open devices re-pull these settings every refresh, and a save only changes what THIS device
+// actually changed (Visitor Profiles merged person-by-person); everything else is taken fresh from
+// the database at the moment of saving.
+const SYNC_SETTING_KEYS=['visitTargetsCfg','visitorProfiles','customPositions','hiddenPositions'];
+let _settingsSnap=null;let _settingsSaving=false;
+function snapSyncSettings(){_settingsSnap={};SYNC_SETTING_KEYS.forEach(k=>{_settingsSnap[k]=JSON.stringify(sget(k)??null);});}
+function rebuildVisitorPositions(){const _hp=sget('hiddenPositions')||[];const _cp=sget('customPositions')||[];if(typeof VISITOR_POSITIONS==='undefined')return;VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(p=>!_hp.includes(p)),..._cp])].forEach(p=>VISITOR_POSITIONS.push(p));}
+function applyRemoteSyncSettings(br){
+  if(!br||_settingsSaving)return false;let ch=false;
+  SYNC_SETTING_KEYS.forEach(k=>{if(br[k]===undefined||br[k]===null)return;if(JSON.stringify(br[k])!==JSON.stringify(sget(k)??null)){sset(k,br[k]);ch=true;}});
+  if(ch)rebuildVisitorPositions();
+  snapSyncSettings();return ch;
+}
+async function mergeSyncSettingsWithRemote(){
+  if(!SCHOOL_ID||!_settingsSnap)return;
+  let br=null;
+  try{const sd=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding&limit=1');if(sd&&sd.length)br=sd[0].branding||{};}catch(_e){}
+  if(!br)return; // can't reach DB → keep previous behaviour (save local copy)
+  SYNC_SETTING_KEYS.forEach(k=>{
+    const local=sget(k);const localJ=JSON.stringify(local??null);const snapJ=_settingsSnap[k];const remote=br[k];
+    if(remote===undefined||remote===null)return; // nothing remote yet → keep local
+    if(localJ===snapJ){sset(k,remote);return;} // this device didn't change it → take fresh DB value
+    if(k==='visitorProfiles'){
+      const snap=JSON.parse(snapJ||'null')||{};const loc=local||{};const out={...remote};
+      new Set([...Object.keys(loc),...Object.keys(snap)]).forEach(n=>{
+        if(JSON.stringify(loc[n]??null)!==JSON.stringify(snap[n]??null)){if(loc[n]===undefined)delete out[n];else out[n]=loc[n];}
+      });
+      sset(k,out);
+    }
+    // other keys changed on this device → keep local (the change being saved)
+  });
+  rebuildVisitorPositions();
+}
+// Everyone who appears on a Visitor Progress card — observers AND partners.
+function visitorProfileNames(){
+  const seen=new Map();
+  (S.observations||[]).forEach(o=>[o.observer,o.observerPartner].forEach(n=>{const v=String(n||'').trim();if(v&&!seen.has(v.toLowerCase()))seen.set(v.toLowerCase(),v);}));
+  return [...seen.values()].sort((a,b)=>a.localeCompare(b));
+}
+// Position options that never silently fall back to the first item (Academic Head).
+function positionOptions(cur,blankLabel){
+  const c=cur||'';
+  return [{v:'',l:blankLabel},...(c&&!VISITOR_POSITIONS.includes(c)?[{v:c,l:c+' (current)'}]:[]),...VISITOR_POSITIONS.map(p=>({v:p,l:p}))];
+}
+function knownVisitorPosition(name){const p=visitorPosition(name);if(p!=='Other')return p;const pr=getVisitorProfiles();const k=Object.keys(pr).find(x=>x.trim().toLowerCase()===String(name||'').trim().toLowerCase());return (k&&pr[k].position==='Other')?'Other':'';}
 function saveVisitorProfiles(p){sset('visitorProfiles',p);saveSchoolSettings();}
 function getVisitTargetsCfg(){return sget('visitTargetsCfg')||{global:{},byPosition:{},byVisitorDept:{}};}
 function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);saveSchoolSettings();}
@@ -4037,8 +4091,8 @@ function renderModal(type, data={}){
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName).replace('id="obs-obs"','id="obs-obs" list="dl-people" autocomplete="off"'))+
       FI('obs-partner','Observed with (partner) — type a letter and pick a user from the list',data.observerPartner||'','text','🔍 Type to search users…').replace('id="obs-partner"','id="obs-partner" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-user-search="1"')+peopleDatalistHTML()+
-      FS('obs-partner-position','Partner Position',['— None —',...VISITOR_POSITIONS],data.observerPartnerPosition||(data.observerPartner?visitorPosition(data.observerPartner):'— None —'))+
-      FS('obs-observer-position','Observer Position',VISITOR_POSITIONS,data.observerPosition||visitorPosition(data.observer||userName))+
+      FS('obs-partner-position','Partner Position',positionOptions(data.observerPartnerPosition||(data.observerPartner?knownVisitorPosition(data.observerPartner):''),'— None —'),data.observerPartnerPosition||(data.observerPartner?knownVisitorPosition(data.observerPartner):''))+
+      FS('obs-observer-position','Observer Position',positionOptions(data.observerPosition||knownVisitorPosition(data.observer||userName),'— Select position —'),data.observerPosition||knownVisitorPosition(data.observer||userName))+
       FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
       G2(
         `<div class="form-group"><label class="form-label">Period</label><select class="form-control" id="obs-period">`+
@@ -4536,7 +4590,7 @@ function renderModal(type, data={}){
     const POSITIONS=VISITOR_POSITIONS;
 
     // Get all unique observers from observations
-    const allObservers=[...new Set((S.observations||[]).map(o=>o.observer).filter(Boolean))].sort();
+    const allObservers=visitorProfileNames(); // D43: observers + partners
 
     const tabBtn=(t,lbl)=>'<button class="btn btn-sm '+(activeTab===t?'btn-primary':'btn-ghost')+' mr-1" onclick="S.modal=renderModal(\'visitTargets\',{tab:\''+t+'\'}); render()">'+lbl+'</button>';
 
@@ -4561,7 +4615,7 @@ function renderModal(type, data={}){
       allObservers.forEach((name,i)=>{
         const p=profiles[name]||{};
         body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(name)+'</td>';
-        body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-pos-'+i+'">'+POSITIONS.map(p2=>'<option '+(p.position===p2?'selected':'')+' value="'+p2+'">'+p2+'</option>').join('')+'</select></td>';
+        body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-pos-'+i+'"><option value="">— Not set —</option>'+(p.position&&!POSITIONS.includes(p.position)?'<option selected value="'+esc(p.position)+'">'+esc(p.position)+' (current)</option>':'')+POSITIONS.map(p2=>'<option '+(p.position===p2?'selected':'')+' value="'+p2+'">'+p2+'</option>').join('')+'</select></td>';
         body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-dept-'+i+'"><option value="">— All —</option>'+DEPTS.map(d=>'<option '+(p.dept===d?'selected':'')+' value="'+d+'">'+d+'</option>').join('')+'</select></td>';
         body+='<input type="hidden" id="vp-name-'+i+'" value="'+esc(name)+'"></tr>';
       });
@@ -6414,12 +6468,16 @@ function bindEvents(){
   if(saveProfilesBtn){
     saveProfilesBtn.onclick=()=>{
       const allObs=S.observations||[];
-      const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
+      const allObservers=visitorProfileNames(); // D43: same list as the table
       const profiles=getVisitorProfiles();
       allObservers.forEach((name,i)=>{
         const posEl=document.getElementById('vp-pos-'+i);
         const deptEl=document.getElementById('vp-dept-'+i);
-        if(posEl) profiles[name]={...(profiles[name]||{}),position:posEl.value,dept:deptEl?deptEl.value:''};
+        const nmEl=document.getElementById('vp-name-'+i);
+        if(!posEl||(nmEl&&nmEl.value!==name))return; // row/name mismatch → never write to the wrong person
+        const dv=deptEl?deptEl.value:'';
+        if(!posEl.value&&!dv&&!profiles[name])return; // nothing set → don't create an empty profile
+        profiles[name]={...(profiles[name]||{}),position:posEl.value,dept:dv};
       });
       saveVisitorProfiles(profiles);
       showToast('Visitor profiles saved ✓');
@@ -6846,6 +6904,7 @@ async function refreshLivePermissions(){
     const schoolData=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding&limit=1');
     if(schoolData&&schoolData.length){
       const br=schoolData[0].branding||{};
+      if(applyRemoteSyncSettings(br))render(); // D43: positions/profiles/targets stay current on every device
       if(br.roleCfg){
         const merged={...DEFAULT_ROLES,...br.roleCfg};
         if(JSON.stringify(merged)!==JSON.stringify(S.roleCfg)){
