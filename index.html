@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-04-D41-obs-targeted-save-name-picker">
+<meta name="app-build" content="2026-10-04-D42-partner-search-box">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-04-D41-obs-targeted-save-name-picker';
+const BUILD_VERSION='2026-10-04-D42-partner-search-box';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -860,6 +860,56 @@ function peopleDatalistHTML(){
   (S.teachers||[]).forEach(t=>add(t.name));
   const names=[...seen.values()].sort((a,b)=>a.localeCompare(b));
   return '<datalist id="dl-people">'+names.map(n=>'<option value="'+esc(n)+'"></option>').join('')+'</datalist>';
+}
+// ── D42: PARTNER SEARCH BOX ──────────────────────────────────────────────────────────────────
+// Native <datalist> barely works on iPad Safari, so the partner field gets its own search list.
+// Names come ONLY from Settings → Users (registered system users). Typing filters the list; tapping
+// a name fills the box with the exact registered spelling. Free typing is still possible (nothing is
+// blocked), but a gentle warning shows when the text is not a registered user, and a case-only
+// difference (e.g. "chenai nayakwende") is corrected to the registered spelling when leaving the box.
+// Display/input only — no data is written until the observation itself is saved as before.
+function systemUserNames(){
+  const seen=new Map();
+  try{getAllUsers().forEach(u=>{const v=String(u.fullName||u.name||'').replace(/\s+/g,' ').trim();if(!v)return;const k=v.toLowerCase();if(!seen.has(k))seen.set(k,v);});}catch(_e){}
+  return [...seen.values()].sort((a,b)=>a.localeCompare(b));
+}
+function setupUserSearchBox(inp){
+  if(!inp||inp.dataset.usBound)return;
+  inp.dataset.usBound='1';
+  const wrap=inp.parentNode;wrap.style.position='relative';
+  const dd=document.createElement('div');
+  dd.style.cssText='display:none;position:absolute;left:0;right:0;z-index:9999;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:240px;overflow-y:auto;margin-top:2px';
+  const warn=document.createElement('div');
+  warn.className='text-xs';warn.style.cssText='color:#b45309;margin-top:4px;display:none';
+  warn.textContent='⚠ This name is not a registered user — pick from the list to keep names consistent.';
+  wrap.appendChild(dd);wrap.appendChild(warn);
+  const names=systemUserNames();
+  const norm=v=>String(v||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const checkWarn=()=>{const v=norm(inp.value);warn.style.display=(v&&!names.some(n=>n.toLowerCase()===v))?'block':'none';};
+  const pick=n=>{
+    inp.value=n;dd.style.display='none';checkWarn();
+    // Fill Partner Position only if it is still empty and a known position exists for this person.
+    const ps=document.getElementById('obs-partner-position');
+    if(ps&&(!ps.value||ps.value==='— None —')){try{const pos=visitorPosition(n);if(pos&&pos!=='Other'&&[...ps.options].some(o=>o.value===pos||o.text===pos))ps.value=pos;}catch(_e){}}
+  };
+  const show=()=>{
+    const q=norm(inp.value);
+    // Names whose first/any word starts with the typed text come first, then other partial matches.
+    const starts=n=>{const l=n.toLowerCase();return l.startsWith(q)||l.split(' ').some(w=>w.startsWith(q));};
+    const list=q?[...names.filter(starts),...names.filter(n=>!starts(n)&&n.toLowerCase().includes(q))]:names;
+    if(!list.length){dd.innerHTML='<div style="padding:9px 12px;color:var(--muted);font-size:12px;font-style:italic">No registered user matches “'+esc(inp.value)+'”</div>';dd.style.display='block';return;}
+    dd.innerHTML=list.slice(0,40).map(n=>'<div data-us-name="'+esc(n)+'" style="padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9;direction:auto">'+esc(n)+'</div>').join('');
+    dd.style.display='block';
+  };
+  // pointerdown (not click) so the pick registers before the input loses focus on iPad
+  dd.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-us-name]');if(!el)return;e.preventDefault();pick(el.getAttribute('data-us-name'));});
+  inp.addEventListener('focus',show);
+  inp.addEventListener('input',()=>{show();checkWarn();});
+  inp.addEventListener('blur',()=>{setTimeout(()=>{dd.style.display='none';
+    const v=norm(inp.value);const exact=names.find(n=>n.toLowerCase()===v);
+    if(exact&&inp.value!==exact)inp.value=exact; // case/spacing-only fix to registered spelling
+    checkWarn();},180);});
+  checkWarn();
 }
 function getMyPortfolio(){
   // Portfolio keyed by username OR name — stored in localStorage and branding blob
@@ -3986,7 +4036,7 @@ function renderModal(type, data={}){
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
       G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName).replace('id="obs-obs"','id="obs-obs" list="dl-people" autocomplete="off"'))+
-      FI('obs-partner','Observed with (partner — start typing a name and pick from the list)',data.observerPartner||'').replace('id="obs-partner"','id="obs-partner" list="dl-people" autocomplete="off"')+peopleDatalistHTML()+
+      FI('obs-partner','Observed with (partner) — type a letter and pick a user from the list',data.observerPartner||'','text','🔍 Type to search users…').replace('id="obs-partner"','id="obs-partner" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-user-search="1"')+peopleDatalistHTML()+
       FS('obs-partner-position','Partner Position',['— None —',...VISITOR_POSITIONS],data.observerPartnerPosition||(data.observerPartner?visitorPosition(data.observerPartner):'— None —'))+
       FS('obs-observer-position','Observer Position',VISITOR_POSITIONS,data.observerPosition||visitorPosition(data.observer||userName))+
       FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
@@ -5058,6 +5108,7 @@ function bindEvents(){
   });
 
   // SAVES
+  document.querySelectorAll('[data-user-search]').forEach(setupUserSearchBox); // D42
   const saveObs=document.querySelector('[data-save-obs]');
   if(saveObs)saveObs.onclick=()=>{
     const tid=gv('obs-tid');
