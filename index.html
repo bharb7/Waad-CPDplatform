@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-04-D44-precise-columns-visit-settings">
+<meta name="app-build" content="2026-10-04-D45-print-pdf-calendar-tracker">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-04-D44-precise-columns-visit-settings';
+const BUILD_VERSION='2026-10-04-D45-print-pdf-calendar-tracker';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -2975,15 +2975,15 @@ function renderObsCalendar(){
 <div class="flex justify-between items-center mb-3">
   <div class="flex gap-2 items-center">
     <button class="btn btn-ghost btn-sm" onclick="S.calWeek='${prevWeek()}';render()">← Prev Week</button>
-    <span style="font-weight:700;font-size:13px">${weekDates[0].toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${weekDates[4].toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+    <span id="cal-week-label" style="font-weight:700;font-size:13px">${weekDates[0].toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${weekDates[4].toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
     <button class="btn btn-ghost btn-sm" onclick="S.calWeek='${nextWeek()}';render()">Next Week →</button>
     <button class="btn btn-ghost btn-sm" onclick="S.calWeek='';render()">Today</button>
   </div>
-  <span class="text-xs text-muted">${gridObs.length} observation${gridObs.length!==1?'s':''} this week</span>
+  <div class="flex gap-2 items-center"><span class="text-xs text-muted">${gridObs.length} observation${gridObs.length!==1?'s':''} this week</span><button class="btn btn-ghost btn-sm" onclick="printSection('cal')">🖨 Print / PDF</button></div>
 </div>
 
 <!-- Weekly grid -->
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:18px">
+<div id="cal-print-grid" style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:18px">
 <table style="width:100%;border-collapse:collapse;min-width:720px">
   <thead>
     <tr>
@@ -3309,6 +3309,70 @@ function printSnapshot(snap){
   setTimeout(()=>w.print(),400);
 }
 
+// ── D45: PRINT / SAVE AS PDF — Obs Calendar week + Visit Tracker cards & records ─────────────
+// Read-only: copies what is currently on screen (with the current filters) into a print window.
+// On iPad: Print → pinch-out the preview (or Share → Save to Files) to save as PDF.
+function printSection(kind){
+  const esc2=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts=[];let title='';const filt=[];
+  if(kind==='cal'){
+    const grid=document.getElementById('cal-print-grid');
+    if(!grid){showToast('Open the Obs Calendar first','error');return;}
+    const wk=(document.getElementById('cal-week-label')||{}).textContent||'';
+    title='Observation Calendar — '+wk;
+    if(S.calFilterPeriod)filt.push('Period: '+S.calFilterPeriod);
+    if(S.calFilterObserver)filt.push('Observer: '+S.calFilterObserver);
+    if((S.calFilterDept||[]).length)filt.push('Dept: '+S.calFilterDept.join(', '));
+    if((S.calFilterSection||[]).length)filt.push('Section: '+S.calFilterSection.join(', '));
+    if(S.calFilterStatus)filt.push('Status: '+S.calFilterStatus);
+    if(S.calFilterDate)filt.push('Date: '+S.calFilterDate);
+    parts.push(grid.outerHTML);
+  }else{
+    const sel=S.visitVisitor||'';
+    const cards=[...document.querySelectorAll('[data-vt-card]')].filter(c=>!sel||c.getAttribute('data-vt-card')===sel);
+    const table=document.getElementById('vt-print-table');
+    if(!cards.length&&!table){showToast('Nothing to print with the current filters','error');return;}
+    title='Visit Tracker'+(sel?' — '+sel:'');
+    if(sel)filt.push('Visitor: '+sel);
+    if((S.visitDept||[]).length)filt.push('Dept: '+S.visitDept.join(', '));
+    if((S.visitCampus||[]).length)filt.push('Campus: '+S.visitCampus.join(', '));
+    if(S.visitType)filt.push('Type: '+S.visitType);
+    if(S.visitDateFrom||S.visitDateTo)filt.push('Dates: '+(S.visitDateFrom||'…')+' → '+(S.visitDateTo||'…'));
+    if(S.visitSearch)filt.push('Search: '+S.visitSearch);
+    if(S.visitNotYet)filt.push('Not-yet-visited only');
+    if(cards.length)parts.push('<div class="pr-cards">'+cards.map(c=>c.outerHTML).join('')+'</div>');
+    if(table)parts.push(table.outerHTML);
+  }
+  const styles=[...document.querySelectorAll('style')].map(st=>st.outerHTML).join('');
+  const printCss='<style>'
+    +'@page{size:A4 landscape;margin:10mm}'
+    +'html,body{background:#fff!important;margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif;color:#1a1a2e;height:auto!important;min-height:0!important;overflow:visible!important;display:block!important}'
+    +'*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+    +'.pr-wrap{padding:14px}'
+    +'.pr-head{border-bottom:2px solid #1e3a5f;margin-bottom:10px;padding-bottom:6px}'
+    +'.pr-head h1{font-size:16px;margin:0;color:#1e3a5f}.pr-head .meta{font-size:10px;color:#64748b;margin-top:3px}'
+    +'.pr-cards{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}'
+    +'.pr-cards>div{cursor:default!important;break-inside:avoid;page-break-inside:avoid;width:250px}'
+    +'#cal-print-grid,#vt-print-table{overflow:visible!important}'
+    +'#cal-print-grid table,#vt-print-table table{min-width:0!important;width:100%!important;font-size:10px!important}'
+    +'tr,td,th{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}'
+    +'button,.btn,a.btn,[data-pr-hide]{display:none!important}'
+    +'.pr-bar{position:sticky;top:0;background:#f1f5f9;padding:8px 14px;border-bottom:1px solid #cbd5e1}'
+    +'.pr-bar button{display:inline-block!important;padding:6px 14px;font-size:13px;border-radius:6px;border:1px solid #1e3a5f;background:#1e3a5f;color:#fff;margin-right:6px}'
+    +'@media print{.pr-bar{display:none!important}}'
+    +'</style>';
+  const w=window.open('','_blank','width=1200,height=900');
+  if(!w){showToast('Please allow pop-ups to print','error');return;}
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc2('Waad Academy — '+title)+'</title>'+styles+printCss+'</head><body>'
+    +'<div class="pr-bar"><button onclick="window.print()">🖨 Print / Save as PDF</button><button onclick="window.close()" style="background:#fff;color:#1e3a5f">Close</button></div>'
+    +'<div class="pr-wrap"><div class="pr-head"><h1>Waad Academy — '+esc2(title)+'</h1>'
+    +'<div class="meta">'+(filt.length?esc2(filt.join(' · '))+' · ':'')+'Printed '+esc2(new Date().toLocaleString('en-GB'))+'</div></div>'
+    +parts.join('')+'</div></body></html>');
+  w.document.close();
+  // strip interactive handlers from the copy so nothing in the print view can change data
+  try{w.document.querySelectorAll('[onclick]').forEach(el=>{if(!el.closest('.pr-bar'))el.removeAttribute('onclick');});}catch(_e){}
+  setTimeout(()=>{try{w.focus();w.print();}catch(_e){}},500);
+}
 function printObs(id){
   const o=S.observations.find(x=>x.id===id);if(!o)return;
   const t=o.tid?S.teachers.find(tc=>tc.id===o.tid):null;
@@ -7689,7 +7753,7 @@ ${(()=>{
       const isCoObserver=asPartner.length>0;
       // Role label
       const roleLabel=isPrimaryObserver&&isCoObserver?'Observer + Co-observer':isCoObserver?'Co-observer (partner)':'Observer';
-      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:170px;border-top:3px solid '+col+';background:#fff;cursor:pointer" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+name+'">'
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:170px;border-top:3px solid '+col+';background:#fff;cursor:pointer" data-vt-card="'+esc(name)+'" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+name+'">'
         // Name + role badge
         +'<div style="font-weight:700;font-size:11px;margin-bottom:1px">'+esc(name)+'</div>'
         +'<div style="font-size:9px;color:'+col+';font-weight:600">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
@@ -7762,13 +7826,14 @@ ${!isTeacherRole?`
   <div class="flex gap-2 items-center">
     ${canEdit()?`<button class="btn btn-primary btn-sm" data-modal="obs">+ New Visit (Observation)</button>`:''}
     <button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="printSection('vt')">🖨 Print / PDF</button>
   </div>
   <span class="text-xs text-muted">${fv.length} record${fv.length!==1?'s':''} shown</span>
 </div>
 
 <!-- ── Table ─────────────────────────────────────────────────────────────────── -->
 ${fv.length?`
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+<div id="vt-print-table" style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
 <table style="border-collapse:collapse;width:100%;min-width:920px;font-size:12px">
   <thead>
     <tr style="background:var(--navy);color:#fff;font-size:11px">
