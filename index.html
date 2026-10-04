@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-28-D40-teacher-stage-filter-fix">
+<meta name="app-build" content="2026-10-04-D41-obs-targeted-save-name-picker">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-09-28-D40-teacher-stage-filter-fix';
+const BUILD_VERSION='2026-10-04-D41-obs-targeted-save-name-picker';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -680,7 +680,7 @@ function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u
 // actually reached the database, no matter what the app showed.
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',observerPartner:r.observer_partner||'',observerPartnerPosition:r.observer_partner_position||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',timeSlot:r.time_slot||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{},obsStatus:r.obs_status||'planned'}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',observerPartner:r.observer_partner||'',observerPartnerPosition:r.observer_partner_position||'',observerPosition:r.observer_position||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',timeSlot:r.time_slot||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{},obsStatus:r.obs_status||'planned'}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 // mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
 // never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
@@ -747,7 +747,7 @@ async function save(k,v){
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
     else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id))})),['username','password','sections','grades','teacher_id']);
-    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',observer_partner:o.observerPartner||'',observer_partner_position:o.observerPartnerPosition||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}),['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status','observer_partner','observer_partner_position']);
+    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>obsRow(o,sid)),OBS_OPTIONAL_COLS);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
     else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
@@ -801,6 +801,65 @@ async function saveSchedRecord(row,fullArray){
     facilitator:row.facilitator||'',delivery:row.delivery||'',type:row.type||'',duration:row.duration||'',month:row.month||'',
     start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
     status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||'',cpd_cache:row.cpdCache||null,teacher_insights:row.teacherInsights||{}}],['time_from','time_to','cost','cpd_cache','teacher_insights']);
+}
+// ── D41: TARGETED OBSERVATION SAVES ─────────────────────────────────────────────────────────
+// ROOT CAUSE of "I changed Mikkawi → Makkawi, got 'Observation updated ✓', then it reverted":
+// every observation action (new/edit obs, status tap, Steplab tick, teacher response) used to
+// re-upload the WHOLE observations array held on that device. The 30-second live refresh never
+// re-pulled observations, so any other device open since earlier (an observer's or a teacher's)
+// still held the old spelling — and the next time that person touched ANY observation, their
+// stale copy of all rows overwrote the database, silently undoing your correction.
+// Now each action writes ONLY the record it changed, and ONLY the columns it changed (PATCH),
+// and the live refresh keeps observations current on every device.
+const OBS_OPTIONAL_COLS=['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status','observer_partner','observer_partner_position','observer_position'];
+const OBS_LAST_WRITE={}; // id -> ms of last local write (protects it from being overwritten by an in-flight refresh)
+function obsRow(o,sid){const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',observer_partner:o.observerPartner||'',observer_partner_position:o.observerPartnerPosition||'',observer_position:o.observerPosition||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}
+const OBS_EDIT_COLS=['teacher_id','teacher_name','observer','observer_partner','observer_partner_position','observer_position','date','dept','section','scores','techniques','neasc_lps','www','ebi','action','visit_type','visit_note','conf','criteria_comments','period','time_slot','obs_status'];
+async function _obsPatch(id,body){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/observations?id=eq.'+encodeURIComponent(id)+'&school_id=eq.'+encodeURIComponent(SCHOOL_ID),{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body),cache:'no-store'});
+    if(!r.ok){const e=await r.text();console.warn('obs PATCH failed',r.status,e);LAST_DB_ERROR='observations: '+r.status+' '+e.slice(0,300);return{ok:false};}
+    let b=null;try{b=await r.json();}catch(_e){}
+    return{ok:true,rows:Array.isArray(b)?b.length:1};
+  }catch(e){LAST_DB_ERROR='observations: network/exception — '+e.message;return{ok:false};}
+}
+// cols omitted → full row (new observation). cols given → only those columns are updated.
+async function saveObsRecord(o,cols){
+  sset('obs',S.observations);
+  if(!SCHOOL_ID||!o||!o.id)return true;
+  OBS_LAST_WRITE[o.id]=Date.now();
+  const full=obsRow(o,SCHOOL_ID);
+  if(cols&&cols.length){
+    const body={};cols.forEach(c=>{if(c in full)body[c]=full[c];});
+    let res=await _obsPatch(o.id,body);
+    if(!res.ok){
+      const opt=OBS_OPTIONAL_COLS.filter(k=>k in body);
+      if(opt.length){
+        const stripped={...body};opt.forEach(k=>delete stripped[k]);
+        if(Object.keys(stripped).length){
+          res=await _obsPatch(o.id,stripped);
+          if(res.ok&&!_degradedColWarned.observations){_degradedColWarned.observations=true;showToast('Saved — but "'+opt.join(', ')+'" could not be stored because that column is missing from the "observations" table in Supabase. Everything else saved correctly.','error');}
+        }
+      }
+    }
+    if(res.ok&&res.rows>0){OBS_LAST_WRITE[o.id]=Date.now();return true;}
+    if(!res.ok){showToast('DB save error (observations): '+LAST_DB_ERROR.slice(0,200),'error');return false;}
+    // 0 rows matched → the record was never stored in the DB yet; fall through to a full insert.
+  }
+  const ok=await sbUpsertResilient('observations',[full],OBS_OPTIONAL_COLS);
+  OBS_LAST_WRITE[o.id]=Date.now();
+  return ok;
+}
+// Canonical people list for the "Observed by" / "Observed with" pickers — taken ONLY from the
+// Users list and the Teachers list (never from free-typed observation text), so misspellings
+// such as a second spelling of a colleague's name are not offered back as suggestions.
+function peopleDatalistHTML(){
+  const seen=new Map();
+  const add=n=>{const v=String(n||'').replace(/\s+/g,' ').trim();if(!v)return;const k=v.toLowerCase();if(!seen.has(k))seen.set(k,v);};
+  try{getAllUsers().forEach(u=>add(u.fullName||u.name));}catch(_e){}
+  (S.teachers||[]).forEach(t=>add(t.name));
+  const names=[...seen.values()].sort((a,b)=>a.localeCompare(b));
+  return '<datalist id="dl-people">'+names.map(n=>'<option value="'+esc(n)+'"></option>').join('')+'</datalist>';
 }
 function getMyPortfolio(){
   // Portfolio keyed by username OR name — stored in localStorage and branding blob
@@ -3926,8 +3985,8 @@ function renderModal(type, data={}){
     ];
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
-      G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
-      FI('obs-partner','Observed with (partner — optional, free text)',data.observerPartner||'')+
+      G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName).replace('id="obs-obs"','id="obs-obs" list="dl-people" autocomplete="off"'))+
+      FI('obs-partner','Observed with (partner — start typing a name and pick from the list)',data.observerPartner||'').replace('id="obs-partner"','id="obs-partner" list="dl-people" autocomplete="off"')+peopleDatalistHTML()+
       FS('obs-partner-position','Partner Position',['— None —',...VISITOR_POSITIONS],data.observerPartnerPosition||(data.observerPartner?visitorPosition(data.observerPartner):'— None —'))+
       FS('obs-observer-position','Observer Position',VISITOR_POSITIONS,data.observerPosition||visitorPosition(data.observer||userName))+
       FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
@@ -4822,7 +4881,7 @@ function bindEvents(){
       if(!ta)return;
       const resp=ta.value.trim();
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp,teacherResponseAt:resp?new Date().toISOString():''}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===oid),['teacher_response','teacher_response_at']);
       S.editingResponseId=null;
       showToast('Response saved ✓');
       render();
@@ -4839,7 +4898,7 @@ function bindEvents(){
       const oid=el.dataset.deleteTeacherResponse;
       if(!confirm('Delete your response to this observation?'))return;
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:'',teacherResponseAt:''}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===oid),['teacher_response','teacher_response_at']);
       S.editingResponseId=null;
       showToast('Response deleted');
       render();
@@ -5048,7 +5107,7 @@ function bindEvents(){
       autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false
     };
     S.observations=editId?S.observations.map(o=>o.id===editId?obs:o):[...S.observations,obs];
-    save('obs',S.observations);
+    saveObsRecord(obs,editId?OBS_EDIT_COLS:null); // D41: this record only
     S.modal=null;S.editingId=null;
     showToast(editId?'Observation updated ✓':'Observation saved ✓');
   };
@@ -5969,7 +6028,7 @@ function bindEvents(){
   document.querySelectorAll('[data-sl-obs]').forEach(el=>{
     el.onchange=()=>{
       S.observations=S.observations.map(o=>o.id===el.dataset.slObs?{...o,slLinked:el.checked}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===el.dataset.slObs),['sl_linked']);
       showToast(el.checked?'Linked to Steplab ✓':'Unlinked from Steplab');
       render();
     };
@@ -5984,7 +6043,7 @@ function bindEvents(){
   });
   // ── Deletes ──────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-del-obs]').forEach(el=>{
-    el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);save('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);sset('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-lw]').forEach(el=>{
     el.onclick=()=>{if(!confirm('Are you sure you want to delete this learning walk?'))return;const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
@@ -6100,7 +6159,7 @@ function bindEvents(){
       const idx=S.observations.findIndex(o=>o.id===id);
       if(idx<0)return;
       S.observations[idx]={...S.observations[idx],obsStatus:st};
-      save('obs',S.observations);
+      saveObsRecord(S.observations[idx],['obs_status']);
       showToast('Observation marked '+(st==='submitted'?'Submitted ✅':st==='inprogress'?'In Progress ⏳':'Planned 📅'));
       render();
     };
@@ -6479,7 +6538,7 @@ function bindEvents(){
       // Clear draft on save
       if(S.draftResponses){delete S.draftResponses[oid];sset('draftResponses',S.draftResponses);}
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp,teacherResponseAt:resp?new Date().toISOString():''}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===oid),['teacher_response','teacher_response_at']);
       S.editingResponseId=null;
       showToast('Response saved ✓');
       render();
@@ -6773,12 +6832,24 @@ async function refreshLiveData(){
   if(!S.session||!SCHOOL_ID||S.modal)return;
   try{
     const sid='school_id=eq.'+SCHOOL_ID;
-    const [teachers,groups,usersDb]=await Promise.all([
+    const fetchStart=Date.now();
+    const [teachers,groups,usersDb,obsDb]=await Promise.all([
       sbGet('teachers',sid+'&select=*'),
       sbGet('tlc_groups',sid+'&select=*'),
       sbGet('users',sid+'&select=*'),
+      sbGet('observations',sid+'&select=*'),
     ]);
     let changed=false;
+    // D41: keep observations current on every open device so no device holds a stale copy.
+    // A record written locally in the last 60s (or after this fetch began) keeps its local
+    // version, so an in-flight refresh can never undo an edit you have just saved.
+    if(obsDb&&Array.isArray(obsDb)&&!S.modal){
+      const recent=id=>{const w=OBS_LAST_WRITE[id];return w&&(w>=fetchStart-2000||Date.now()-w<60000);};
+      const dbIds=new Set();
+      const merged=obsDb.map(r=>{dbIds.add(r.id);if(recent(r.id)){const loc=S.observations.find(o=>o.id===r.id);if(loc)return loc;}return mapObs(r);});
+      S.observations.forEach(o=>{if(!dbIds.has(o.id)&&recent(o.id))merged.push(o);});
+      if(JSON.stringify(merged)!==JSON.stringify(S.observations)){S.observations=merged;sset('obs',S.observations);changed=true;}
+    }
     if(teachers&&Array.isArray(teachers)){
       const mapped=teachers.map(mapTeacher);
       if(JSON.stringify(mapped)!==JSON.stringify(S.teachers)){S.teachers=mapped;sset('teachers',S.teachers);changed=true;}
