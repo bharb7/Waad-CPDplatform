@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-04-D45-print-pdf-calendar-tracker">
+<meta name="app-build" content="2026-10-10-D46-criterion-notes-print-portal">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-04-D45-print-pdf-calendar-tracker';
+const BUILD_VERSION='2026-10-10-D46-criterion-notes-print-portal';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -2435,6 +2435,17 @@ ${tab==='obs'?`
         ${getDomains().map(d=>{const s=avg(o.scores?.[d.id]||[]);return s?'<span class="badge badge-gray" style="font-size:10px">'+d.n+': '+s.toFixed(1)+'</span>':''}).join('')}
       </div>
       ${o.bio?'<span class="badge badge-purple mb-2">'+esc(o.bio)+'</span>':''}
+      ${(()=>{
+        // D46: observer's per-criterion notes, visible to the teacher (read-only)
+        const groups=getDomains().map(d=>({d,items:d.criteria.map((c,i)=>({c,txt:(o.comments&&o.comments[d.id]&&o.comments[d.id][i])||'',sc:(o.scores&&o.scores[d.id]&&o.scores[d.id][i])||0})).filter(x=>String(x.txt).trim())})).filter(g=>g.items.length);
+        if(!groups.length)return'';
+        const total=groups.reduce((a,g)=>a+g.items.length,0);
+        return '<details open style="margin-bottom:8px;border:1px solid var(--border);border-radius:6px;padding:6px 9px;background:#fff"><summary style="font-size:12px;color:var(--navy);cursor:pointer;font-weight:700">📝 Observer notes per criterion ('+total+')</summary>'
+          +groups.map(g=>'<div style="margin-top:7px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px">'+esc(g.d.n)+'</div>'
+            +g.items.map(x=>{const bc=x.sc>=4?'#0F6E56':x.sc>=3?'#d97706':x.sc>0?'#993C1D':'#9ca3af';return '<div class="text-xs" style="margin-bottom:4px;padding:5px 8px;background:var(--light);border-radius:4px;border-left:3px solid '+bc+';direction:auto"><strong>'+esc(x.c)+(x.sc?' ('+x.sc+'/5)':'')+':</strong> '+esc(x.txt)+'</div>';}).join('')
+          +'</div>').join('')
+          +'</details>';
+      })()}
       ${o.www?'<div class="text-xs mb-2 p-2" style="background:#f0fdf4;border-radius:4px;border-left:3px solid #0F6E56"><strong>✅ Strengths (WWW):</strong><br>'+esc(o.www)+'</div>':''}
       ${o.ebi?'<div class="text-xs mb-2 p-2" style="background:#fffbeb;border-radius:4px;border-left:3px solid #d97706"><strong>🎯 Development (EBI):</strong><br>'+esc(o.ebi)+'</div>':''}
       ${o.action?'<div class="text-xs mb-2 p-2" style="background:#eff6ff;border-radius:4px;border-left:3px solid #3b82f6"><strong>📎 Action Step:</strong><br>'+esc(o.action)+'</div>':''}
@@ -3399,6 +3410,9 @@ function printObs(id){
       }
       if(sc>0)domHtml+='<span style="font-size:11px;font-weight:700;color:'+bc+';margin-left:4px">'+sc+'</span>';
       domHtml+='</td></tr>';
+      // D46: observer's note for this criterion, printed directly under it
+      const cNote=(o.comments&&o.comments[d.id]&&o.comments[d.id][i])||'';
+      if(String(cNote).trim())domHtml+='<tr style="page-break-inside:avoid"><td colspan="2" style="padding:0 10px 7px 22px"><div style="font-size:10.5px;line-height:1.5;color:#374151;background:#f8fafc;border-left:3px solid '+bc+';border-radius:4px;padding:5px 9px;direction:auto"><span style="font-weight:700;color:#1F4E79">&#128221; Observer note:</span> '+safe(cNote)+'</div></td></tr>';
     });
     domHtml+='</table></div>';
   });
