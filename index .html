@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-09-04-D30-lw-tabs-removed-targets-fixed">
+<meta name="app-build" content="2026-10-10-D46-criterion-notes-print-portal">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,15 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-08-16-D24-lw-cpd-media-sync';
+const BUILD_VERSION='2026-10-10-D46-criterion-notes-print-portal';
+/* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS grade_class TEXT DEFAULT '';
+   ALTER TABLE observations ADD COLUMN IF NOT EXISTS obs_status TEXT DEFAULT 'planned';
+   -- obs_status values: 'planned' | 'inprogress' | 'submitted'
+   -- 'submitted' = teacher can see it in their portal; 'planned'/'inprogress' = hidden from teacher
+*/
 const SB_URL='https://juhpkdyohqtsztrllrsc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1aHBrZHlvaHF0c3p0cmxscnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDQ3NTcsImV4cCI6MjA5NzEyMDc1N30.cwN5iY3KBn7yUFtG9FzeWKLwVDe3WQaGMiCS_OYOuAY';
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -152,21 +160,31 @@ async function sbUpsert(table,data,opts={}){if(!data||!data.length)return true;t
 // would look like it saved, then revert on refresh). This wrapper retries once without the
 // optional/new columns so the core data always saves, and only the new extra field degrades.
 const _degradedColWarned={};
+// D44: strip ONLY the column(s) the database reports as missing — never the whole optional set.
+// (D41–D43 stripped every optional column when any one was missing, so a single missing
+// "observer_position" column also dropped period, status, criterion notes and partner fields.)
+const _missingCols={};
+function missingColFromError(e){const m=String(e||'').match(/Could not find the '([^']+)' column/);return m?m[1]:null;}
+function _stripKnownMissing(table,obj){const miss=_missingCols[table];if(!miss)return obj;const c={...obj};miss.forEach(k=>delete c[k]);return c;}
 async function sbUpsertResilient(table,rows,optionalKeys){
   if(!rows||!rows.length)return true;
-  const hasOptional=optionalKeys&&optionalKeys.length;
-  const ok=await sbUpsert(table,rows,{silent:hasOptional});
-  if(ok)return true;
-  if(hasOptional){
-    const stripped=rows.map(r=>{const c={...r};optionalKeys.forEach(k=>delete c[k]);return c;});
-    const ok2=await sbUpsert(table,stripped,{silent:true});
-    if(ok2){
-      if(!_degradedColWarned[table]){
-        _degradedColWarned[table]=true;
-        showToast('Saved — but "'+optionalKeys.join(', ')+'" could not be stored because that column is missing from the "'+table+'" table in Supabase. Everything else saved correctly. Ask your developer to add the column (see SQL notes).','error');
+  const opt=optionalKeys||[];
+  let cur=rows.map(r=>_stripKnownMissing(table,r));
+  const stripped=[];
+  for(let attempt=0;attempt<=opt.length;attempt++){
+    const ok=await sbUpsert(table,cur,{silent:true});
+    if(ok){
+      if(stripped.length&&!_degradedColWarned[table+'|'+stripped.join(',')]){
+        _degradedColWarned[table+'|'+stripped.join(',')]=true;
+        showToast('Saved — but "'+stripped.join(', ')+'" could not be stored because that column is missing from the "'+table+'" table in Supabase. Everything else saved correctly.','error');
       }
       return true;
     }
+    const col=missingColFromError(LAST_DB_ERROR);
+    if(!col||!opt.includes(col))break; // a different error, or a required column → report it
+    (_missingCols[table]=_missingCols[table]||new Set()).add(col);
+    stripped.push(col);
+    cur=cur.map(r=>{const c={...r};delete c[col];return c;});
   }
   showToast('DB save error ('+table+'): '+LAST_DB_ERROR.slice(0,200),'error');
   return false;
@@ -196,7 +214,7 @@ const SEED_USERS = [
   // emptied above) — Bilal will add real teachers via the Teachers tab and generate their
   // accounts himself via ~Generate Teacher Accounts~ when ready.
   {id:'admin_seed',name:'Admin',fullName:'Administrator',username:'BilalHarb',password:'WaadAcademy2026',role:'admin',depts:[]},
-  {id:'52ejvt0s_mqh2scax',name:'Ibrahim Mikkawi',fullName:'Ibrahim Mikkawi',username:'Ibrahim',password:'Ibr123',role:'admin',depts:[]},
+  {id:'52ejvt0s_mqh2scax',name:'Ibrahim Mikkawi',fullName:'Ibrahim Makkawi',username:'Ibrahim',password:'Ibr123',role:'admin',depts:[]},
   {id:'8fku19n7_mqh2t2e1',name:'Racha AlZohbi',fullName:'Racha AlZohbi',username:'Racha',password:'CEO1234567',role:'admin',depts:[]},
   {id:'o5qndcc7_mqh2xr8x',name:'Safiah Alzahrani',fullName:'Safiah Alzahrani',username:'Safia',password:'HOLS1234567',role:'cpdLead',depts:[]},
   {id:'8mxuyfqt_mqh2z2lq',name:'Chenai Nayakwende',fullName:'Chenai Nayakwende',username:'Chenai',password:'HOLCh1234567',role:'cpdLead',depts:[]},
@@ -243,6 +261,15 @@ const SECTIONS=['Boys','Girls'];
 // filter/target by Stage instead of the old fake "KG/Primary" department.
 const STAGES=['KG','Primary','Lower Secondary','Upper Secondary'];
 const GRADES=['KG1','KG2','KG3',...Array.from({length:12},(_,i)=>'Grade '+(i+1))];
+// D40 — READ-ONLY stage resolution for filtering. Never writes to the DB and never changes a
+// teacher's stored stage/grades. A teacher matches a Stage filter if EITHER their stored Stage
+// field matches (legacy spellings normalised) OR any grade they teach falls in that stage.
+// Grade bands (school decision — edit here only): KG1-3=KG, G1-5=Primary, G6-8=Lower Sec, G9-12=Upper Sec.
+const STAGE_NONE='__none__';
+function stageOfGrade(g){const x=String(g||'').trim().toLowerCase();if(!x)return'';if(/^kg|kindergarten/.test(x))return'KG';const m=x.match(/(\d+)/);if(!m)return'';const n=+m[1];if(n>=1&&n<=5)return'Primary';if(n>=6&&n<=8)return'Lower Secondary';if(n>=9&&n<=12)return'Upper Secondary';return'';}
+function normStageLabel(v){const x=String(v||'').trim().toLowerCase();if(!x)return[];const out=[];if(/\bkg\b|kg\d|kindergarten|foundation/.test(x))out.push('KG');if(/primary|elementary/.test(x))out.push('Primary');if(/lower\s*sec|middle/.test(x))out.push('Lower Secondary');if(/upper\s*sec|high\s*school/.test(x))out.push('Upper Secondary');return out;}
+function teacherStageSet(t){const set=new Set(normStageLabel(t&&t.stage));((t&&t.grades)||[]).forEach(g=>{const s=stageOfGrade(g);if(s)set.add(s);});return set;}
+function teacherMatchesStages(t,sel){if(!sel||!sel.length)return true;const set=teacherStageSet(t);return sel.some(s=>s===STAGE_NONE?set.size===0:set.has(s));}
 const MONTHS=['September','October','November','December','January','February','March','April','May','June','July','August'];
 const TECHS=['Strong Starts','Transitions & attention','Ratio of pupil thought','Overnarration & silence','Cold call','Think, Pair, Share','Simultaneous response','Metacognition: Obvious organisers','Behaviour for learning','Devices / AI use','Other'];
 const TECH_LP={'Think, Pair, Share':['LP2','LP5'],'Cold call':['LP4','LP5'],'Simultaneous response':['LP3','LP5'],'Ratio of pupil thought':['LP1','LP4'],'Overnarration & silence':['LP4','LP5'],'Strong Starts':['LP1','LP9'],'Transitions & attention':['LP9'],'Metacognition: Obvious organisers':['LP5','LP6'],'Behaviour for learning':['LP7','LP10'],'Devices / AI use':['LP2','LP6']};
@@ -429,7 +456,8 @@ const SEED_VISITS=[
   {id:"V0119",year:"2026/2027",date:"",teacher:"Junaid Golandaz",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Junaid Alam",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''},
   {id:"V0120",year:"2026/2027",date:"",teacher:"Dina Kamal",dept:"",campus:"",grade:"",stage:"",team:"",visitor:"Sheela Pradhan",type:"Learning Walk",status:"Planned",reason:"",completedNotes:'',completedAt:''}
 ];
-let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitType:'',visitDateFrom:'',visitDateTo:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:''};
+let S={session:null,view:'dashboard',modal:null,teachers:[],groups:[],observations:[],triplets:[],lwalks:[],cpd:[],deptTLC:[],schedule:[],impacts:[],progress:[],snapshots:[],resources:[],users:[],roleCfg:{...DEFAULT_ROLES},mechM:{},dhM:{},branding:{name:'Waad Academy',logos:[]},customDomains:null,toast:null,toastTimer:null,dashDepts:[],dashSects:[],dashStages:[],schedCats:null,schedMonthFilter:'',schedDateFrom:'',schedDateTo:'',schedTypeFilter:'',fwDepts:[],fwSects:[],fwStages:[],fwSearch:'',teacherSearch:'',tchDepts:[],tchSects:[],cpdSearch:'',cpdDepts:[],tripSearch:'',tripDepts:[],tlcDepts:[],tlcSearch:'',impactDept:'',impSects:[],impStages:[],procDept:'',currentRatings:{},fwTab:'obs',impTab:'L1',progMode:'internal',cpdTab:'cpd',careTab:'overview',editingId:null,editingSchedInsightId:null,myPortalTab:'overview',portalSchedMonth:'',portalSchedStatus:'',schedRatings:sget('schedRatings')||{},deletedSeeds:sget('deletedSeeds')||[],draftResponses:sget('draftResponses')||{},visits:sget('cvVisits')||[],visitDept:[],visitCampus:[],visitSearch:'',visitStatus:'',visitVisitor:'',visitType:'',visitDateFrom:'',visitDateTo:'',visitNotYet:false,adminPortfolioTeacherId:null,genTeacherDepts:[],genTeacherSearch:'',userZoneDepts:[],userZoneSearch:'',
+calFilterDate:'',calFilterPeriod:'',calFilterObserver:'',calFilterDept:[],calFilterSection:[],calFilterStatus:'',calWeek:''};
 function uid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
 // Shared "same teacher name" check used by Add Teacher, Bulk Add, and the duplicate cleanup
 // utility — trims and collapses whitespace and ignores case, since "John Smith" vs "john  smith"
@@ -515,6 +543,17 @@ async function loadAll(){
       else S.roleCfg={...DEFAULT_ROLES,...(sget('roleCfg')||{})};
       if(br.customDomains){S.customDomains=br.customDomains;sset('customDomains',S.customDomains);}
       else S.customDomains=sget('customDomains')||null;
+      // visitTargetsCfg, visitorProfiles, customPositions — persisted in branding blob so they survive refresh and sync across devices
+      if(br.visitTargetsCfg){sset('visitTargetsCfg',br.visitTargetsCfg);}
+      if(br.visitorProfiles){sset('visitorProfiles',br.visitorProfiles);}
+      if(br.customPositions&&br.customPositions.length){sset('customPositions',br.customPositions);}
+      if(br.hiddenPositions){sset('hiddenPositions',br.hiddenPositions);}
+      snapSyncSettings(); // D43
+      try{await vsSyncFromDb(true);}catch(_e){} // D44: per-row visit settings win over the shared blob
+      // Load all teachers' portfolios from branding blob
+      if(br.portfolios){sset('allPortfolios',br.portfolios);}
+      // Rebuild VISITOR_POSITIONS: built-ins minus hidden, plus custom
+      {const _hp=sget('hiddenPositions')||[];const _cp=sget('customPositions')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(p=>!_hp.includes(p)),..._cp])].forEach(p=>VISITOR_POSITIONS.push(p));}
       // Merge local + remote Schedule Categories instead of one overwriting the other —
       // a category added on this device must survive even if the last save to Supabase
       // (a PATCH on `schools`) failed silently, and a category added elsewhere must still
@@ -555,13 +594,23 @@ async function loadAll(){
 async function saveSchoolSettings(retrying){
   sset('roleCfg',S.roleCfg);sset('mechM',S.mechM);sset('dhM',S.dhM);sset('branding',S.branding);sset('customDomains',S.customDomains);sset('schedCats',S.schedCats);sset('deletedSeedUsers',S.deletedSeedUsers);
   if(!SCHOOL_ID)return true;
+  _settingsSaving=true;
+  try{
+    if(VS_AVAILABLE){await vsPushLocalChanges();} // D44: per-row writes, immune to presence/old-device overwrites
+    else await mergeSyncSettingsWithRemote(); // D43 fallback
+  }catch(_e){}
+  setTimeout(()=>{_settingsSaving=false;},4000);
   // Include online_users/activity_log so this PATCH (which replaces the whole `branding`
   // JSON column) doesn't silently wipe them out every time a setting like Schedule
   // Categories is saved.
   const payload={branding:{name:S.branding.name||'Waad Academy',logo:S.branding.logo||'',partners:S.branding.partners||[],
     online_users:S.branding.online_users||{},activity_log:S.branding.activity_log||[],
     roleCfg:S.roleCfg,customDomains:S.customDomains||null,schedCats:S.schedCats||null,
-    deletedSeedUsers:S.deletedSeedUsers||DEFAULT_DELETED_SEED_USERS},mech_overrides:S.mechM,dh_overrides:S.dhM};
+    deletedSeedUsers:S.deletedSeedUsers||DEFAULT_DELETED_SEED_USERS,
+    visitTargetsCfg:sget('visitTargetsCfg')||{},
+    visitorProfiles:sget('visitorProfiles')||{},
+    customPositions:sget('customPositions')||[],hiddenPositions:sget('hiddenPositions')||[]},mech_overrides:S.mechM,dh_overrides:S.dhM};
+  snapSyncSettings(); // D43: what we are writing becomes the new baseline
   try{
     // IMPORTANT: 'Prefer: return=minimal' used to hide a real bug here — PostgREST returns
     // HTTP 200/204 "success" even when an RLS UPDATE policy on `schools` silently blocks the
@@ -650,7 +699,7 @@ function teacherEmailFor(u){const t=u&&u.teacherId?S.teachers.find(tc=>tc.id===u
 // actually reached the database, no matter what the app showed.
 function mapUser(r){return{id:r.id,name:r.name||'',fullName:r.name||'',username:r.username||'',password:r.password||'',role:r.role_key||'viewer',depts:r.depts||[],sections:r.sections||[],grades:r.grades||[],teacherId:r.teacher_id||null,email:r.email||'',passwordHash:r.password_hash||''}}
 function mapGroup(r){return{id:r.id,name:r.name,color:r.color||'#1F4E79'}}
-function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Lesson Observation',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{}}}
+function mapObs(r){return{id:r.id,tid:r.teacher_id||null,date:r.date||'',observer:r.observer||'',observerPartner:r.observer_partner||'',observerPartnerPosition:r.observer_partner_position||'',observerPosition:r.observer_position||'',scope:'teacher',bio:(r.techniques&&r.techniques[0])||'',customTech:'',scores:r.scores||{},conf:r.conf||0,www:r.www||'',ebi:r.ebi||'',action:r.action||'',visitType:r.visit_type||'Learning Walk',visitNote:r.visit_note||'',autoLPs:[],neasc:r.neasc_lps||[],slLinked:r.sl_linked||false,period:r.period||'',timeSlot:r.time_slot||'',gradeClass:r.grade_class||'',teacherResponse:r.teacher_response||'',teacherResponseAt:r.teacher_response_at||'',comments:r.criteria_comments||{},obsStatus:r.obs_status||'planned'}}
 function mapTrip(r){return{id:r.id,gid:r.group_id||'',name:r.name||'',cycle:r.cycle||1,status:r.status||'planned',oid:r.teacher_id||'',cid:r.coach_id||'',fid:r.facilitator_id||'',bio:(r.techniques&&r.techniques[0])||'',customTech:'',od:r.observe_date||'',dd:r.debrief_date||'',wwwNotes:r.www_notes||'',ebiNotes:r.ebi_notes||'',action:r.action||'',slLinked:r.sl_linked||false,scriptChecklist:r.script_checklist||[],scriptText:r.script_text||''}}
 // mediaImages/mediaVideos used to read from local cache only (r.media_images/media_videos were
 // never sent to Supabase — see save()'s 'lwalks' branch history) because base64-encoding whole
@@ -716,8 +765,8 @@ async function save(k,v){
     // uses password_hash) — invisible for edits to existing rows (their real hash round-trips
     // via mapUser() and is left untouched), but blocked every brand-new insert. Same fix:
     // preserve it if we have it, synthesize an obviously-unused placeholder if we don't.
-    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id)),portfolio:u.portfolio||{}})),['username','password','sections','grades','teacher_id','portfolio']);
-    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Lesson Observation',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{}};}),['criteria_comments','teacher_response_at']);
+    else if(k==='users') return await sbUpsertResilient('users',v.map(u=>({id:u.id,school_id:sid,name:u.name||u.fullName||'',role_key:u.role||'viewer',depts:u.depts||[],username:u.username||'',password:u.password||'',sections:u.sections||[],grades:u.grades||[],teacher_id:u.teacherId||null,email:u.email||((u.username||u.id)+'@waadcp.internal'),password_hash:u.passwordHash||('unused:'+(u.username||u.id))})),['username','password','sections','grades','teacher_id']);
+    else if(k==='obs') return await sbUpsertResilient('observations',v.map(o=>obsRow(o,sid)),OBS_OPTIONAL_COLS);
     else if(k==='trips') return await sbUpsert('triplets',v.map(t=>{const ob=S.teachers.find(tc=>tc.id===t.oid);const co=S.teachers.find(tc=>tc.id===t.cid);const fa=S.teachers.find(tc=>tc.id===t.fid);const tech=t.bio||t.customTech||'';return{id:t.id,school_id:sid,group_id:t.gid||null,name:t.name||'',cycle:t.cycle||1,status:t.status||'planned',teacher_id:t.oid||null,teacher_name:ob?ob.name:'',coach:co?co.name:'',coach_id:t.cid||null,facilitator_id:t.fid||null,techniques:tech?[tech]:[],observe_date:t.od||null,debrief_date:t.dd||null,www_notes:t.wwwNotes||'',ebi_notes:t.ebiNotes||'',action:t.action||'',sl_linked:t.slLinked||false,script_checklist:t.scriptChecklist||[],script_text:t.scriptText||''};}));
     else if(k==='lwalks') return await sbUpsertResilient('learning_walks',v.map(lw=>{const tech=lw.bio||lw.customTech||'';return{id:lw.id,school_id:sid,date:lw.date||null,observer:lw.observer||'',section:lw.section||'',dept:lw.dept||'',grade:lw.grade||'',techniques:tech?[tech]:[],strengths:lw.strengths||'',afd:lw.afd||'',focus_area:lw.focusArea||'',media_images:lw.mediaImages||[],media_videos:lw.mediaVideos||[]};}),['grade','media_images','media_videos']);
     else if(k==='cpd') return await sbUpsertResilient('cpd_sessions',v.map(c=>{const tech=c.bio||c.customTech||'';return{id:c.id,school_id:sid,title:c.title||'',date:c.date||null,facilitator:c.facilitator||'',audience:c.audience||'',type:c.type||'Internal',delivery:c.delivery||'Workshop',month:c.month||'',techniques:tech?[tech]:[],before_text:c.before||'',during_text:c.during||'',after_text:c.after||'',status:c.status||'active',attachments:c.attachments||[],media_images:c.mediaImages||[],media_videos:c.mediaVideos||[]};}),['attachments','media_images','media_videos']);
@@ -772,19 +821,147 @@ async function saveSchedRecord(row,fullArray){
     start_date:row.startDate||null,end_date:row.endDate||null,venue:row.venue||'',target:row.target||'',
     status:row.status||'planned',cpd_id:row.cpdId||null,time_from:row.timeFrom||row.time||null,time_to:row.timeTo||null,cost:row.cost||'',cpd_cache:row.cpdCache||null,teacher_insights:row.teacherInsights||{}}],['time_from','time_to','cost','cpd_cache','teacher_insights']);
 }
+// ── D41: TARGETED OBSERVATION SAVES ─────────────────────────────────────────────────────────
+// ROOT CAUSE of "I changed Mikkawi → Makkawi, got 'Observation updated ✓', then it reverted":
+// every observation action (new/edit obs, status tap, Steplab tick, teacher response) used to
+// re-upload the WHOLE observations array held on that device. The 30-second live refresh never
+// re-pulled observations, so any other device open since earlier (an observer's or a teacher's)
+// still held the old spelling — and the next time that person touched ANY observation, their
+// stale copy of all rows overwrote the database, silently undoing your correction.
+// Now each action writes ONLY the record it changed, and ONLY the columns it changed (PATCH),
+// and the live refresh keeps observations current on every device.
+const OBS_OPTIONAL_COLS=['criteria_comments','teacher_response_at','period','time_slot','grade_class','obs_status','observer_partner','observer_partner_position','observer_position'];
+const OBS_LAST_WRITE={}; // id -> ms of last local write (protects it from being overwritten by an in-flight refresh)
+function obsRow(o,sid){const t=S.teachers.find(tc=>tc.id===o.tid);const tech=o.bio||o.customTech||'';return{id:o.id,school_id:sid,teacher_id:o.tid||null,teacher_name:t?t.name:'',observer:o.observer||'',observer_partner:o.observerPartner||'',observer_partner_position:o.observerPartnerPosition||'',observer_position:o.observerPosition||'',date:o.date||null,dept:t?t.dept:'',section:t?t.section:'',scores:o.scores||{},techniques:tech?[tech]:[],neasc_lps:o.neasc||[],www:o.www||'',ebi:o.ebi||'',action:o.action||'',visit_type:o.visitType||'Learning Walk',visit_note:o.visitNote||'',conf:o.conf||0,sl_linked:o.slLinked||false,teacher_response:o.teacherResponse||'',teacher_response_at:o.teacherResponseAt||null,criteria_comments:o.comments||{},period:o.period||'',time_slot:o.timeSlot||'',grade_class:o.gradeClass||'',obs_status:o.obsStatus||'planned'};}
+const OBS_EDIT_COLS=['teacher_id','teacher_name','observer','observer_partner','observer_partner_position','observer_position','date','dept','section','scores','techniques','neasc_lps','www','ebi','action','visit_type','visit_note','conf','criteria_comments','period','time_slot','obs_status'];
+async function _obsPatch(id,body){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/observations?id=eq.'+encodeURIComponent(id)+'&school_id=eq.'+encodeURIComponent(SCHOOL_ID),{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(body),cache:'no-store'});
+    if(!r.ok){const e=await r.text();console.warn('obs PATCH failed',r.status,e);LAST_DB_ERROR='observations: '+r.status+' '+e.slice(0,300);return{ok:false};}
+    let b=null;try{b=await r.json();}catch(_e){}
+    return{ok:true,rows:Array.isArray(b)?b.length:1};
+  }catch(e){LAST_DB_ERROR='observations: network/exception — '+e.message;return{ok:false};}
+}
+// cols omitted → full row (new observation). cols given → only those columns are updated.
+async function saveObsRecord(o,cols){
+  sset('obs',S.observations);
+  if(!SCHOOL_ID||!o||!o.id)return true;
+  OBS_LAST_WRITE[o.id]=Date.now();
+  const full=obsRow(o,SCHOOL_ID);
+  if(cols&&cols.length){
+    const body={};cols.forEach(c=>{if(c in full)body[c]=full[c];});
+    let cur=_stripKnownMissing('observations',body);const stripped=[];
+    let res=Object.keys(cur).length?await _obsPatch(o.id,cur):{ok:true,rows:1};
+    while(!res.ok){
+      const col=missingColFromError(LAST_DB_ERROR);
+      if(!col||!OBS_OPTIONAL_COLS.includes(col)||!(col in cur))break;
+      (_missingCols.observations=_missingCols.observations||new Set()).add(col);
+      stripped.push(col);delete cur[col];
+      if(!Object.keys(cur).length){res={ok:true,rows:1};break;}
+      res=await _obsPatch(o.id,cur);
+    }
+    if(res.ok&&stripped.length&&!_degradedColWarned['observations|'+stripped.join(',')]){_degradedColWarned['observations|'+stripped.join(',')]=true;showToast('Saved — but "'+stripped.join(', ')+'" could not be stored because that column is missing from the "observations" table in Supabase. Everything else saved correctly.','error');}
+    if(res.ok&&res.rows>0){OBS_LAST_WRITE[o.id]=Date.now();return true;}
+    if(!res.ok){showToast('DB save error (observations): '+LAST_DB_ERROR.slice(0,200),'error');return false;}
+    // 0 rows matched → the record was never stored in the DB yet; fall through to a full insert.
+  }
+  const ok=await sbUpsertResilient('observations',[full],OBS_OPTIONAL_COLS);
+  OBS_LAST_WRITE[o.id]=Date.now();
+  return ok;
+}
+// Canonical people list for the "Observed by" / "Observed with" pickers — taken ONLY from the
+// Users list and the Teachers list (never from free-typed observation text), so misspellings
+// such as a second spelling of a colleague's name are not offered back as suggestions.
+function peopleDatalistHTML(){
+  const seen=new Map();
+  const add=n=>{const v=String(n||'').replace(/\s+/g,' ').trim();if(!v)return;const k=v.toLowerCase();if(!seen.has(k))seen.set(k,v);};
+  try{getAllUsers().forEach(u=>add(u.fullName||u.name));}catch(_e){}
+  (S.teachers||[]).forEach(t=>add(t.name));
+  const names=[...seen.values()].sort((a,b)=>a.localeCompare(b));
+  return '<datalist id="dl-people">'+names.map(n=>'<option value="'+esc(n)+'"></option>').join('')+'</datalist>';
+}
+// ── D42: PARTNER SEARCH BOX ──────────────────────────────────────────────────────────────────
+// Native <datalist> barely works on iPad Safari, so the partner field gets its own search list.
+// Names come ONLY from Settings → Users (registered system users). Typing filters the list; tapping
+// a name fills the box with the exact registered spelling. Free typing is still possible (nothing is
+// blocked), but a gentle warning shows when the text is not a registered user, and a case-only
+// difference (e.g. "chenai nayakwende") is corrected to the registered spelling when leaving the box.
+// Display/input only — no data is written until the observation itself is saved as before.
+function systemUserNames(){
+  const seen=new Map();
+  try{getAllUsers().forEach(u=>{const v=String(u.fullName||u.name||'').replace(/\s+/g,' ').trim();if(!v)return;const k=v.toLowerCase();if(!seen.has(k))seen.set(k,v);});}catch(_e){}
+  return [...seen.values()].sort((a,b)=>a.localeCompare(b));
+}
+function setupUserSearchBox(inp){
+  if(!inp||inp.dataset.usBound)return;
+  inp.dataset.usBound='1';
+  const wrap=inp.parentNode;wrap.style.position='relative';
+  const dd=document.createElement('div');
+  dd.style.cssText='display:none;position:absolute;left:0;right:0;z-index:9999;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:240px;overflow-y:auto;margin-top:2px';
+  const warn=document.createElement('div');
+  warn.className='text-xs';warn.style.cssText='color:#b45309;margin-top:4px;display:none';
+  warn.textContent='⚠ This name is not a registered user — pick from the list to keep names consistent.';
+  wrap.appendChild(dd);wrap.appendChild(warn);
+  const names=systemUserNames();
+  const norm=v=>String(v||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const checkWarn=()=>{const v=norm(inp.value);warn.style.display=(v&&!names.some(n=>n.toLowerCase()===v))?'block':'none';};
+  const pick=n=>{
+    inp.value=n;dd.style.display='none';checkWarn();
+    // Fill Partner Position only if it is still empty and a known position exists for this person.
+    const ps=document.getElementById('obs-partner-position');
+    if(ps&&(!ps.value||ps.value==='— None —')){try{const pos=visitorPosition(n);if(pos&&pos!=='Other'&&[...ps.options].some(o=>o.value===pos||o.text===pos))ps.value=pos;}catch(_e){}}
+  };
+  const show=()=>{
+    const q=norm(inp.value);
+    // Names whose first/any word starts with the typed text come first, then other partial matches.
+    const starts=n=>{const l=n.toLowerCase();return l.startsWith(q)||l.split(' ').some(w=>w.startsWith(q));};
+    const list=q?[...names.filter(starts),...names.filter(n=>!starts(n)&&n.toLowerCase().includes(q))]:names;
+    if(!list.length){dd.innerHTML='<div style="padding:9px 12px;color:var(--muted);font-size:12px;font-style:italic">No registered user matches “'+esc(inp.value)+'”</div>';dd.style.display='block';return;}
+    dd.innerHTML=list.slice(0,40).map(n=>'<div data-us-name="'+esc(n)+'" style="padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9;direction:auto">'+esc(n)+'</div>').join('');
+    dd.style.display='block';
+  };
+  // pointerdown (not click) so the pick registers before the input loses focus on iPad
+  dd.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-us-name]');if(!el)return;e.preventDefault();pick(el.getAttribute('data-us-name'));});
+  inp.addEventListener('focus',show);
+  inp.addEventListener('input',()=>{show();checkWarn();});
+  inp.addEventListener('blur',()=>{setTimeout(()=>{dd.style.display='none';
+    const v=norm(inp.value);const exact=names.find(n=>n.toLowerCase()===v);
+    if(exact&&inp.value!==exact)inp.value=exact; // case/spacing-only fix to registered spelling
+    checkWarn();},180);});
+  checkWarn();
+}
 function getMyPortfolio(){
-  const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
+  // Portfolio keyed by username OR name — stored in localStorage and branding blob
+  const uname=S.session?.username||'';
+  const uNameFull=S.session?.name||'';
+  const allPortfolios=sget('allPortfolios')||{};
+  // Check by username first, then by full name
+  if(uname&&allPortfolios[uname]&&allPortfolios[uname].folders)return allPortfolios[uname];
+  if(uNameFull&&allPortfolios[uNameFull]&&allPortfolios[uNameFull].folders)return allPortfolios[uNameFull];
+  // Legacy: check branding portfolios
+  const brPortfolios=(S.branding&&S.branding.portfolios)||{};
+  if(uname&&brPortfolios[uname]&&brPortfolios[uname].folders)return brPortfolios[uname];
+  if(uNameFull&&brPortfolios[uNameFull]&&brPortfolios[uNameFull].folders)return brPortfolios[uNameFull];
+  // Legacy fallback: per-user record
+  const myUser=S.users&&S.users.find(u=>u.name===uNameFull||u.username===uname);
   if(myUser&&myUser.portfolio&&myUser.portfolio.folders)return myUser.portfolio;
   return sget('myPortfolio')||{folders:[]};
 }
 function saveMyPortfolio(p){
+  const uname=S.session?.username||'';
+  const uNameFull=S.session?.name||'';
+  // Store under BOTH keys for reliable lookup
+  const allPortfolios=sget('allPortfolios')||{};
+  if(uname)allPortfolios[uname]=p;
+  if(uNameFull)allPortfolios[uNameFull]=p;
+  sset('allPortfolios',allPortfolios);
   sset('myPortfolio',p);
-  // Also save to user record if available
-  const myUser=S.users&&S.users.find(u=>u.name===(S.session?.name||'')||u.username===(S.session?.username||''));
-  if(myUser){
-    myUser.portfolio=p;
-    save('users',S.users);
-  }
+  // Persist to school branding blob so it survives device changes and syncs across devices
+  if(!S.branding)S.branding={};
+  if(!S.branding.portfolios)S.branding.portfolios={};
+  if(uname)S.branding.portfolios[uname]=p;
+  if(uNameFull)S.branding.portfolios[uNameFull]=p;
+  saveSchoolSettings();
 }
 async function saveSchedInsight(schedId,teacherName,text){
   const row=S.schedule.find(r=>r.id===schedId);
@@ -1184,6 +1361,14 @@ function totalDH(fo,ft){return DH_PILLARS.filter(p=>S.dhM[p.id]!==undefined?S.dh
 function myRole(){if(!S.session)return DEFAULT_ROLES.viewer;if(S.session.role==='admin')return DEFAULT_ROLES.admin;return S.roleCfg[S.session.role]||DEFAULT_ROLES.viewer;}
 function isAdmin(){return S.session?.role==='admin'}
 function canEdit(){return isAdmin()||myRole()?.canEdit}
+// Visit Tracker is restricted to admin-role users plus the four named school leaders.
+// All name comparisons are case-insensitive and trim-safe.
+const VISIT_TRACKER_ALLOWED_NAMES=['ibrahim mikkawi','racha','bilal harb','rabiha alyamani'];
+function canSeeVisitTracker(){
+  if(isAdmin())return true;
+  const n=(S.session?.name||'').toLowerCase().trim();
+  return VISIT_TRACKER_ALLOWED_NAMES.some(a=>n.includes(a)||a.includes(n.split(' ')[0]));
+}
 // Department Coordinators (deptHead/deptHeadPlus) are scoped by DEPARTMENT (S.session.depts).
 // Heads of Section (HOS, role key still 'cpdLead') are scoped by GRADE + SECTION instead
 // (S.session.grades / S.session.sections) — e.g. "boys, grades 4 to 8". Same `scoped:true` role
@@ -1307,6 +1492,20 @@ function techSelector(selId,customId,val,customVal){
     +'</div></div>';
 }
 function handleTechChange(selId,customId){const sel=document.getElementById(selId);const wrap=document.getElementById(customId+'-wrap');if(sel&&wrap)wrap.style.display=sel.value==='Other'?'block':'none';}
+function setObsStatus(v){
+  const hidden=document.getElementById('obs-status-val');
+  if(hidden)hidden.value=v;
+  const STATUS_COLS={planned:{col:'#6b7280',bg:'#f3f4f6'},inprogress:{col:'#92400e',bg:'#fef3c7'},submitted:{col:'#065f46',bg:'#d1fae5'}};
+  ['planned','inprogress','submitted'].forEach(s=>{
+    const btn=document.getElementById('obs-status-btn-'+s);
+    if(!btn)return;
+    const sel=s===v;const c=STATUS_COLS[s]||{col:'#6b7280',bg:'#f3f4f6'};
+    btn.style.borderColor=sel?c.col:'#e5e7eb';
+    btn.style.background=sel?c.bg:'#fff';
+    btn.style.color=sel?c.col:'#6b7280';
+    btn.style.fontWeight=sel?700:400;
+  });
+}
 function getTechFromForm(selId,customId){const sel=(document.getElementById(selId)||{}).value||'';if(sel==='Other'){const cv=(document.getElementById(customId)||{}).value||'';return{bio:'Other',customTech:cv};}return{bio:sel==='— None —'||sel===''?'':sel,customTech:''};}
 // ── CPD audience: parse/collect a multi-part target-audience selection ────
 // The audience is stored as one friendly comma-joined string (e.g. "Mathematics, HOD Team, Fatima Al-Rashid")
@@ -1586,7 +1785,7 @@ function renderDashboard(){
     ${DH_PILLARS.map(p=>{const on=S.dhM[p.id]!==undefined?S.dhM[p.id]:true;return `<div class="flex items-center gap-2 mb-2 p-2" style="background:${on?p.c+'18':'#f9fafb'};border-radius:6px;cursor:${canEdit()?'pointer':'default'}" ${canEdit()?'data-toggle-dh="'+p.id+'"':''}><div style="width:20px;height:20px;border-radius:4px;background:${on?p.c:'#e5e7eb'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">${p.id}</div><span style="font-size:12px;font-weight:600;color:${on?p.c:'#9ca3af'}">${p.l}</span>${on?'<span style="margin-left:auto;font-size:10px;color:'+p.c+'">✓</span>':''}</div>`;}).join('')}
   </div>
 </div>
-${(noObs.length||lowAvg.length)?`<div class="card mb-3"><div class="card-title">⚠️ Attention Needed</div>${noObs.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef9ec;border-radius:6px"><span style="font-size:12px"><strong>${esc(t.name)}</strong> — no observations yet</span>${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}</div>`).join('')}${lowAvg.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef2f2;border-radius:6px"><span style="font-size:12px"><strong>${esc(t.name)}</strong> — avg ${tStats(t).la.toFixed(1)}/5 ⚠ needs support</span>${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}</div>`).join('')}</div>`:''}
+${(lowAvg.length)?`<div class="card mb-3"><div class="card-title">⚠️ Attention Needed</div>${lowAvg.map(t=>`<div class="flex justify-between items-center mb-2 p-2" style="background:#fef2f2;border-radius:6px"><span style="font-size:12px"><strong>${esc(t.name)}</strong> — avg ${tStats(t).la.toFixed(1)}/5 ⚠ needs support</span>${canEdit()?'<button class="btn btn-sm btn-primary" data-new-obs="'+t.id+'">+ Obs</button>':''}</div>`).join('')}</div>`:''}
 <div class="card mb-3">
   <div class="flex justify-between items-center mb-3">
     <div class="card-title" style="margin:0">👩‍🏫 Teacher Progress — filtered</div>
@@ -1707,12 +1906,27 @@ ${filteredSched.length===0?`<div class="card" style="text-align:center;color:var
 `}
 
 
+function getPortfolioForTeacher(teacherName,teacherUsername){
+  // Look up a teacher's portfolio from the shared portfolios store (keyed by name or username)
+  const allPortfolios=sget('allPortfolios')||{};
+  const brPortfolios=(S.branding&&S.branding.portfolios)||{};
+  // Try username first, then name, then branding blob
+  if(teacherUsername&&allPortfolios[teacherUsername]&&allPortfolios[teacherUsername].folders)return allPortfolios[teacherUsername];
+  if(teacherName&&allPortfolios[teacherName]&&allPortfolios[teacherName].folders)return allPortfolios[teacherName];
+  if(teacherUsername&&brPortfolios[teacherUsername]&&brPortfolios[teacherUsername].folders)return brPortfolios[teacherUsername];
+  if(teacherName&&brPortfolios[teacherName]&&brPortfolios[teacherName].folders)return brPortfolios[teacherName];
+  // Fallback: user record (legacy)
+  const userRec=S.users&&S.users.find(u=>u.name===teacherName||u.username===teacherUsername);
+  if(userRec&&userRec.portfolio&&userRec.portfolio.folders)return userRec.portfolio;
+  return {folders:[]};
+}
+
 // ─── Admin Portfolio Viewer ───────────────────────────────────────────────────
 function renderAdminPortfolioViewer(teacherId){
   const t=teacherId?S.teachers.find(tc=>tc.id===teacherId):null;
   if(!t)return`<div style="text-align:center;color:var(--muted);padding:30px;font-style:italic;border-radius:8px;background:var(--light)"><div style="font-size:40px;margin-bottom:8px">🎓</div><div>Select a teacher above to view their portfolio</div></div>`;
   const userRec=S.users.find(u=>u.name===t.name||(u.name||'').trim()===(t.name||'').trim());
-  const portfolio=userRec?.portfolio||{folders:[]};
+  const portfolio=getPortfolioForTeacher(t.name,userRec?.username||'');
   const folders=portfolio.folders||[];
   const FOLDER_COLORS=['#163A5F','#0F6E56','#E8743B','#5C3D99','#D6295E','#1D9BD7'];
   if(!folders.length)return`<div class="card" style="border-top:3px solid var(--purple);padding:20px">
@@ -1751,7 +1965,10 @@ function renderTeachers(){
   // Apply section filter
   if((S.tchSects||[]).length>0) teachers=teachers.filter(t=>S.tchSects.includes(t.section));
   // Apply stage filter (Primary / Lower Secondary / Upper Secondary / KG)
-  if((S.tchStages||[]).length>0) teachers=teachers.filter(t=>S.tchStages.includes(t.stage));
+  // D40: stage filter now resolves stage from the Stage field OR the grades taught (read-only),
+  // and supports a 'Not set' pill so every teacher is reachable and the counts always reconcile.
+  const tchPreStage=teachers.slice();
+  if((S.tchStages||[]).length>0) teachers=teachers.filter(t=>teacherMatchesStages(t,S.tchStages));
   // Apply search
   if(q) teachers=teachers.filter(t=>t.name.toLowerCase().includes(q)||t.dept.toLowerCase().includes(q));
   const groups=S.groups;
@@ -1771,7 +1988,8 @@ function renderTeachers(){
   <div class="flex items-center gap-2" style="flex-wrap:wrap">
     <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:72px">Stage:</span>
     <div class="pill-opt ${(S.tchStages||[]).length===0?'sel':''}" data-tch-stage="">All Stages</div>
-    ${STAGES.map(s=>`<div class="pill-opt ${(S.tchStages||[]).includes(s)?'sel':''}" data-tch-stage="${s}">${s}</div>`).join('')}
+    ${STAGES.map(s=>`<div class="pill-opt ${(S.tchStages||[]).includes(s)?'sel':''}" data-tch-stage="${s}">${s} <span style="opacity:.6">(${tchPreStage.filter(t=>teacherMatchesStages(t,[s])).length})</span></div>`).join('')}
+    <div class="pill-opt ${(S.tchStages||[]).includes(STAGE_NONE)?'sel':''}" data-tch-stage="${STAGE_NONE}" title="Teachers with no Stage and no grades recorded — edit them to assign a stage">⚠ Not set <span style="opacity:.6">(${tchPreStage.filter(t=>teacherMatchesStages(t,[STAGE_NONE])).length})</span></div>
   </div>
 </div>
 <div class="flex justify-between items-center mb-3">
@@ -1949,8 +2167,9 @@ function renderFieldwork(){
 </div>
 
 <div class="tabs">
-  <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">Observations (${obs.length})</button>
-  <button class="tab ${tab==='visits'?'active':''}" data-fw-tab="visits">📊 Visit Tracker (${(S.observations||[]).length})</button>
+  <button class="tab ${tab==='obs'?'active':''}" data-fw-tab="obs">📋 Observations (${obs.length})</button>
+  <button class="tab ${tab==='calendar'?'active':''}" data-fw-tab="calendar">📅 Obs Calendar</button>
+  ${canSeeVisitTracker()?`<button class="tab ${tab==='visits'?'active':''}" data-fw-tab="visits">📊 Visit Tracker (${(S.observations||[]).length})</button>`:''}
 </div>
 
 ${tab==='obs'?`
@@ -1996,6 +2215,7 @@ ${tab==='obs'?`
         <div class="flex gap-1 items-center">
           ${o.bio?'<span class="badge badge-purple">'+esc(o.bio)+'</span>':''}
           ${da?'<span class="badge badge-blue">'+da.toFixed(1)+'/5</span>':''}
+          ${(()=>{const st=o.obsStatus||'planned';const stMap={planned:{cls:'badge-gray',lbl:'📅 Planned'},inprogress:{cls:'badge-amber',lbl:'⏳ In Progress'},submitted:{cls:'badge-green',lbl:'✅ Submitted'}};const sm=stMap[st]||stMap.planned;return '<span class="badge '+sm.cls+'" style="font-size:10px">'+sm.lbl+'</span>';})()}
           ${o.slLinked?'<span class="badge badge-green" style="font-size:10px">📎 Steplab</span>':''}
           ${canEdit()?`<button class="btn btn-sm btn-ghost" data-edit-obs="${o.id}">✏</button><button class="btn btn-sm btn-ghost" onclick="printObs('${o.id}')" title="Print">🖨</button><button class="btn btn-sm btn-danger" data-del-obs="${o.id}">✕</button>`:''}
         </div>
@@ -2017,10 +2237,14 @@ ${tab==='obs'?`
       ${o.ebi?'<div class="text-xs mb-1"><strong>EBI:</strong> '+esc(o.ebi)+'</div>':''}
       ${o.action?'<div class="text-xs mb-1"><strong>Action:</strong> '+esc(o.action)+'</div>':''}
       ${o.teacherResponse?'<div class="text-xs mb-1" style="background:#f0fdf4;padding:4px 8px;border-radius:4px;border-left:3px solid #0F6E56"><strong>👤 Teacher Response:</strong> '+esc(o.teacherResponse)+'</div>':''}
-      ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6">
+      ${canEdit()?`<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid #f3f4f6;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:${o.slLinked?'var(--teal)':'var(--muted)'}">
           <input type="checkbox" data-sl-obs="${o.id}" ${o.slLinked?'checked':''}> 📎 Logged in Steplab
         </label>
+        <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap">
+          <span style="font-size:10px;color:var(--muted);align-self:center">Status:</span>
+          ${[{v:'planned',l:'📅 Planned',col:'#6b7280',bg:'#f3f4f6'},{v:'inprogress',l:'⏳ In Progress',col:'#92400e',bg:'#fef3c7'},{v:'submitted',l:'✅ Submit',col:'#065f46',bg:'#d1fae5'}].map(s=>`<button class="btn btn-sm" style="font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid ${(o.obsStatus||'planned')===s.v?s.col:'#e5e7eb'};background:${(o.obsStatus||'planned')===s.v?s.bg:'#fff'};color:${(o.obsStatus||'planned')===s.v?s.col:'#9ca3af'}" data-obs-setstatus="${o.id}||${s.v}">${s.l}</button>`).join('')}
+        </div>
       </div>`:''}
     </div>`;
   }).join('')}
@@ -2100,14 +2324,17 @@ ${tab==='cpd'?`
   ${!cpds.length?'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No CPD sessions yet.</div>':''}
 `:''}
 
-${tab==='visits'?renderVisitTracker():''}
+${tab==='calendar'?renderObsCalendar():''}
+
+${tab==='visits'?(canSeeVisitTracker()?renderVisitTracker():'<div class="card" style="text-align:center;color:var(--muted);padding:40px;font-style:italic">You do not have access to the Visit Tracker.</div>'):''}
 `}
 
 function renderMyPortal(){
   // Find the teacher record linked to this session by name match
   const myName=(S.session?.name||'').toLowerCase();
   const me=S.teachers.find(t=>t.name.toLowerCase()===myName);
-  const myObs=me?S.observations.filter(o=>o.tid===me.id).sort((a,b)=>(b.date||'').localeCompare(a.date||'')):[];
+  // Teachers only see observations that have been marked "submitted" by the observer
+  const myObs=me?S.observations.filter(o=>o.tid===me.id&&(o.obsStatus||'planned')==='submitted').sort((a,b)=>(b.date||'').localeCompare(a.date||'')):[];
   const myTrips=me?S.triplets.filter(t=>t.oid===me.id||t.cid===me.id||t.fid===me.id):[];
   const dept=me?.dept||'';
   const myTLC=dept?S.deptTLC.filter(g=>(g.depts||[]).includes(dept)):[];
@@ -2196,7 +2423,7 @@ ${tab==='obs'?`
       <div class="flex justify-between items-center mb-2">
         <div>
           <span style="font-weight:700;font-size:14px">${o.date||'—'}</span>
-          <span class="text-xs text-muted ml-2">Observed by: ${esc(o.observer||'—')}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
+          <span class="text-xs text-muted ml-2">Observed by: ${esc(o.observer||'—')}${o.observerPosition?' ('+esc(o.observerPosition)+')':''}${o.observerPartner?' + '+esc(o.observerPartner)+(o.observerPartnerPosition?' ('+esc(o.observerPartnerPosition)+')':''):''}${o.period?' · '+esc(o.period):''}${o.gradeClass?' · '+esc(o.gradeClass):''}</span>
         </div>
         <div class="flex gap-2 items-center">
           ${da?'<span class="badge badge-blue" style="font-size:13px;font-weight:800">'+da.toFixed(1)+'/5</span>':''}
@@ -2208,6 +2435,17 @@ ${tab==='obs'?`
         ${getDomains().map(d=>{const s=avg(o.scores?.[d.id]||[]);return s?'<span class="badge badge-gray" style="font-size:10px">'+d.n+': '+s.toFixed(1)+'</span>':''}).join('')}
       </div>
       ${o.bio?'<span class="badge badge-purple mb-2">'+esc(o.bio)+'</span>':''}
+      ${(()=>{
+        // D46: observer's per-criterion notes, visible to the teacher (read-only)
+        const groups=getDomains().map(d=>({d,items:d.criteria.map((c,i)=>({c,txt:(o.comments&&o.comments[d.id]&&o.comments[d.id][i])||'',sc:(o.scores&&o.scores[d.id]&&o.scores[d.id][i])||0})).filter(x=>String(x.txt).trim())})).filter(g=>g.items.length);
+        if(!groups.length)return'';
+        const total=groups.reduce((a,g)=>a+g.items.length,0);
+        return '<details open style="margin-bottom:8px;border:1px solid var(--border);border-radius:6px;padding:6px 9px;background:#fff"><summary style="font-size:12px;color:var(--navy);cursor:pointer;font-weight:700">📝 Observer notes per criterion ('+total+')</summary>'
+          +groups.map(g=>'<div style="margin-top:7px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px">'+esc(g.d.n)+'</div>'
+            +g.items.map(x=>{const bc=x.sc>=4?'#0F6E56':x.sc>=3?'#d97706':x.sc>0?'#993C1D':'#9ca3af';return '<div class="text-xs" style="margin-bottom:4px;padding:5px 8px;background:var(--light);border-radius:4px;border-left:3px solid '+bc+';direction:auto"><strong>'+esc(x.c)+(x.sc?' ('+x.sc+'/5)':'')+':</strong> '+esc(x.txt)+'</div>';}).join('')
+          +'</div>').join('')
+          +'</details>';
+      })()}
       ${o.www?'<div class="text-xs mb-2 p-2" style="background:#f0fdf4;border-radius:4px;border-left:3px solid #0F6E56"><strong>✅ Strengths (WWW):</strong><br>'+esc(o.www)+'</div>':''}
       ${o.ebi?'<div class="text-xs mb-2 p-2" style="background:#fffbeb;border-radius:4px;border-left:3px solid #d97706"><strong>🎯 Development (EBI):</strong><br>'+esc(o.ebi)+'</div>':''}
       ${o.action?'<div class="text-xs mb-2 p-2" style="background:#eff6ff;border-radius:4px;border-left:3px solid #3b82f6"><strong>📎 Action Step:</strong><br>'+esc(o.action)+'</div>':''}
@@ -2308,11 +2546,11 @@ ${tab==='schedule'?`
       <div class="pill-opt ${(S.portalSchedMonth||'')==''?'sel':''}" data-portal-month="">All</div>
       ${MONTHS.map(m=>`<div class="pill-opt ${S.portalSchedMonth===m?'sel':''}" data-portal-month="${m}">${m}</div>`).join('')}
     </div>
-    <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    ${S.session?.role!=='teacher'?`<div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
       <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Status:</span>
       <div class="pill-opt ${(S.portalSchedStatus||'')==''?'sel':''}" data-portal-status="">All</div>
       ${['planned','active','done'].map(s=>`<div class="pill-opt ${S.portalSchedStatus===s?'sel':''}" data-portal-status="${s}">${s}</div>`).join('')}
-    </div>
+    </div>`:'<div class="flex items-center gap-2 mb-2"><span style="font-size:11px;color:var(--muted)">Showing completed sessions only.</span></div>'}
     <div class="flex items-center gap-2" style="flex-wrap:wrap">
       <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:52px">Date:</span>
       <input type="date" class="form-control" id="portal-sched-date" style="width:auto;font-size:12px;padding:4px 8px" value="${esc(S.portalSchedDate||'')}">
@@ -2322,6 +2560,8 @@ ${tab==='schedule'?`
   </div>
   ${(()=>{
     let rows=mySchedule;
+    // Teachers should only see sessions that are fully done
+    if(S.session?.role==='teacher')rows=rows.filter(r=>r.status==='done');
     if(S.portalSchedMonth)rows=rows.filter(r=>r.month===S.portalSchedMonth);
     if(S.portalSchedStatus)rows=rows.filter(r=>r.status===S.portalSchedStatus);
     if(S.portalSchedDate)rows=rows.filter(r=>{
@@ -2396,9 +2636,8 @@ ${tab==='resources'?`
 `:''}
 ${tab==='portfolio'?`
   ${(()=>{
-    // Load portfolio from session user record
-    const myUser=S.users.find(u=>u.name===S.session?.name||u.username===S.session?.username);
-    const portfolio=myUser?.portfolio||sget('myPortfolio')||{folders:[],editingFolder:null};
+    // Always read from the canonical source — avoids stale myUser.portfolio after new-path saves
+    const portfolio=getMyPortfolio();
     const folders=portfolio.folders||[];
     window.__portfolio=portfolio;
     const DEFAULT_FOLDERS=['Certificates','Best Practices','Strategies','Reflections','Observations','Professional Development'];
@@ -2422,23 +2661,23 @@ ${tab==='portfolio'?`
     +'</div>').join('')+'</div>');
   })()}
 
-\${tab==='myvisits'?(()=>{
+${tab==='myvisits'?(()=>{
   loadVisits();
   const myName=(S.session?.name||'').toLowerCase();
   const myVs=(S.visits||[]).filter(v=>(v.teacher||'').toLowerCase()===myName);
   const statusBadge=s=>s==='Completed'?'badge-green':s==='Rescheduled'?'badge-amber':s==='Cancelled'?'badge-red':'badge-gray';
-  return '<div style=\"margin-bottom:10px\"><div style=\"font-size:14px;font-weight:700;color:var(--navy)\">📋 My Scheduled Visits</div>'
-    +'<div class=\"text-xs text-muted\">'+myVs.length+' visit'+(myVs.length!==1?'s':'')+' planned for you this academic year</div></div>'
-    +(myVs.length?'<div style=\"overflow-x:auto\"><table><thead><tr><th>Visitor</th><th>Type</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
+  return '<div style="margin-bottom:10px"><div style="font-size:14px;font-weight:700;color:var(--navy)">📋 My Scheduled Visits</div>'
+    +'<div class="text-xs text-muted">'+myVs.length+' visit'+(myVs.length!==1?'s':'')+' planned for you this academic year</div></div>'
+    +(myVs.length?'<div style="overflow-x:auto"><table><thead><tr><th>Visitor</th><th>Type</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody>'
       +myVs.map(v=>'<tr>'
-        +'<td class=\"text-xs font-semibold\">'+esc(v.visitor||'—')+'</td>'
-        +'<td><span class=\"badge badge-purple\" style=\"font-size:10px\">'+esc(v.type||'Learning Walk')+'</span></td>'
-        +'<td class=\"text-xs\">'+( v.date||'<span style=\"color:#d1d5db\">TBD</span>')+'</td>'
-        +'<td><span class=\"badge '+statusBadge(v.status)+'\" style=\"font-size:10px\">'+esc(v.status)+'</span></td>'
-        +'<td class=\"text-xs text-muted\">'+(v.completedNotes?esc(v.completedNotes.slice(0,50)):v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')+'</td>'
+        +'<td class="text-xs font-semibold">'+esc(v.visitor||'—')+'</td>'
+        +'<td><span class="badge badge-purple" style="font-size:10px">'+esc(v.type||'Learning Walk')+'</span></td>'
+        +'<td class="text-xs">'+(v.date||'<span style="color:#d1d5db">TBD</span>')+'</td>'
+        +'<td><span class="badge '+statusBadge(v.status)+'" style="font-size:10px">'+esc(v.status)+'</span></td>'
+        +'<td class="text-xs text-muted">'+(v.completedNotes?esc(v.completedNotes.slice(0,50)):v.reason&&v.reason!=='nan'?'<em>'+esc(v.reason.slice(0,40))+'</em>':'—')+'</td>'
         +'</tr>').join('')
       +'</tbody></table></div>'
-    :'<div class=\"card\" style=\"text-align:center;color:var(--muted);padding:30px;font-style:italic\">No visits scheduled for you yet.</div>');
+    :'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">No visits scheduled for you yet.</div>');
 })():''}
 `:''}
 `}
@@ -2450,37 +2689,172 @@ ${tab==='portfolio'?`
 // visitTargetsCfg: { global: {type:n}, byPosition: { HOD: {LW:5,LO:2,...} }, byVisitorDept: { 'HOD||Math': {LW:3} } }
 
 function getVisitorProfiles(){return sget('visitorProfiles')||{};}
-function saveVisitorProfiles(p){sset('visitorProfiles',p);}
+// ── D43: SHARED POSITION SETTINGS — merge-safe sync ─────────────────────────────────────────────
+// Visitor Profiles / targets / custom & hidden positions live in one shared settings record.
+// Before D43 every settings save wrote this device's WHOLE copy, and open devices never re-pulled
+// it — so a device opened before your position edits could silently put the old positions back.
+// Now: open devices re-pull these settings every refresh, and a save only changes what THIS device
+// actually changed (Visitor Profiles merged person-by-person); everything else is taken fresh from
+// the database at the moment of saving.
+const SYNC_SETTING_KEYS=['visitTargetsCfg','visitorProfiles','customPositions','hiddenPositions'];
+let _settingsSnap=null;let _settingsSaving=false;
+function snapSyncSettings(){_settingsSnap={};SYNC_SETTING_KEYS.forEach(k=>{_settingsSnap[k]=JSON.stringify(sget(k)??null);});}
+function rebuildVisitorPositions(){const _hp=sget('hiddenPositions')||[];const _cp=sget('customPositions')||[];if(typeof VISITOR_POSITIONS==='undefined')return;VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(p=>!_hp.includes(p)),..._cp])].forEach(p=>VISITOR_POSITIONS.push(p));}
+function applyRemoteSyncSettings(br){
+  if(!br||_settingsSaving)return false;let ch=false;
+  SYNC_SETTING_KEYS.forEach(k=>{if(br[k]===undefined||br[k]===null)return;if(JSON.stringify(br[k])!==JSON.stringify(sget(k)??null)){sset(k,br[k]);ch=true;}});
+  if(ch)rebuildVisitorPositions();
+  snapSyncSettings();return ch;
+}
+async function mergeSyncSettingsWithRemote(){
+  if(!SCHOOL_ID||!_settingsSnap)return;
+  let br=null;
+  try{const sd=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding&limit=1');if(sd&&sd.length)br=sd[0].branding||{};}catch(_e){}
+  if(!br)return; // can't reach DB → keep previous behaviour (save local copy)
+  SYNC_SETTING_KEYS.forEach(k=>{
+    const local=sget(k);const localJ=JSON.stringify(local??null);const snapJ=_settingsSnap[k];const remote=br[k];
+    if(remote===undefined||remote===null)return; // nothing remote yet → keep local
+    if(localJ===snapJ){sset(k,remote);return;} // this device didn't change it → take fresh DB value
+    if(k==='visitorProfiles'){
+      const snap=JSON.parse(snapJ||'null')||{};const loc=local||{};const out={...remote};
+      new Set([...Object.keys(loc),...Object.keys(snap)]).forEach(n=>{
+        if(JSON.stringify(loc[n]??null)!==JSON.stringify(snap[n]??null)){if(loc[n]===undefined)delete out[n];else out[n]=loc[n];}
+      });
+      sset(k,out);
+    }
+    // other keys changed on this device → keep local (the change being saved)
+  });
+  rebuildVisitorPositions();
+}
+// ── D44: VISIT SETTINGS IN THEIR OWN TABLE ─────────────────────────────────────────────────────
+// Root cause of positions "saving then vanishing": Visitor Profiles lived inside the school's one
+// shared settings record (branding), which EVERY open device rewrites every 30s for "who's online",
+// plus on activity logging. Each of those writes reads the record, then writes it back a moment
+// later — so when your save landed in between, the other device wrote the old profiles straight
+// back. Devices still on older builds also rewrite it from stale copies.
+// Now (when the visit_settings table exists) each person's profile is its OWN row, and targets /
+// custom / hidden positions are one row each. Nothing else in the app ever writes those rows,
+// so presence pings and old devices can no longer overwrite them. If the table does not exist yet,
+// the app keeps working exactly as in D43.
+let VS_AVAILABLE=null,VS_SEEDED=false,_vsLast=null;
+const VS_KEYS=['visitTargetsCfg','customPositions','hiddenPositions'];
+const vsProfId=n=>SCHOOL_ID+'::vp::'+String(n).trim().toLowerCase();
+const vsKeyId=k=>SCHOOL_ID+'::'+k;
+async function vsSyncFromDb(allowSeed){
+  if(!SCHOOL_ID)return false;
+  const rows=await sbGet('visit_settings','school_id=eq.'+encodeURIComponent(SCHOOL_ID)+'&select=*');
+  if(rows===null||!Array.isArray(rows)){VS_AVAILABLE=false;return false;}
+  VS_AVAILABLE=true;
+  if(!rows.length){
+    VS_SEEDED=false;
+    if(allowSeed&&isAdmin()){await vsSeedFromLocal();VS_SEEDED=true;}
+    return false; // not seeded yet → keep D43 behaviour
+  }
+  VS_SEEDED=true;
+  const prof={};const vals={};
+  rows.forEach(r=>{const v=r.value||{};if(r.key==='vp'){if(v.name)prof[v.name]={position:v.position||'',dept:v.dept||''};}else if(VS_KEYS.includes(r.key))vals[r.key]=v.data;});
+  let ch=false;
+  if(JSON.stringify(prof)!==JSON.stringify(sget('visitorProfiles')||{})){sset('visitorProfiles',prof);ch=true;}
+  VS_KEYS.forEach(k=>{if(vals[k]!==undefined&&JSON.stringify(vals[k])!==JSON.stringify(sget(k)??null)){sset(k,vals[k]);ch=true;}});
+  _vsLast={visitorProfiles:JSON.parse(JSON.stringify(prof))};VS_KEYS.forEach(k=>{_vsLast[k]=JSON.stringify(sget(k)??null);});
+  if(ch)rebuildVisitorPositions();
+  if(typeof snapSyncSettings==='function')snapSyncSettings();
+  return ch;
+}
+async function vsSeedFromLocal(){
+  const rows=[];const now=new Date().toISOString();
+  const prof=sget('visitorProfiles')||{};
+  Object.keys(prof).forEach(n=>{if(!n||!prof[n])return;rows.push({id:vsProfId(n),school_id:SCHOOL_ID,key:'vp',value:{name:n,position:prof[n].position||'',dept:prof[n].dept||''},updated_at:now});});
+  VS_KEYS.forEach(k=>{const v=sget(k);if(v!==null&&v!==undefined)rows.push({id:vsKeyId(k),school_id:SCHOOL_ID,key:k,value:{data:v},updated_at:now});});
+  if(rows.length)await sbUpsert('visit_settings',rows,{silent:true});
+  _vsLast={visitorProfiles:JSON.parse(JSON.stringify(prof))};VS_KEYS.forEach(k=>{_vsLast[k]=JSON.stringify(sget(k)??null);});
+}
+// Push ONLY what this device changed since it last synced: one row per changed person / key.
+async function vsPushLocalChanges(){
+  if(!VS_AVAILABLE||!SCHOOL_ID)return false;
+  if(!VS_SEEDED||!_vsLast){await vsSeedFromLocal();VS_SEEDED=true;return true;}
+  const now=new Date().toISOString();const ups=[];const dels=[];
+  const loc=sget('visitorProfiles')||{};const last=_vsLast.visitorProfiles||{};
+  new Set([...Object.keys(loc),...Object.keys(last)]).forEach(n=>{
+    if(JSON.stringify(loc[n]??null)===JSON.stringify(last[n]??null))return;
+    if(loc[n]===undefined)dels.push(vsProfId(n));
+    else ups.push({id:vsProfId(n),school_id:SCHOOL_ID,key:'vp',value:{name:n,position:loc[n].position||'',dept:loc[n].dept||''},updated_at:now});
+  });
+  VS_KEYS.forEach(k=>{const j=JSON.stringify(sget(k)??null);if(j!==_vsLast[k])ups.push({id:vsKeyId(k),school_id:SCHOOL_ID,key:k,value:{data:sget(k)},updated_at:now});});
+  let ok=true;
+  if(ups.length)ok=await sbUpsert('visit_settings',ups,{silent:false});
+  for(const id of dels){await sbDelete('visit_settings',id);}
+  if(ok){_vsLast.visitorProfiles=JSON.parse(JSON.stringify(loc));VS_KEYS.forEach(k=>{_vsLast[k]=JSON.stringify(sget(k)??null);});}
+  return ok;
+}
+// Everyone who appears on a Visitor Progress card — observers AND partners.
+function visitorProfileNames(){
+  const seen=new Map();
+  (S.observations||[]).forEach(o=>[o.observer,o.observerPartner].forEach(n=>{const v=String(n||'').trim();if(v&&!seen.has(v.toLowerCase()))seen.set(v.toLowerCase(),v);}));
+  return [...seen.values()].sort((a,b)=>a.localeCompare(b));
+}
+// Position options that never silently fall back to the first item (Academic Head).
+function positionOptions(cur,blankLabel){
+  const c=cur||'';
+  return [{v:'',l:blankLabel},...(c&&!VISITOR_POSITIONS.includes(c)?[{v:c,l:c+' (current)'}]:[]),...VISITOR_POSITIONS.map(p=>({v:p,l:p}))];
+}
+function knownVisitorPosition(name){const p=visitorPosition(name);if(p!=='Other')return p;const pr=getVisitorProfiles();const k=Object.keys(pr).find(x=>x.trim().toLowerCase()===String(name||'').trim().toLowerCase());return (k&&pr[k].position==='Other')?'Other':'';}
+function saveVisitorProfiles(p){sset('visitorProfiles',p);saveSchoolSettings();}
 function getVisitTargetsCfg(){return sget('visitTargetsCfg')||{global:{},byPosition:{},byVisitorDept:{}};}
-function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);}
+function saveVisitTargetsCfg(c){sset('visitTargetsCfg',c);saveSchoolSettings();}
 
-const VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+const BASE_VISITOR_POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+// hiddenPositions: built-in positions the admin has hidden from active use
+// (they still exist as data values on old observations, just won't appear in new dropdowns)
+function getHiddenPositions(){return sget('hiddenPositions')||[];}
+let VISITOR_POSITIONS=[...new Set([
+  ...BASE_VISITOR_POSITIONS.filter(p=>!getHiddenPositions().includes(p)),
+  ...(sget('customPositions')||[])
+]).values()];
 
-// Get position label for a given observer name
 function visitorPosition(name){
+  if(!name)return 'Other';
+  const nk=name.trim().toLowerCase();
   const p=getVisitorProfiles();
-  return (p[name]&&p[name].position)||'Other';
+  // Check profile by exact key first, then by normalized key
+  const profKey=Object.keys(p).find(k=>k.trim().toLowerCase()===nk);
+  if(profKey&&p[profKey]&&p[profKey].position) return p[profKey].position;
+  const allObs=S.observations||[];
+  // Primary observer records — normalized comparison
+  const asObserver=allObs.filter(o=>(o.observer||'').trim().toLowerCase()===nk&&o.observerPosition);
+  if(asObserver.length){
+    const latest=asObserver.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
+    if(latest.observerPosition) return latest.observerPosition;
+  }
+  // Partner records — normalized comparison
+  const asPartner=allObs.filter(o=>(o.observerPartner||'').trim().toLowerCase()===nk&&o.observerPartnerPosition);
+  if(asPartner.length){
+    const latest=asPartner.reduce((a,b)=>(a.date||'')>=(b.date||'')?a:b);
+    if(latest.observerPartnerPosition) return latest.observerPartnerPosition;
+  }
+  return 'Other';
 }
 function visitorDept(name){
   const p=getVisitorProfiles();
   return (p[name]&&p[name].dept)||'';
 }
 
-// Get target for a visitor given their position + dept + visit type
+// Get target for a visitor given their position + dept + visit type.
+// Global (School Totals) targets are school-wide totals only — they drive the
+// type-breakdown cards at the top of Visit Tracker, NOT per-visitor targets.
+// Per-visitor targets come only from byPosition or byVisitorDept.
 function getTargetFor(visitorName, visitType){
   const cfg=getVisitTargetsCfg();
   const pos=visitorPosition(visitorName);
   const dept=visitorDept(visitorName);
-  // Most specific: visitor+dept override
+  // Most specific: position+dept override
   const key=pos+'||'+dept;
   if(cfg.byVisitorDept&&cfg.byVisitorDept[key]&&cfg.byVisitorDept[key][visitType]!=null)
-    return cfg.byVisitorDept[key][visitType];
-  // Position-level default
+    return Number(cfg.byVisitorDept[key][visitType])||0;
+  // Position-level target
   if(cfg.byPosition&&cfg.byPosition[pos]&&cfg.byPosition[pos][visitType]!=null)
-    return cfg.byPosition[pos][visitType];
-  // Global fallback
-  if(cfg.global&&cfg.global[visitType]!=null)
-    return cfg.global[visitType];
+    return Number(cfg.byPosition[pos][visitType])||0;
+  // No per-visitor target configured — return 0 (do not use school-wide global total)
   return 0;
 }
 
@@ -2498,6 +2872,212 @@ function loadVisits(){
   }
 }
 
+
+// ─── Observation Calendar ─────────────────────────────────────────────────────
+// Shows all observations on a weekly calendar grid (Sun–Thu, 6 periods)
+// with rich filters. Respects role-based scoping.
+function renderObsCalendar(){
+  const PERIODS=['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6'];
+  const DAYS=['Sun','Mon','Tue','Wed','Thu'];
+  const FULL_DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  const STATUS_STYLE={planned:{bg:'#f3f4f6',col:'#374151',lbl:'📅 Planned'},inprogress:{bg:'#fef3c7',col:'#92400e',lbl:'⏳ In Prog'},submitted:{bg:'#d1fae5',col:'#065f46',lbl:'✅ Done'}};
+
+  // Get week anchor — default to current week's Sunday
+  function getWeekStart(anchor){
+    const d=anchor?new Date(anchor):new Date();
+    const day=d.getDay();
+    // Adjust so Sunday is start (day 0)
+    d.setDate(d.getDate()-day);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  const weekStartStr=S.calWeek||'';
+  const weekStart=getWeekStart(weekStartStr);
+  const weekDates=DAYS.map((_,i)=>{const d=new Date(weekStart);d.setDate(d.getDate()+i);return d;});
+  const fmtDate=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dy;};
+  const weekDateStrs=weekDates.map(fmtDate);
+
+  // All obs visible to this user (respects scoping)
+  let allObs=scopedObs();
+
+  // Filters
+  const cf=S.calFilterDate||'';
+  const cp=S.calFilterPeriod||'';
+  const co=S.calFilterObserver||'';
+  const cs=S.calFilterStatus||'';
+  const cd=S.calFilterDept||[];
+  const csect=S.calFilterSection||[];
+
+  // Build filtered list (separate from the weekly grid — for the list below the calendar)
+  let filteredObs=allObs.filter(o=>{
+    if(cp&&o.period!==cp)return false;
+    if(co&&o.observer!==co)return false;
+    if(cs&&(o.obsStatus||'planned')!==cs)return false;
+    if(cd.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!cd.includes(t.dept))return false;}
+    if(csect.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!csect.includes(t.section))return false;}
+    if(cf&&o.date!==cf)return false;
+    return true;
+  });
+
+  // Weekly grid obs: only obs for this week + filters (except date filter for the grid itself)
+  const gridObs=allObs.filter(o=>{
+    if(!weekDateStrs.includes(o.date))return false;
+    if(cp&&o.period!==cp)return false;
+    if(co&&o.observer!==co)return false;
+    if(cs&&(o.obsStatus||'planned')!==cs)return false;
+    if(cd.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!cd.includes(t.dept))return false;}
+    if(csect.length>0){const t=S.teachers.find(tc=>tc.id===o.tid);if(!t||!csect.includes(t.section))return false;}
+    return true;
+  });
+
+  // Build a lookup: dateStr+period -> obs[]
+  const cellMap={};
+  gridObs.forEach(o=>{
+    const key=(o.date||'')+'||'+(o.period||'');
+    if(!cellMap[key])cellMap[key]=[];
+    cellMap[key].push(o);
+  });
+
+  // Unique values for filter dropdowns
+  const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
+  const allDepts=[...new Set(S.teachers.map(t=>t.dept).filter(Boolean))].sort();
+
+  const prevWeek=()=>{const d=new Date(weekStart);d.setDate(d.getDate()-7);return fmtDate(d);};
+  const nextWeek=()=>{const d=new Date(weekStart);d.setDate(d.getDate()+7);return fmtDate(d);};
+
+  const hasFilters=cp||co||cs||cd.length||csect.length||cf;
+
+  return `
+<!-- Calendar filter bar -->
+<div class="card mb-3" style="padding:10px 14px">
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Period:</span>
+    <div class="pill-opt ${!cp?'sel':''}" data-cal-period="">All</div>
+    ${PERIODS.map(p=>`<div class="pill-opt ${cp===p?'sel':''}" data-cal-period="${p}">${p}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Section:</span>
+    <div class="pill-opt ${csect.length===0?'sel':''}" data-cal-sect="">All</div>
+    ${['Boys','Girls'].map(s=>`<div class="pill-opt ${csect.includes(s)?'sel':''}" data-cal-sect="${s}">${s}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Dept:</span>
+    <div class="pill-opt ${cd.length===0?'sel':''}" data-cal-dept="">All</div>
+    ${allDepts.map(d=>`<div class="pill-opt ${cd.includes(d)?'sel':''}" data-cal-dept="${d}">${d}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Observer:</span>
+    <div class="pill-opt ${!co?'sel':''}" data-cal-observer="">All</div>
+    ${allObservers.map(v=>`<div class="pill-opt ${co===v?'sel':''}" data-cal-observer="${esc(v)}">${esc(v)}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Status:</span>
+    <div class="pill-opt ${!cs?'sel':''}" data-cal-status="">All</div>
+    ${[{v:'planned',l:'📅 Planned'},{v:'inprogress',l:'⏳ In Progress'},{v:'submitted',l:'✅ Submitted'}].map(s=>`<div class="pill-opt ${cs===s.v?'sel':''}" data-cal-status="${s.v}">${s.l}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Date:</span>
+    <input type="date" id="cal-date-filter" value="${cf}" style="padding:3px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px">
+    ${hasFilters?`<button class="btn btn-ghost btn-sm" onclick="S.calFilterPeriod='';S.calFilterObserver='';S.calFilterDept=[];S.calFilterSection=[];S.calFilterStatus='';S.calFilterDate='';render()">✕ Clear all</button>`:''}
+  </div>
+</div>
+
+<!-- Week navigation -->
+<div class="flex justify-between items-center mb-3">
+  <div class="flex gap-2 items-center">
+    <button class="btn btn-ghost btn-sm" onclick="S.calWeek='${prevWeek()}';render()">← Prev Week</button>
+    <span id="cal-week-label" style="font-weight:700;font-size:13px">${weekDates[0].toLocaleDateString('en-GB',{day:'numeric',month:'short'})} – ${weekDates[4].toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+    <button class="btn btn-ghost btn-sm" onclick="S.calWeek='${nextWeek()}';render()">Next Week →</button>
+    <button class="btn btn-ghost btn-sm" onclick="S.calWeek='';render()">Today</button>
+  </div>
+  <div class="flex gap-2 items-center"><span class="text-xs text-muted">${gridObs.length} observation${gridObs.length!==1?'s':''} this week</span><button class="btn btn-ghost btn-sm" onclick="printSection('cal')">🖨 Print / PDF</button></div>
+</div>
+
+<!-- Weekly grid -->
+<div id="cal-print-grid" style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:18px">
+<table style="width:100%;border-collapse:collapse;min-width:720px">
+  <thead>
+    <tr>
+      <th style="width:80px;padding:8px 10px;background:var(--navy);color:#fff;font-size:11px;border-right:2px solid rgba(255,255,255,.2)">Period</th>
+      ${weekDates.map((d,i)=>{const today=fmtDate(new Date());const isToday=fmtDate(d)===today;return `<th style="padding:8px 6px;background:${isToday?'#1D9BD7':' var(--navy)'};color:#fff;font-size:11px;text-align:center;border-right:1px solid rgba(255,255,255,.15)">${DAYS[i]}<br><span style="font-size:10px;opacity:.8">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span></th>`;}).join('')}
+    </tr>
+  </thead>
+  <tbody>
+  ${PERIODS.map((period,pi)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;font-weight:700;font-size:11px;color:var(--navy);background:#f9fafb;border-right:2px solid var(--border);vertical-align:top;white-space:nowrap">${period}</td>
+      ${weekDates.map((d,di)=>{
+        const key=fmtDate(d)+'||'+period;
+        const cells=cellMap[key]||[];
+        const bg=di%2===0?'#fff':'#fafafa';
+        return `<td style="padding:4px 5px;vertical-align:top;border-right:1px solid #f0f0f0;background:${bg};min-height:50px">
+          ${cells.map(o=>{
+            const t=S.teachers.find(tc=>tc.id===o.tid);
+            const st=o.obsStatus||'planned';
+            const ss=STATUS_STYLE[st]||STATUS_STYLE.planned;
+            const tchSect=t?t.section:'';
+            const sectDot=tchSect==='Girls'?'🔴':tchSect==='Boys'?'🔵':'';
+            return `<div style="background:${ss.bg};border-left:3px solid ${ss.col};border-radius:4px;padding:3px 5px;margin-bottom:3px;font-size:10px">
+              <div style="font-weight:700;color:${ss.col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${sectDot} ${esc(t?t.name:'—')}</div>
+              <div style="color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">by ${esc(o.observer||'—')}</div>
+              ${o.observerPartner?`<div style="color:#9ca3af;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">+ ${esc(o.observerPartner)}</div>`:''}
+              ${t?`<div style="color:#9ca3af;font-size:9px">${esc(t.dept||'')}${o.timeSlot?' · '+o.timeSlot:''}</div>`:''}
+            </div>`;
+          }).join('')}
+          ${!cells.length?`<div style="color:#e5e7eb;font-size:9px;padding:4px;text-align:center">—</div>`:''}
+        </td>`;
+      }).join('')}
+    </tr>`).join('')}
+  </tbody>
+</table>
+</div>
+
+<!-- Filtered list of ALL matching observations (across all weeks) -->
+<div class="card" style="padding:12px 14px">
+  <div class="flex justify-between items-center mb-3">
+    <div style="font-weight:700;font-size:13px;color:var(--navy)">📋 All Matching Observations (${filteredObs.length})</div>
+    <span class="text-xs text-muted">${hasFilters?'filtered':''}</span>
+  </div>
+  ${filteredObs.length===0?`<div class="text-xs text-muted" style="font-style:italic;text-align:center;padding:20px">No observations match the selected filters.</div>`:''}
+  <div style="overflow-x:auto">
+  ${filteredObs.length?`<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:680px">
+    <thead><tr style="background:var(--navy);color:#fff;font-size:11px">
+      <th style="padding:7px 8px;text-align:left">Teacher</th>
+      <th style="padding:7px 6px">Dept</th>
+      <th style="padding:7px 6px">Section</th>
+      <th style="padding:7px 6px">Date</th>
+      <th style="padding:7px 6px">Period</th>
+      <th style="padding:7px 6px">Time</th>
+      <th style="padding:7px 6px">Observer</th>
+      <th style="padding:7px 6px">Type</th>
+      <th style="padding:7px 6px">Status</th>
+      <th style="padding:7px 6px">Score</th>
+    </tr></thead>
+    <tbody>
+    ${filteredObs.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map((o,i)=>{
+      const t=S.teachers.find(tc=>tc.id===o.tid);
+      const st=o.obsStatus||'planned';
+      const ss=STATUS_STYLE[st]||STATUS_STYLE.planned;
+      const da=domAvg(o.scores);
+      const rowBg=i%2===0?'#fff':'#f9fafb';
+      return `<tr style="background:${rowBg};border-bottom:1px solid #f3f4f6">
+        <td style="padding:6px 8px;font-weight:600;direction:auto">${esc(t?t.name:'—')}</td>
+        <td style="padding:6px 6px"><span class="badge badge-blue" style="font-size:10px">${esc(t?t.dept:'—')}</span></td>
+        <td style="padding:6px 6px"><span class="badge ${t&&t.section==='Girls'?'badge-red':'badge-blue'}" style="font-size:10px">${esc(t?t.section:'—')}</span></td>
+        <td style="padding:6px 6px;white-space:nowrap;color:var(--muted)">${o.date||'—'}</td>
+        <td style="padding:6px 6px;white-space:nowrap"><span class="badge badge-gray" style="font-size:10px">${esc(o.period||'—')}</span></td>
+        <td style="padding:6px 6px;color:var(--muted)">${esc(o.timeSlot||'—')}</td>
+        <td style="padding:6px 6px;white-space:nowrap">${esc(o.observer||'—')}</td>
+        <td style="padding:6px 6px"><span class="badge badge-purple" style="font-size:10px">${esc(o.visitType||'—')}</span></td>
+        <td style="padding:6px 6px"><span class="badge" style="font-size:10px;background:${ss.bg};color:${ss.col}">${ss.lbl}</span></td>
+        <td style="padding:6px 6px;font-weight:700;color:var(--navy)">${da>0?da.toFixed(1)+'/5':'—'}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`:''}
+  </div>
+</div>`;
+}
 
 function renderDeptTLCList(){
   let items=scopedDeptTLC().slice();
@@ -2740,6 +3320,70 @@ function printSnapshot(snap){
   setTimeout(()=>w.print(),400);
 }
 
+// ── D45: PRINT / SAVE AS PDF — Obs Calendar week + Visit Tracker cards & records ─────────────
+// Read-only: copies what is currently on screen (with the current filters) into a print window.
+// On iPad: Print → pinch-out the preview (or Share → Save to Files) to save as PDF.
+function printSection(kind){
+  const esc2=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const parts=[];let title='';const filt=[];
+  if(kind==='cal'){
+    const grid=document.getElementById('cal-print-grid');
+    if(!grid){showToast('Open the Obs Calendar first','error');return;}
+    const wk=(document.getElementById('cal-week-label')||{}).textContent||'';
+    title='Observation Calendar — '+wk;
+    if(S.calFilterPeriod)filt.push('Period: '+S.calFilterPeriod);
+    if(S.calFilterObserver)filt.push('Observer: '+S.calFilterObserver);
+    if((S.calFilterDept||[]).length)filt.push('Dept: '+S.calFilterDept.join(', '));
+    if((S.calFilterSection||[]).length)filt.push('Section: '+S.calFilterSection.join(', '));
+    if(S.calFilterStatus)filt.push('Status: '+S.calFilterStatus);
+    if(S.calFilterDate)filt.push('Date: '+S.calFilterDate);
+    parts.push(grid.outerHTML);
+  }else{
+    const sel=S.visitVisitor||'';
+    const cards=[...document.querySelectorAll('[data-vt-card]')].filter(c=>!sel||c.getAttribute('data-vt-card')===sel);
+    const table=document.getElementById('vt-print-table');
+    if(!cards.length&&!table){showToast('Nothing to print with the current filters','error');return;}
+    title='Visit Tracker'+(sel?' — '+sel:'');
+    if(sel)filt.push('Visitor: '+sel);
+    if((S.visitDept||[]).length)filt.push('Dept: '+S.visitDept.join(', '));
+    if((S.visitCampus||[]).length)filt.push('Campus: '+S.visitCampus.join(', '));
+    if(S.visitType)filt.push('Type: '+S.visitType);
+    if(S.visitDateFrom||S.visitDateTo)filt.push('Dates: '+(S.visitDateFrom||'…')+' → '+(S.visitDateTo||'…'));
+    if(S.visitSearch)filt.push('Search: '+S.visitSearch);
+    if(S.visitNotYet)filt.push('Not-yet-visited only');
+    if(cards.length)parts.push('<div class="pr-cards">'+cards.map(c=>c.outerHTML).join('')+'</div>');
+    if(table)parts.push(table.outerHTML);
+  }
+  const styles=[...document.querySelectorAll('style')].map(st=>st.outerHTML).join('');
+  const printCss='<style>'
+    +'@page{size:A4 landscape;margin:10mm}'
+    +'html,body{background:#fff!important;margin:0;padding:0;font-family:Segoe UI,Arial,sans-serif;color:#1a1a2e;height:auto!important;min-height:0!important;overflow:visible!important;display:block!important}'
+    +'*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+    +'.pr-wrap{padding:14px}'
+    +'.pr-head{border-bottom:2px solid #1e3a5f;margin-bottom:10px;padding-bottom:6px}'
+    +'.pr-head h1{font-size:16px;margin:0;color:#1e3a5f}.pr-head .meta{font-size:10px;color:#64748b;margin-top:3px}'
+    +'.pr-cards{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}'
+    +'.pr-cards>div{cursor:default!important;break-inside:avoid;page-break-inside:avoid;width:250px}'
+    +'#cal-print-grid,#vt-print-table{overflow:visible!important}'
+    +'#cal-print-grid table,#vt-print-table table{min-width:0!important;width:100%!important;font-size:10px!important}'
+    +'tr,td,th{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}'
+    +'button,.btn,a.btn,[data-pr-hide]{display:none!important}'
+    +'.pr-bar{position:sticky;top:0;background:#f1f5f9;padding:8px 14px;border-bottom:1px solid #cbd5e1}'
+    +'.pr-bar button{display:inline-block!important;padding:6px 14px;font-size:13px;border-radius:6px;border:1px solid #1e3a5f;background:#1e3a5f;color:#fff;margin-right:6px}'
+    +'@media print{.pr-bar{display:none!important}}'
+    +'</style>';
+  const w=window.open('','_blank','width=1200,height=900');
+  if(!w){showToast('Please allow pop-ups to print','error');return;}
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc2('Waad Academy — '+title)+'</title>'+styles+printCss+'</head><body>'
+    +'<div class="pr-bar"><button onclick="window.print()">🖨 Print / Save as PDF</button><button onclick="window.close()" style="background:#fff;color:#1e3a5f">Close</button></div>'
+    +'<div class="pr-wrap"><div class="pr-head"><h1>Waad Academy — '+esc2(title)+'</h1>'
+    +'<div class="meta">'+(filt.length?esc2(filt.join(' · '))+' · ':'')+'Printed '+esc2(new Date().toLocaleString('en-GB'))+'</div></div>'
+    +parts.join('')+'</div></body></html>');
+  w.document.close();
+  // strip interactive handlers from the copy so nothing in the print view can change data
+  try{w.document.querySelectorAll('[onclick]').forEach(el=>{if(!el.closest('.pr-bar'))el.removeAttribute('onclick');});}catch(_e){}
+  setTimeout(()=>{try{w.focus();w.print();}catch(_e){}},500);
+}
 function printObs(id){
   const o=S.observations.find(x=>x.id===id);if(!o)return;
   const t=o.tid?S.teachers.find(tc=>tc.id===o.tid):null;
@@ -2766,6 +3410,9 @@ function printObs(id){
       }
       if(sc>0)domHtml+='<span style="font-size:11px;font-weight:700;color:'+bc+';margin-left:4px">'+sc+'</span>';
       domHtml+='</td></tr>';
+      // D46: observer's note for this criterion, printed directly under it
+      const cNote=(o.comments&&o.comments[d.id]&&o.comments[d.id][i])||'';
+      if(String(cNote).trim())domHtml+='<tr style="page-break-inside:avoid"><td colspan="2" style="padding:0 10px 7px 22px"><div style="font-size:10.5px;line-height:1.5;color:#374151;background:#f8fafc;border-left:3px solid '+bc+';border-radius:4px;padding:5px 9px;direction:auto"><span style="font-weight:700;color:#1F4E79">&#128221; Observer note:</span> '+safe(cNote)+'</div></td></tr>';
     });
     domHtml+='</table></div>';
   });
@@ -3404,10 +4051,10 @@ function renderSettings(){
 <div class="card mt-3" style="border-top:3px solid var(--teal)">
   <div class="flex justify-between items-center mb-2">
     <div class="card-title" style="margin:0;color:var(--teal)">📊 Visit Tracker — Visitor Profiles & Targets</div>
-    <div class="flex gap-2">
+    <div class="flex gap-2" style="flex-wrap:wrap">
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'profiles'});render()">👤 Visitor Profiles</button>
       <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'positions'});render()">🏷 Position Targets</button>
-      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'depts'});render()">📚 Dept Overrides</button>
+      <button class="btn btn-ghost btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'managePositions'});render()">✏️ Manage Positions</button>
       <button class="btn btn-primary btn-sm" onclick="S.modal=renderModal('visitTargets',{tab:'progress'});render()">📊 Progress Report</button>
     </div>
   </div>
@@ -3418,9 +4065,9 @@ function renderSettings(){
     const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
     if(!allObservers.length)return '<div class="text-xs text-muted" style="font-style:italic">No observations yet — observer profiles will appear here once visits are recorded.</div>';
     const cfg=getVisitTargetsCfg();
-    const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-    const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
-    const VCOL={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+    const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+    const VCOL={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
     let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">';
     allObservers.forEach(name=>{
       const pos=visitorPosition(name);
@@ -3455,8 +4102,6 @@ function renderSettings(){
   })()}
 </div>
 <!-- ── END Visit Tracker Settings ────────────────────────────────────────────── -->
-  </div>
-</div>
 <div class="card">
   <div class="card-title">🔑 Role Permissions</div>
   <div style="overflow-x:auto"><table>
@@ -3588,10 +4233,33 @@ function renderModal(type, data={}){
     const isEdit=!!(data.id);
     const preT=data.tid||'';
     const techVal=data.customTech?'Other':(data.bio||'');
+    const PERIODS=['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6'];
+    const curStatus=data.obsStatus||'planned';
+    const statusOpts=[
+      {v:'planned',l:'📅 Planned',col:'#6b7280',bg:'#f3f4f6'},
+      {v:'inprogress',l:'⏳ In Progress',col:'#92400e',bg:'#fef3c7'},
+      {v:'submitted',l:'✅ Submitted',col:'#065f46',bg:'#d1fae5'},
+    ];
     return M((isEdit?'✏ Edit':'📋 New')+' Observation',
       FT('obs-tid','Teacher',preT)+
-      G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName))+
-      FS('obs-visit-type','Visit Type',['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Lesson Observation')+
+      G2(FI('obs-date','Date',data.date||new Date().toISOString().split('T')[0],'date'),FI('obs-obs','Observed by',data.observer||userName).replace('id="obs-obs"','id="obs-obs" list="dl-people" autocomplete="off"'))+
+      FI('obs-partner','Observed with (partner) — type a letter and pick a user from the list',data.observerPartner||'','text','🔍 Type to search users…').replace('id="obs-partner"','id="obs-partner" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-user-search="1"')+peopleDatalistHTML()+
+      FS('obs-partner-position','Partner Position',positionOptions(data.observerPartnerPosition||(data.observerPartner?knownVisitorPosition(data.observerPartner):''),'— None —'),data.observerPartnerPosition||(data.observerPartner?knownVisitorPosition(data.observerPartner):''))+
+      FS('obs-observer-position','Observer Position',positionOptions(data.observerPosition||knownVisitorPosition(data.observer||userName),'— Select position —'),data.observerPosition||knownVisitorPosition(data.observer||userName))+
+      FS('obs-visit-type','Visit Type',['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'],data.visitType||'Learning Walk')+
+      G2(
+        `<div class="form-group"><label class="form-label">Period</label><select class="form-control" id="obs-period">`+
+        `<option value="">— Select Period —</option>`+
+        PERIODS.map(p=>`<option value="${p}"${(data.period||'')===p?' selected':''}>${p}</option>`).join('')+
+        `</select></div>`,
+        FI('obs-time','Time (optional)',data.timeSlot||'','time')
+      )+
+      `<div class="form-group"><label class="form-label">Observation Status</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${statusOpts.map(s=>`<button type="button" id="obs-status-btn-${s.v}" onclick="setObsStatus('${s.v}')" style="padding:6px 14px;border-radius:6px;border:2px solid ${curStatus===s.v?s.col:'#e5e7eb'};background:${curStatus===s.v?s.bg:'#fff'};color:${curStatus===s.v?s.col:'#6b7280'};font-weight:${curStatus===s.v?700:400};font-size:12px;cursor:pointer">${s.l}</button>`).join('')}
+      </div>
+      <input type="hidden" id="obs-status-val" value="${curStatus}">
+      </div>`+
       '<p class="text-xs text-muted mb-2">Hover (or tap ℹ rubric) on any criterion to see what each score 1–5 means, and add a note under each one to justify your rating.</p>'+
       '<div id="obs-domains">' +
       getDomains().map(d=>`<div class="card" style="border-left:4px solid var(--navy);margin-bottom:10px;padding:10px 12px">
@@ -3845,7 +4513,7 @@ function renderModal(type, data={}){
       FI('tch-name','Full Name (Arabic/English)',data.name||'','text','Teacher name')+
       FI('tch-email','Email (optional)',data.email||'','email','teacher@school.edu')+
       G2(FS('tch-dept','Department',DEPTS,data.dept||DEPTS[0]),FS('tch-sect','Section',SECTIONS,data.section||SECTIONS[0]))+
-      G2(FS('tch-stage','Stage',STAGES,data.stage||STAGES[0]),
+      G2(FS('tch-stage','Stage',[{v:'',l:'— Not set —'},...(data.stage&&!STAGES.includes(data.stage)?[{v:data.stage,l:data.stage+' (current)'}]:[]),...STAGES.map(s=>({v:s,l:s}))],data.stage||''),
          FS('tch-group','TLC Group',[{v:'',l:'— Select Group —'},...S.groups.map(g=>({v:g.id,l:g.name}))],data.groupId||''))+
       `<div class="form-group"><label class="form-label">Grades Teaching (select all that apply — a teacher can teach more than one grade)</label>
        <div class="flex gap-2" style="flex-wrap:wrap">${GRADES.map(g=>`<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;background:var(--light);border-radius:5px;padding:3px 8px"><input type="checkbox" class="tch-grade-cb" value="${g}" ${tGrades.includes(g)?'checked':''}> ${g}</label>`).join('')}</div></div>`+
@@ -4070,23 +4738,23 @@ function renderModal(type, data={}){
     const activeTab=data.tab||'profiles';
     const cfg=getVisitTargetsCfg();
     const profiles=getVisitorProfiles();
-    const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-    const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
-    const POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+    const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+    const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+    const POSITIONS=VISITOR_POSITIONS;
 
     // Get all unique observers from observations
-    const allObservers=[...new Set((S.observations||[]).map(o=>o.observer).filter(Boolean))].sort();
+    const allObservers=visitorProfileNames(); // D43: observers + partners
 
     const tabBtn=(t,lbl)=>'<button class="btn btn-sm '+(activeTab===t?'btn-primary':'btn-ghost')+' mr-1" onclick="S.modal=renderModal(\'visitTargets\',{tab:\''+t+'\'}); render()">'+lbl+'</button>';
 
-    let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('depts','📚 By Dept')+tabBtn('progress','📊 Progress')+'</div>';
+    let body='<div class="mb-3">'+tabBtn('global','🌐 School Totals')+tabBtn('profiles','👤 Visitor Profiles')+tabBtn('positions','🏷 By Position')+tabBtn('managePositions','✏️ Positions')+tabBtn('progress','📊 Progress')+'</div>';
 
     if(activeTab==='global'){
       const gt=globalTargets;
       body+='<p class="text-xs text-muted mb-3">Set the school-wide total visit targets for the whole term. These drive the progress bars in the Visit Tracker top section.</p>';
       body+='<div style="display:flex;flex-direction:column;gap:10px;max-width:320px">';
       VT.forEach(t=>{
-        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]||'')+' " placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
+        body+='<div class="flex items-center gap-3"><label style="min-width:180px;font-size:13px;font-weight:600">'+t+'</label><input type="number" class="form-control" id="vglobal-'+t.replace(/ /g,'_')+'" value="'+(gt[t]!=null&&gt[t]!==''?String(gt[t]):'')+'" placeholder="0" min="0" style="width:80px;padding:4px 8px;text-align:center"></div>';
       });
       body+='</div>';
       return M('⚙ Visit Tracker Settings',body,
@@ -4100,7 +4768,7 @@ function renderModal(type, data={}){
       allObservers.forEach((name,i)=>{
         const p=profiles[name]||{};
         body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(name)+'</td>';
-        body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-pos-'+i+'">'+POSITIONS.map(p2=>'<option '+(p.position===p2?'selected':'')+' value="'+p2+'">'+p2+'</option>').join('')+'</select></td>';
+        body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-pos-'+i+'"><option value="">— Not set —</option>'+(p.position&&!POSITIONS.includes(p.position)?'<option selected value="'+esc(p.position)+'">'+esc(p.position)+' (current)</option>':'')+POSITIONS.map(p2=>'<option '+(p.position===p2?'selected':'')+' value="'+p2+'">'+p2+'</option>').join('')+'</select></td>';
         body+='<td style="padding:3px 5px"><select class="form-control" style="font-size:11px;padding:2px 4px" id="vp-dept-'+i+'"><option value="">— All —</option>'+DEPTS.map(d=>'<option '+(p.dept===d?'selected':'')+' value="'+d+'">'+d+'</option>').join('')+'</select></td>';
         body+='<input type="hidden" id="vp-name-'+i+'" value="'+esc(name)+'"></tr>';
       });
@@ -4111,13 +4779,48 @@ function renderModal(type, data={}){
       );
     }
 
+     if(activeTab==='managePositions'){
+      const custom=sget('customPositions')||[];
+      const hidden=getHiddenPositions();
+      // Show ALL base + custom positions so hidden built-ins can be re-enabled
+      const allPositions=[...new Set([...BASE_VISITOR_POSITIONS,...custom])];
+      body+='<p class="text-xs text-muted mb-3">Add your own positions, rename custom ones, or hide built-in positions you don\'t use. Hidden built-ins won\'t appear in new observation dropdowns — existing data is kept.</p>';
+      body+='<div class="form-group"><label class="form-label">Add New Position</label>';
+      body+='<div class="flex gap-2"><input class="form-control" id="new-position-input" placeholder="e.g. HOS Primary Boys, HOD Science…" style="flex:1"><button class="btn btn-success" id="save-new-position-btn">Add</button></div></div>';
+      body+='<div class="form-group"><label class="form-label">Current Positions</label>';
+      body+='<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">';
+      allPositions.forEach((p,pi)=>{
+        const isCustom=custom.includes(p);
+        const isHidden=hidden.includes(p);
+        const inputId='pos-rename-'+pi;
+        const pSafe=p.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        body+='<div style="display:flex;align-items:center;gap:6px;background:'+(isHidden?'#fef2f2':'var(--light)')+';border-radius:6px;padding:5px 8px;opacity:'+(isHidden?'.6':'1')+'">';
+        body+='<input class="form-control" id="'+inputId+'" value="'+esc(p)+'" '+(isCustom&&!isHidden?'':'readonly style="background:#f3f4f6;color:var(--muted)"')+' style="flex:1;font-size:12px;padding:3px 7px">';
+        if(isCustom&&!isHidden){
+          body+='<button class="btn btn-sm btn-ghost" onclick="(function(){const input=document.getElementById(\''+inputId+'\');const newName=(input.value||\'\'||\''+ esc(p)+'\'). trim();if(!newName)return;const c=sget(\'customPositions\')||[];const idx=c.indexOf(\''+pSafe+'\');if(idx>=0){c[idx]=newName;sset(\'customPositions\',c);const hp=getHiddenPositions();VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...c])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();}})()" title="Save rename">💾</button>';
+          body+='<button class="btn btn-sm btn-danger" onclick="(function(){const c=sget(\'customPositions\')||[];sset(\'customPositions\',c.filter(x=>x!==\''+pSafe+'\'));const hp=getHiddenPositions();VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...(sget(\'customPositions\')||[])])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();})()" title="Remove">✕</button>';
+        } else if(!isCustom&&isHidden){
+          body+='<span style="font-size:10px;color:#dc2626;white-space:nowrap">hidden</span>';
+          body+='<button class="btn btn-sm btn-ghost" style="font-size:10px;color:var(--teal)" onclick="(function(){const hp=getHiddenPositions().filter(x=>x!==\''+pSafe+'\');sset(\'hiddenPositions\',hp);const cp=sget(\'customPositions\')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...cp])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();})()" title="Re-enable">✓ Show</button>';
+        } else {
+          body+='<span style="font-size:10px;color:var(--muted);white-space:nowrap">built-in</span>';
+          body+='<button class="btn btn-sm btn-danger" style="font-size:10px" onclick="(function(){const hp=getHiddenPositions();if(!hp.includes(\''+pSafe+'\'))hp.push(\''+pSafe+'\');sset(\'hiddenPositions\',hp);const cp=sget(\'customPositions\')||[];VISITOR_POSITIONS.length=0;[...new Set([...BASE_VISITOR_POSITIONS.filter(x=>!hp.includes(x)),...cp])].forEach(x=>VISITOR_POSITIONS.push(x));saveSchoolSettings();S.modal=renderModal(\'visitTargets\',{tab:\'managePositions\'});render();})()" title="Hide this position">✕ Hide</button>';
+        }
+        body+='</div>';
+      });
+      body+='</div></div>';
+      return M('⚙ Visit Tracker Settings',body,
+        '<button class="btn btn-ghost" data-close-modal>Close</button>'
+      );
+    }
+
     if(activeTab==='positions'){
       body+='<p class="text-xs text-muted mb-3">Set default visit targets per term for each leadership position. These apply to all visitors with that position unless overridden by department.</p>';
       body+='<div style="max-height:420px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px 8px;text-align:left">Position</th>'+VT.map(t=>'<th style="padding:6px;text-align:center;white-space:nowrap">'+VTS[t]+'</th>').join('')+'</tr></thead><tbody>';
       POSITIONS.forEach((pos,i)=>{
         const byPos=(cfg.byPosition&&cfg.byPosition[pos])||{};
         body+='<tr style="background:'+(i%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:5px 8px;font-weight:600">'+esc(pos)+'</td>';
-        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]||'')+' " placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
+        VT.forEach(t=>{body+='<td style="padding:3px 5px;text-align:center"><input type="number" class="form-control" id="vpos-'+i+'-'+t.replace(/ /g,'_')+'" value="'+(byPos[t]!=null&&byPos[t]!==''?String(byPos[t]):'')+'" placeholder="—" min="0" style="width:52px;padding:2px 4px;font-size:11px;text-align:center"></td>';});
         body+='<input type="hidden" id="vpos-name-'+i+'" value="'+esc(pos)+'">';
         body+='</tr>';
       });
@@ -4138,7 +4841,7 @@ function renderModal(type, data={}){
           const key=pos+'||'+dept;
           const byVD=(cfg.byVisitorDept&&cfg.byVisitorDept[key])||{};
           body+='<tr style="background:'+(ri%2?'#f9fafb':'#fff')+';border-bottom:1px solid var(--border)"><td style="padding:4px 8px;font-size:11px">'+esc(pos)+'</td><td style="padding:4px 8px;font-weight:600;font-size:11px">'+esc(dept)+'</td>';
-          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]||'')+' " placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
+          VT.forEach(t=>{body+='<td style="padding:2px 4px;text-align:center"><input type="number" class="form-control" id="vdept-'+ri+'-'+t.replace(/ /g,'_')+'" value="'+(byVD[t]!=null&&byVD[t]!==''?String(byVD[t]):'')+'" placeholder="—" min="0" style="width:48px;padding:2px 3px;font-size:10px;text-align:center"></td>';});
           body+='<input type="hidden" id="vdept-pos-'+ri+'" value="'+esc(pos)+'"><input type="hidden" id="vdept-dept-'+ri+'" value="'+esc(dept)+'">';
           body+='</tr>';
           ri++;
@@ -4171,7 +4874,7 @@ function renderModal(type, data={}){
             const cnt=myObs.filter(o=>o.visitType===t).length;
             const tgt=getTargetFor(name,t);
             const pct=tgt?Math.min(100,Math.round(cnt/tgt*100)):0;
-            const col={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'}[t]||'#6b7280';
+            const col={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'}[t]||'#6b7280';
             body+='<div style="min-width:90px;background:#f9fafb;border-radius:6px;padding:6px 8px;border-left:3px solid '+col+'">';
             body+='<div style="font-size:9px;font-weight:700;color:'+col+'">'+VTS[t]+'</div>';
             body+='<div style="font-size:16px;font-weight:800;color:var(--navy)">'+cnt+(tgt?'<span style="font-size:11px;font-weight:400;color:var(--muted)">/'+tgt+'</span>':'')+'</div>';
@@ -4205,7 +4908,7 @@ function renderModal(type, data={}){
     const curId=data.teacherId||S.adminPortfolioTeacherId||'';
     return M('🎓 Teacher Portfolio Viewer',
       '<div class="form-group"><label class="form-label">Select Teacher</label>'
-      +'<select class="form-control" id="portfolio-teacher-sel">'
+      +'<select class="form-control" id="portfolio-teacher-sel" onchange="S.adminPortfolioTeacherId=this.value;S.modal=renderModal(\'portfolioViewer\');render()">'
       +'<option value="">— Choose a teacher —</option>'
       +S.teachers.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(tc=>'<option value="'+tc.id+'"'+(curId===tc.id?' selected':'')+'>'+esc(tc.name)+' ('+esc(tc.dept||'')+')</option>').join('')
       +'</select></div>'
@@ -4435,7 +5138,7 @@ function bindEvents(){
       if(!ta)return;
       const resp=ta.value.trim();
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp,teacherResponseAt:resp?new Date().toISOString():''}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===oid),['teacher_response','teacher_response_at']);
       S.editingResponseId=null;
       showToast('Response saved ✓');
       render();
@@ -4452,7 +5155,7 @@ function bindEvents(){
       const oid=el.dataset.deleteTeacherResponse;
       if(!confirm('Delete your response to this observation?'))return;
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:'',teacherResponseAt:''}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===oid),['teacher_response','teacher_response_at']);
       S.editingResponseId=null;
       showToast('Response deleted');
       render();
@@ -4612,6 +5315,7 @@ function bindEvents(){
   });
 
   // SAVES
+  document.querySelectorAll('[data-user-search]').forEach(setupUserSearchBox); // D42
   const saveObs=document.querySelector('[data-save-obs]');
   if(saveObs)saveObs.onclick=()=>{
     const tid=gv('obs-tid');
@@ -4645,16 +5349,23 @@ function bindEvents(){
     const obs={
       ...(existing||{}),
       id:editId||uid(),tid:tid||null,date:gv('obs-date'),observer:gv('obs-obs'),
+      observerPartner:gv('obs-partner')||'',
+      observerPartnerPosition:(gv('obs-partner-position')||'').replace('— None —',''),
+      observerPosition:gv('obs-observer-position')||'',
       scope:gv('obs-scope'),bio:bio==='— None —'||bio===''?'':bio,customTech:customTech||'',
       comments,
       scores,conf:parseInt(gv('obs-conf'))||0,
       www:gv('obs-www'),ebi:gv('obs-ebi'),action:gv('obs-action'),
-      visitType:gv('obs-visit-type')||'Lesson Observation',
+      visitType:gv('obs-visit-type')||'Learning Walk',
       visitNote:gv('obs-note')||'',
+      period:gv('obs-period')||'',
+      timeSlot:gv('obs-time')||'',
+      gradeClass:existing?.gradeClass||'',
+      obsStatus:(document.getElementById('obs-status-val')||{}).value||'planned',
       autoLPs:getLPs(bio,customTech),neasc:[],slLinked:existing?.slLinked||false
     };
     S.observations=editId?S.observations.map(o=>o.id===editId?obs:o):[...S.observations,obs];
-    save('obs',S.observations);
+    saveObsRecord(obs,editId?OBS_EDIT_COLS:null); // D41: this record only
     S.modal=null;S.editingId=null;
     showToast(editId?'Observation updated ✓':'Observation saved ✓');
   };
@@ -5575,7 +6286,7 @@ function bindEvents(){
   document.querySelectorAll('[data-sl-obs]').forEach(el=>{
     el.onchange=()=>{
       S.observations=S.observations.map(o=>o.id===el.dataset.slObs?{...o,slLinked:el.checked}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===el.dataset.slObs),['sl_linked']);
       showToast(el.checked?'Linked to Steplab ✓':'Unlinked from Steplab');
       render();
     };
@@ -5590,7 +6301,7 @@ function bindEvents(){
   });
   // ── Deletes ──────────────────────────────────────────────────────────────
   document.querySelectorAll('[data-del-obs]').forEach(el=>{
-    el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);save('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();};
+    el.onclick=()=>{if(!confirm('Delete this observation?'))return;const id=el.dataset.delObs;S.observations=S.observations.filter(o=>o.id!==id);sset('obs',S.observations);sbRemove('observations',id);showToast('Deleted');render();};
   });
   document.querySelectorAll('[data-del-lw]').forEach(el=>{
     el.onclick=()=>{if(!confirm('Are you sure you want to delete this learning walk?'))return;const id=el.dataset.delLw;S.lwalks=S.lwalks.filter(o=>o.id!==id);save('lwalks',S.lwalks);sbRemove('learning_walks',id);showToast('Deleted');render();};
@@ -5698,6 +6409,28 @@ function bindEvents(){
       if(u){S.modal=renderModal('user',u);render();}
     };
   });
+
+  // ── Observation quick-status buttons ────────────────────────────────────
+  document.querySelectorAll('[data-obs-setstatus]').forEach(el=>{
+    el.onclick=()=>{
+      const[id,st]=el.dataset.obsSetstatus.split('||');
+      const idx=S.observations.findIndex(o=>o.id===id);
+      if(idx<0)return;
+      S.observations[idx]={...S.observations[idx],obsStatus:st};
+      saveObsRecord(S.observations[idx],['obs_status']);
+      showToast('Observation marked '+(st==='submitted'?'Submitted ✅':st==='inprogress'?'In Progress ⏳':'Planned 📅'));
+      render();
+    };
+  });
+
+  // ── Observation Calendar filter pills ───────────────────────────────────
+  document.querySelectorAll('[data-cal-period]').forEach(el=>{el.onclick=()=>{S.calFilterPeriod=el.dataset.calPeriod;render();};});
+  document.querySelectorAll('[data-cal-observer]').forEach(el=>{el.onclick=()=>{S.calFilterObserver=el.dataset.calObserver;render();};});
+  document.querySelectorAll('[data-cal-status]').forEach(el=>{el.onclick=()=>{S.calFilterStatus=el.dataset.calStatus;render();};});
+  document.querySelectorAll('[data-cal-dept]').forEach(el=>{el.onclick=()=>{const d=el.dataset.calDept;if(d===''){S.calFilterDept=[];}else{if(!S.calFilterDept)S.calFilterDept=[];const i=S.calFilterDept.indexOf(d);if(i>=0)S.calFilterDept.splice(i,1);else S.calFilterDept.push(d);}render();};});
+  document.querySelectorAll('[data-cal-sect]').forEach(el=>{el.onclick=()=>{const s=el.dataset.calSect;if(s===''){S.calFilterSection=[];}else{if(!S.calFilterSection)S.calFilterSection=[];const i=S.calFilterSection.indexOf(s);if(i>=0)S.calFilterSection.splice(i,1);else S.calFilterSection.push(s);}render();};});
+  const calDateFilter=document.getElementById('cal-date-filter');
+  if(calDateFilter){calDateFilter.onchange=()=>{S.calFilterDate=calDateFilter.value;render();};}
 
   // ── Observation (Fieldwork) filter pills ────────────────────────────────
   document.querySelectorAll('[data-fw-dept]').forEach(el=>{
@@ -5855,7 +6588,7 @@ function bindEvents(){
     const allObs=S.observations||[];
     const rows=allObs.map(o=>{
       const t=S.teachers.find(tc=>tc.id===o.tid);
-      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Type:o.visitType||'Lesson Observation',WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
+      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Type:o.visitType||'Learning Walk',WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
     });
     exportCSV('visit-tracker-'+new Date().toISOString().split('T')[0]+'.csv',rows);
   };
@@ -5863,7 +6596,7 @@ function bindEvents(){
   const saveGlobalBtn=document.getElementById('save-global-targets-btn');
   if(saveGlobalBtn){
     saveGlobalBtn.onclick=()=>{
-      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
       const cfg=getVisitTargetsCfg();
       if(!cfg.global)cfg.global={};
       // Also save to legacy visitTargets for backward compat
@@ -5871,7 +6604,7 @@ function bindEvents(){
       if(!legTgt.targets)legTgt.targets={};
       VT.forEach(t=>{
         const el=document.getElementById('vglobal-'+t.replace(/ /g,'_'));
-        if(el){const v=parseInt(el.value)||0;
+        if(el){const v=Number((el.value||'').trim());
           if(v>0){cfg.global[t]=v;legTgt.targets[t]=v;}
           else{delete cfg.global[t];delete legTgt.targets[t];}
         }
@@ -5888,12 +6621,16 @@ function bindEvents(){
   if(saveProfilesBtn){
     saveProfilesBtn.onclick=()=>{
       const allObs=S.observations||[];
-      const allObservers=[...new Set(allObs.map(o=>o.observer).filter(Boolean))].sort();
+      const allObservers=visitorProfileNames(); // D43: same list as the table
       const profiles=getVisitorProfiles();
       allObservers.forEach((name,i)=>{
         const posEl=document.getElementById('vp-pos-'+i);
         const deptEl=document.getElementById('vp-dept-'+i);
-        if(posEl) profiles[name]={...(profiles[name]||{}),position:posEl.value,dept:deptEl?deptEl.value:''};
+        const nmEl=document.getElementById('vp-name-'+i);
+        if(!posEl||(nmEl&&nmEl.value!==name))return; // row/name mismatch → never write to the wrong person
+        const dv=deptEl?deptEl.value:'';
+        if(!posEl.value&&!dv&&!profiles[name])return; // nothing set → don't create an empty profile
+        profiles[name]={...(profiles[name]||{}),position:posEl.value,dept:dv};
       });
       saveVisitorProfiles(profiles);
       showToast('Visitor profiles saved ✓');
@@ -5904,16 +6641,22 @@ function bindEvents(){
   const savePosBtn=document.getElementById('save-pos-targets-btn');
   if(savePosBtn){
     savePosBtn.onclick=()=>{
-      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-      const POSITIONS=['Academic Head','HOS (Head of Section)','HOD (Head of Department)','Mid-Leader','CPD Lead','Other'];
+      const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const POSITIONS=VISITOR_POSITIONS;
       const cfg=getVisitTargetsCfg();
       if(!cfg.byPosition)cfg.byPosition={};
       POSITIONS.forEach((pos,i)=>{
         if(!cfg.byPosition[pos])cfg.byPosition[pos]={};
         VT.forEach(t=>{
           const el=document.getElementById('vpos-'+i+'-'+t.replace(/ /g,'_'));
-          if(el){const v=parseInt(el.value)||0;if(v>0)cfg.byPosition[pos][t]=v;else delete cfg.byPosition[pos][t];}
+          if(el){
+            const v=Number((el.value||'').trim());
+            if(v>0) cfg.byPosition[pos][t]=v;
+            else delete cfg.byPosition[pos][t];
+          }
         });
+        // Clean up empty position entry
+        if(!Object.keys(cfg.byPosition[pos]).length) delete cfg.byPosition[pos];
       });
       saveVisitTargetsCfg(cfg);
       showToast('Position targets saved ✓');
@@ -5924,7 +6667,7 @@ function bindEvents(){
   const saveDeptTargetsBtn=document.getElementById('save-dept-targets-btn');
   if(saveDeptTargetsBtn){
     saveDeptTargetsBtn.onclick=()=>{
-      const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+      const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
       const deptPositions=['HOD (Head of Department)','Mid-Leader'];
       const cfg=getVisitTargetsCfg();
       if(!cfg.byVisitorDept)cfg.byVisitorDept={};
@@ -5964,6 +6707,30 @@ function bindEvents(){
     };
     const inp=document.getElementById('new-dept-input');
     if(inp) inp.onkeydown=e=>{if(e.key==='Enter')saveDeptBtn.click();};
+  }
+
+  // Add new position handler
+  const savePosNewBtn=document.getElementById('save-new-position-btn');
+  if(savePosNewBtn){
+    savePosNewBtn.onclick=()=>{
+      const inp=document.getElementById('new-position-input');
+      if(!inp)return;
+      const name=(inp.value||'').trim();
+      if(!name)return;
+      if(VISITOR_POSITIONS.includes(name)){showToast('Position already exists');return;}
+      const custom=sget('customPositions')||[];
+      custom.push(name);
+      sset('customPositions',custom);
+      saveSchoolSettings(); // persist customPositions to DB
+      // Refresh VISITOR_POSITIONS array in-place
+      VISITOR_POSITIONS.length=0;
+      [...new Set([...BASE_VISITOR_POSITIONS,...custom])].forEach(p=>VISITOR_POSITIONS.push(p));
+      inp.value='';
+      showToast('Position "'+name+'" added ✓');
+      S.modal=renderModal('visitTargets',{tab:'managePositions'});render();
+    };
+    const inp=document.getElementById('new-position-input');
+    if(inp) inp.onkeydown=e=>{if(e.key==='Enter')savePosNewBtn.click();};
   }
 
   // Portfolio viewer teacher selector (inside modal)
@@ -6033,7 +6800,7 @@ function bindEvents(){
       // Clear draft on save
       if(S.draftResponses){delete S.draftResponses[oid];sset('draftResponses',S.draftResponses);}
       S.observations=S.observations.map(o=>o.id===oid?{...o,teacherResponse:resp,teacherResponseAt:resp?new Date().toISOString():''}:o);
-      save('obs',S.observations);
+      saveObsRecord(S.observations.find(o=>o.id===oid),['teacher_response','teacher_response_at']);
       S.editingResponseId=null;
       showToast('Response saved ✓');
       render();
@@ -6041,14 +6808,35 @@ function bindEvents(){
   });
 
   // ── My Portfolio handlers ──────────────────────────────────────────────
+  // All portfolio interactions use the platform's own modal (prompt/confirm are blocked in Safari on iPad)
   const _addFolderBtn=document.querySelector('[data-add-portfolio-folder]');
   if(_addFolderBtn){
     _addFolderBtn.onclick=()=>{
-      const name=prompt('Folder name (e.g. Certificates, Strategies):','');
-      if(!name||!name.trim())return;
-      const p=getMyPortfolio();
-      p.folders=[...(p.folders||[]),{name:name.trim(),items:[]}];
-      saveMyPortfolio(p);showToast('Folder created ✓');render();
+      S.modal=`<div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h3>🗂 New Folder</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+          <div class="modal-body">
+            <div class="form-group"><label class="form-label">Folder name (e.g. Certificates, Strategies)</label>
+            <input class="form-control" id="pf-new-folder-name" placeholder="e.g. Certificates" autofocus></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-primary" id="pf-new-folder-save">Create Folder</button>
+          </div>
+        </div>
+      </div>`;
+      render();
+      setTimeout(()=>{
+        document.getElementById('pf-new-folder-name')?.focus();
+        document.getElementById('pf-new-folder-save')?.addEventListener('click',()=>{
+          const name=(document.getElementById('pf-new-folder-name')?.value||'').trim();
+          if(!name){return;}
+          const p=getMyPortfolio();
+          p.folders=[...(p.folders||[]),{name,items:[]}];
+          saveMyPortfolio(p);S.modal=null;showToast(name+' folder created ✓');render();
+        });
+        document.getElementById('pf-new-folder-name')?.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pf-new-folder-save')?.click();});
+      },50);
     };
   }
   document.querySelectorAll('[data-add-portfolio-preset]').forEach(el=>{
@@ -6064,9 +6852,25 @@ function bindEvents(){
     el.onclick=()=>{
       const fi=parseInt(el.dataset.delPortfolioFolder);
       const p=getMyPortfolio();
-      if(!confirm('Delete folder "'+p.folders[fi].name+'" and all its items?'))return;
-      p.folders.splice(fi,1);
-      saveMyPortfolio(p);showToast('Folder deleted');render();
+      const folderName=p.folders[fi]?.name||'this folder';
+      S.modal=`<div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h3>🗑 Delete Folder</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+          <div class="modal-body"><p>Delete <strong>${esc(folderName)}</strong> and all its items? This cannot be undone.</p></div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-danger" id="pf-del-folder-confirm">Delete</button>
+          </div>
+        </div>
+      </div>`;
+      render();
+      setTimeout(()=>{
+        document.getElementById('pf-del-folder-confirm')?.addEventListener('click',()=>{
+          const p2=getMyPortfolio();
+          p2.folders.splice(fi,1);
+          saveMyPortfolio(p2);S.modal=null;showToast('Folder deleted');render();
+        });
+      },50);
     };
   });
   document.querySelectorAll('[data-add-portfolio-item]').forEach(el=>{
@@ -6074,27 +6878,55 @@ function bindEvents(){
       const fi=parseInt(el.dataset.addPortfolioItem);
       const p=getMyPortfolio();
       const folder=p.folders[fi];if(!folder)return;
-      // Build a mini-modal inline
-      const itemName=prompt('Item name / title:','');
-      if(!itemName||!itemName.trim())return;
-      const itemType=prompt('Type (e.g. Certificate, Strategy, PDF, Image) — or leave blank:','');
-      const itemNote=prompt('Note or description — or leave blank:','');
-      const itemUrl=prompt('URL link (optional — or leave blank):','');
-      const item={name:itemName.trim(),type:itemType||'',note:itemNote||'',url:itemUrl||'',fileData:null,addedAt:new Date().toISOString()};
-      // File upload via hidden input
-      const fi2=fi;
-      const fileInput=document.createElement('input');
-      fileInput.type='file';fileInput.accept='image/*,.pdf,.doc,.docx,.ppt,.pptx';
-      fileInput.onchange=e=>{
-        const file=e.target.files[0];
-        if(!file){folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added ✓');render();return;}
-        if(file.size>8*1024*1024){showToast('File too large — max 8MB','error');folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added (no file)');render();return;}
-        const reader=new FileReader();
-        reader.onload=ev=>{item.fileData={name:file.name,type:file.type,dataUrl:ev.target.result};folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item + file added ✓');render();};
-        reader.readAsDataURL(file);
-      };
-      if(confirm('Do you want to attach a file (certificate, PDF, image)?')){fileInput.click();}
-      else{folder.items=[...(folder.items||[]),item];saveMyPortfolio(p);showToast('Item added ✓');render();}
+      S.modal=`<div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h3>➕ Add Item to "${esc(folder.name)}"</h3><button class="btn btn-ghost btn-sm" data-close-modal>✕</button></div>
+          <div class="modal-body">
+            <div class="form-group"><label class="form-label">Title / Name <span style="color:var(--red)">*</span></label>
+              <input class="form-control" id="pfi-name" placeholder="e.g. Cambridge Certificate" autofocus></div>
+            <div class="form-group"><label class="form-label">Type (optional)</label>
+              <input class="form-control" id="pfi-type" placeholder="e.g. Certificate, Strategy, PDF, Image"></div>
+            <div class="form-group"><label class="form-label">Note / Description (optional)</label>
+              <textarea class="form-control" id="pfi-note" rows="2" placeholder="Brief description…"></textarea></div>
+            <div class="form-group"><label class="form-label">URL link (optional)</label>
+              <input class="form-control" id="pfi-url" placeholder="https://…" type="url"></div>
+            <div class="form-group"><label class="form-label">Attach file (optional — max 8MB)</label>
+              <input type="file" id="pfi-file" accept="image/*,.pdf,.doc,.docx,.ppt,.pptx" style="font-size:13px"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-close-modal>Cancel</button>
+            <button class="btn btn-primary" id="pf-add-item-save">Add Item</button>
+          </div>
+        </div>
+      </div>`;
+      render();
+      setTimeout(()=>{
+        document.getElementById('pfi-name')?.focus();
+        document.getElementById('pf-add-item-save')?.addEventListener('click',()=>{
+          const itemName=(document.getElementById('pfi-name')?.value||'').trim();
+          if(!itemName){showToast('Please enter a title','error');return;}
+          const itemType=(document.getElementById('pfi-type')?.value||'').trim();
+          const itemNote=(document.getElementById('pfi-note')?.value||'').trim();
+          const itemUrl=(document.getElementById('pfi-url')?.value||'').trim();
+          const fileInput=document.getElementById('pfi-file');
+          const file=fileInput?.files?.[0];
+          const item={name:itemName,type:itemType,note:itemNote,url:itemUrl,fileData:null,addedAt:new Date().toISOString()};
+          const finalSave=()=>{
+            const p2=getMyPortfolio();
+            if(!p2.folders[fi])return;
+            p2.folders[fi].items=[...(p2.folders[fi].items||[]),item];
+            saveMyPortfolio(p2);S.modal=null;showToast('Item added ✓');render();
+          };
+          if(file){
+            if(file.size>8*1024*1024){showToast('File too large — max 8MB','error');finalSave();return;}
+            const reader=new FileReader();
+            reader.onload=ev=>{item.fileData={name:file.name,type:file.type,dataUrl:ev.target.result};finalSave();};
+            reader.readAsDataURL(file);
+          } else {
+            finalSave();
+          }
+        });
+      },50);
     };
   });
   document.querySelectorAll('[data-del-portfolio-item]').forEach(el=>{
@@ -6225,6 +7057,8 @@ async function refreshLivePermissions(){
     const schoolData=await sbGet('schools','id=eq.'+SCHOOL_ID+'&select=branding&limit=1');
     if(schoolData&&schoolData.length){
       const br=schoolData[0].branding||{};
+      if(VS_AVAILABLE&&VS_SEEDED){if(!_settingsSaving&&await vsSyncFromDb(false))render();} // D44
+      else if(applyRemoteSyncSettings(br))render(); // D43 fallback
       if(br.roleCfg){
         const merged={...DEFAULT_ROLES,...br.roleCfg};
         if(JSON.stringify(merged)!==JSON.stringify(S.roleCfg)){
@@ -6262,12 +7096,24 @@ async function refreshLiveData(){
   if(!S.session||!SCHOOL_ID||S.modal)return;
   try{
     const sid='school_id=eq.'+SCHOOL_ID;
-    const [teachers,groups,usersDb]=await Promise.all([
+    const fetchStart=Date.now();
+    const [teachers,groups,usersDb,obsDb]=await Promise.all([
       sbGet('teachers',sid+'&select=*'),
       sbGet('tlc_groups',sid+'&select=*'),
       sbGet('users',sid+'&select=*'),
+      sbGet('observations',sid+'&select=*'),
     ]);
     let changed=false;
+    // D41: keep observations current on every open device so no device holds a stale copy.
+    // A record written locally in the last 60s (or after this fetch began) keeps its local
+    // version, so an in-flight refresh can never undo an edit you have just saved.
+    if(obsDb&&Array.isArray(obsDb)&&!S.modal){
+      const recent=id=>{const w=OBS_LAST_WRITE[id];return w&&(w>=fetchStart-2000||Date.now()-w<60000);};
+      const dbIds=new Set();
+      const merged=obsDb.map(r=>{dbIds.add(r.id);if(recent(r.id)){const loc=S.observations.find(o=>o.id===r.id);if(loc)return loc;}return mapObs(r);});
+      S.observations.forEach(o=>{if(!dbIds.has(o.id)&&recent(o.id))merged.push(o);});
+      if(JSON.stringify(merged)!==JSON.stringify(S.observations)){S.observations=merged;sset('obs',S.observations);changed=true;}
+    }
     if(teachers&&Array.isArray(teachers)){
       const mapped=teachers.map(mapTeacher);
       if(JSON.stringify(mapped)!==JSON.stringify(S.teachers)){S.teachers=mapped;sset('teachers',S.teachers);changed=true;}
@@ -6727,9 +7573,9 @@ async function boot(){
 // type, date-range, not-yet-visited. Targets panel per visitor (editable).
 // Indicator shows progress toward each visit type target per term.
 
-const VISIT_TYPES=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-const VISIT_TYPE_COLORS={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
-const VISIT_TYPE_SHORT={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+const VISIT_TYPES=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+const VISIT_TYPE_COLORS={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+const VISIT_TYPE_SHORT={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
 
 function getVisitTargets(){return sget('visitTargets')||{targets:{},perVisitor:{}};}
 function saveVisitTargets(t){sset('visitTargets',t);}
@@ -6745,7 +7591,10 @@ function obsToVisit(o){
     stage:t?t.stage:'',
     date:o.date||'',
     visitor:o.observer||'',
-    type:o.visitType||'Lesson Observation',
+    visitorPartner:o.observerPartner||'',
+    visitorPartnerPosition:o.observerPartnerPosition||'',
+    visitorPosition:o.observerPosition||visitorPosition(o.observer||''),
+    type:o.visitType||'Learning Walk',
     status:'Completed',
     www:o.www||'',
     ebi:o.ebi||'',
@@ -6879,39 +7728,71 @@ function renderVisitTracker(){
 <!-- ── Per-Visitor Progress Strip ──────────────────────────────────────────── -->
 ${(()=>{
   const obs=S.observations||[];
-  const allObservers=[...new Set(obs.map(o=>o.observer).filter(Boolean))].sort();
-  if(!allObservers.length)return '';
-  // Only show strip if visitor profiles have been configured
-  const profiles=getVisitorProfiles();
-  const hasProfiles=Object.keys(profiles).length>0;
-  const VT=['Lesson Observation','Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
-  const VTS={'Lesson Observation':'LO','Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
-  const VCOL={'Lesson Observation':'var(--navy)','Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
+  // Collect every unique person — normalize to trimmed string to prevent duplicates from whitespace/case
+  // Use a Map keyed by normalized name so the display name is preserved from first occurrence
+  const nameMap=new Map();
+  [...obs.map(o=>o.observer),...obs.map(o=>o.observerPartner)].filter(Boolean).forEach(n=>{
+    const key=n.trim().toLowerCase();
+    if(!nameMap.has(key))nameMap.set(key,n.trim());
+  });
+  const allNames=[...nameMap.values()].sort();
+  if(!allNames.length)return '';
+  const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
+  const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
+  const VCOL={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
   const posColor=(pos)=>pos==='Academic Head'?'var(--purple)':pos.startsWith('HOS')?'var(--navy)':pos.startsWith('HOD')?'var(--teal)':pos.startsWith('Mid')?'var(--amber)':'#9ca3af';
   return '<div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">👁 Visitor Progress — click any card to filter ↓</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
-    +allObservers.map(name=>{
+    +allNames.map(name=>{
+      // Position resolved from: Visitor Profiles → primary obs records → partner obs records → 'Other'
       const pos=visitorPosition(name);
       const dept=visitorDept(name);
-      const myObs=obs.filter(o=>o.observer===name);
       const col=posColor(pos);
-      const totalDone=myObs.length;
+      const nameKey=name.trim().toLowerCase();
+      // Primary observations (this person was the lead observer) — normalize comparison
+      const asPrimary=obs.filter(o=>(o.observer||'').trim().toLowerCase()===nameKey);
+      // Co-observations (this person was listed as partner) — normalize comparison
+      const asPartner=obs.filter(o=>(o.observerPartner||'').trim().toLowerCase()===nameKey);
+      // Combined: all visits this person was involved in (primary OR partner)
+      // Used for target progress — partner visits count toward the co-observer's personal target
+      const allMyObs=[...asPrimary];
+      asPartner.forEach(o=>{if(!allMyObs.find(x=>x.id===o.id))allMyObs.push(o);});
+      const totalPrimary=asPrimary.length;
+      const totalPartner=asPartner.length;
+      const totalAll=allMyObs.length;
       const totalTarget=VT.reduce((a,t)=>a+getTargetFor(name,t),0);
-      const pct=totalTarget?Math.min(100,Math.round(totalDone/totalTarget*100)):null;
-      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:160px;border-top:3px solid '+col+';background:#fff;cursor:pointer" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+esc(name)+'">'
+      // Progress bar uses COMBINED count (primary + partner) vs target
+      const pct=totalTarget?Math.min(100,Math.round(totalAll/totalTarget*100)):null;
+      const isPrimaryObserver=asPrimary.length>0;
+      const isCoObserver=asPartner.length>0;
+      // Role label
+      const roleLabel=isPrimaryObserver&&isCoObserver?'Observer + Co-observer':isCoObserver?'Co-observer (partner)':'Observer';
+      return '<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-width:170px;border-top:3px solid '+col+';background:#fff;cursor:pointer" data-vt-card="'+esc(name)+'" onclick="S.visitVisitor=\''+name+'\';render()" title="Click to filter by '+name+'">'
+        // Name + role badge
         +'<div style="font-weight:700;font-size:11px;margin-bottom:1px">'+esc(name)+'</div>'
-        +'<div style="font-size:9px;color:'+col+';font-weight:600;margin-bottom:6px">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
-        +'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px">'
-        +VT.map(t=>{
-          const cnt=myObs.filter(o=>o.visitType===t).length;
-          const tgt=getTargetFor(name,t);
-          if(!cnt&&!tgt)return '';
-          const ok=tgt&&cnt>=tgt;
-          return '<span title="'+t+'" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+'</span>';
-        }).join('')
-        +'</div>'
-        +(pct!==null?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+( pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalDone+'/'+totalTarget+' ('+pct+'%)</div>'
-          :'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalDone+' visit'+(totalDone!==1?'s':'')+' · no target</div>')
+        +'<div style="font-size:9px;color:'+col+';font-weight:600">'+esc(pos)+(dept?' · '+esc(dept):'')+'</div>'
+        +'<div style="font-size:9px;color:var(--muted);margin-bottom:6px;font-style:italic">'+roleLabel+'</div>'
+        // Visit type breakdown — combined (primary + co-observer visits count together)
+        +(isPrimaryObserver||isCoObserver?'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px">'
+          +VT.map(t=>{
+            const cnt=allMyObs.filter(o=>o.visitType===t).length;
+            const cntP=asPrimary.filter(o=>o.visitType===t).length;
+            const cntCo=asPartner.filter(o=>o.visitType===t).length;
+            const tgt=getTargetFor(name,t);
+            if(!cnt&&!tgt)return '';
+            const ok=tgt&&cnt>=tgt;
+            const title=t+(cntCo?' ('+cntP+' lead + '+cntCo+' co-obs)':'');
+            return '<span title="'+title+'" style="font-size:9px;background:'+VCOL[t]+'18;color:'+VCOL[t]+';border:1px solid '+VCOL[t]+(ok?';font-weight:700':'')+'44;border-radius:3px;padding:1px 4px">'+VTS[t]+' '+cnt+(tgt?'/'+tgt:'')+(ok?' ✓':'')+(cntCo?'<sup style="font-size:7px">+'+cntCo+'co</sup>':'')+'</span>';
+          }).join('')
+          +'</div>'
+          :'')
+        // Progress bar — combined count vs target
+        +(pct!==null
+          ?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+(pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div>'
+           +'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalAll+'/'+totalTarget+' ('+pct+'%) vs target'+(totalPartner?' · '+totalPartner+' as co-obs':'')+'</div>'
+          :((isPrimaryObserver||isCoObserver)
+            ?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalAll+' visit'+(totalAll!==1?'s':'')+' · no target set</div>'
+            :''))
         +'</div>';
     }).join('')
     +'</div>';
@@ -6959,13 +7840,14 @@ ${!isTeacherRole?`
   <div class="flex gap-2 items-center">
     ${canEdit()?`<button class="btn btn-primary btn-sm" data-modal="obs">+ New Visit (Observation)</button>`:''}
     <button class="btn btn-ghost btn-sm" id="visit-export-btn">⬇ CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="printSection('vt')">🖨 Print / PDF</button>
   </div>
   <span class="text-xs text-muted">${fv.length} record${fv.length!==1?'s':''} shown</span>
 </div>
 
 <!-- ── Table ─────────────────────────────────────────────────────────────────── -->
 ${fv.length?`
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+<div id="vt-print-table" style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
 <table style="border-collapse:collapse;width:100%;min-width:920px;font-size:12px">
   <thead>
     <tr style="background:var(--navy);color:#fff;font-size:11px">
@@ -6975,6 +7857,7 @@ ${fv.length?`
       <th style="padding:8px 6px;text-align:left">Grade</th>
       <th style="padding:8px 6px;text-align:left">Date</th>
       <th style="padding:8px 6px;text-align:left">Visitor</th>
+      <th style="padding:8px 6px;text-align:left">Position</th>
       <th style="padding:8px 6px;text-align:left">Type</th>
       <th style="padding:8px 6px;text-align:left">Status</th>
       <th style="padding:8px 6px;text-align:left">Note / WWW / EBI</th>
@@ -6996,7 +7879,11 @@ ${fv.length?`
       <td style="padding:6px 6px"><span class="badge ${v.campus==='Girls'?'badge-red':'badge-blue'}" style="font-size:10px">${esc(v.campus||'—')}</span></td>
       <td style="padding:6px 6px;color:var(--muted)">${esc(v.grade||'—')}</td>
       <td style="padding:6px 6px;white-space:nowrap;color:var(--muted)">${v.date||'<span style="color:#d1d5db">—</span>'}</td>
-      <td style="padding:6px 6px;white-space:nowrap">${esc(v.visitor||'—')}</td>
+      <td style="padding:6px 6px;white-space:nowrap">
+        <div>${esc(v.visitor||'—')}</div>
+        ${v.visitorPartner?'<div style="font-size:9px;color:var(--muted);margin-top:2px">+ '+esc(v.visitorPartner)+(v.visitorPartnerPosition?' <span style="opacity:.7">('+esc(v.visitorPartnerPosition)+')</span>':'')+'</div>':''}
+      </td>
+      <td style="padding:6px 6px;white-space:nowrap;font-size:10px;color:var(--muted)">${esc(v.visitorPosition||'—')}</td>
       <td style="padding:6px 6px">
         ${v.type?`<span class="badge" style="font-size:10px;background:${vcol}18;color:${vcol};border:1px solid ${vcol}44">${VISIT_TYPE_SHORT[v.type]||esc(v.type)}</span>`:'<span style="color:#d1d5db">—</span>'}
       </td>
