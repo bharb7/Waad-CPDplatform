@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-21-D47-impact-criteria-L3-auto">
+<meta name="app-build" content="2026-10-21-D48-visit-tracker-status">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-21-D47-impact-criteria-L3-auto';
+const BUILD_VERSION='2026-10-21-D48-visit-tracker-status';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -3351,6 +3351,7 @@ function printSection(kind){
     if(S.visitDateFrom||S.visitDateTo)filt.push('Dates: '+(S.visitDateFrom||'…')+' → '+(S.visitDateTo||'…'));
     if(S.visitSearch)filt.push('Search: '+S.visitSearch);
     if(S.visitNotYet)filt.push('Not-yet-visited only');
+    {const dt=document.getElementById('vt-print-dept');if(dt)parts.push('<h3 style="font-size:13px;color:#1e3a5f;margin:4px 0 6px">Department status</h3>'+dt.outerHTML);} // D48
     if(cards.length)parts.push('<div class="pr-cards">'+cards.map(c=>c.outerHTML).join('')+'</div>');
     if(table)parts.push(table.outerHTML);
   }
@@ -6633,6 +6634,7 @@ function bindEvents(){
     el.onclick=()=>{S.visitVisitor=el.dataset.visitVisitor;render();};
   });
   // Type pills
+  document.querySelectorAll('[data-visit-status]').forEach(el=>{el.onclick=()=>{S.visitStatus=el.dataset.visitStatus;S.visitNotYet=false;render();};});
   document.querySelectorAll('[data-visit-type]').forEach(el=>{
     el.onclick=()=>{S.visitType=el.dataset.visitType;render();};
   });
@@ -6657,10 +6659,10 @@ function bindEvents(){
   // CSV export
   const visitExportBtn=document.getElementById('visit-export-btn');
   if(visitExportBtn) visitExportBtn.onclick=()=>{
-    const allObs=S.observations||[];
+    const allObs=scopedObs(); // D48: export respects the viewer's scope
     const rows=allObs.map(o=>{
       const t=S.teachers.find(tc=>tc.id===o.tid);
-      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Type:o.visitType||'Learning Walk',WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
+      return{Teacher:t?t.name:'',Department:t?t.dept:'',Campus:t?t.section:'',Grade:t&&t.grades&&t.grades[0]?t.grades[0]:'',Date:o.date||'',Visitor:o.observer||'',Partner:o.observerPartner||'',Type:o.visitType||'Learning Walk',Status:VISIT_STATUS_LBL[visitStatusKey(o)],WWW:o.www||'',EBI:o.ebi||'',Action:o.action||'',Note:o.visitNote||''};
     });
     exportCSV('visit-tracker-'+new Date().toISOString().split('T')[0]+'.csv',rows);
   };
@@ -7667,7 +7669,10 @@ function obsToVisit(o){
     visitorPartnerPosition:o.observerPartnerPosition||'',
     visitorPosition:o.observerPosition||visitorPosition(o.observer||''),
     type:o.visitType||'Learning Walk',
-    status:'Completed',
+    statusKey:visitStatusKey(o),
+    status:VISIT_STATUS_LBL[visitStatusKey(o)],
+    tid:o.tid||null,
+    score:domAvg(o.scores),
     www:o.www||'',
     ebi:o.ebi||'',
     action:o.action||'',
@@ -7676,23 +7681,28 @@ function obsToVisit(o){
   };
 }
 
+// D48: visit status comes from the observation's own status (Planned / In Progress / Submitted).
+// "Overdue" = still Planned with a date already passed; "Stale" = In Progress for 7+ days. Read-only.
+const VISIT_STATUS_LBL={planned:'Planned',inprogress:'In Progress',submitted:'Submitted'};
+function visitStatusKey(o){const k=o&&o.obsStatus;return(k==='submitted'||k==='inprogress')?k:'planned';}
+function visitFlag(v){
+  const today=new Date().toISOString().split('T')[0];
+  if(v.statusKey==='planned'&&v.date&&v.date<today)return 'overdue';
+  if(v.statusKey==='inprogress'&&v.date){const d=(Date.now()-new Date(v.date+'T00:00:00').getTime())/86400000;if(d>=7)return 'stale';}
+  return '';
+}
 function renderVisitTracker(){
   const role=S.session?.role||'';
   const isTeacherRole=role==='teacher';
 
-  // Build visits from observations
-  let allObs=S.observations||[];
-  if(isScoped()){
-    const depts=myDepts(),sects=mySections();
-    if(depts.length) allObs=allObs.filter(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);return t&&depts.includes(t.dept);});
-    if(sects.length) allObs=allObs.filter(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);return t&&sects.includes(t.section);});
-  }
+  // Build visits from observations (same scoping as the Observations tab: dept, or grade+section)
+  let allObs=scopedObs();
   if(isTeacherRole){
     const myName=(S.session?.name||'').toLowerCase();
     allObs=allObs.filter(o=>{const t=S.teachers.find(tc=>tc.id===o.tid);return t&&t.name.toLowerCase()===myName;});
   }
-
   let visits=allObs.map(obsToVisit);
+  const teachersInScope=isTeacherRole?S.teachers.filter(t=>t.name.toLowerCase()===(S.session?.name||'').toLowerCase()):scopedTeachers();
 
   // Read filters from state
   const vd=S.visitDept||[], vc=S.visitCampus||[], vst=S.visitStatus||'';
@@ -7701,94 +7711,106 @@ function renderVisitTracker(){
   const vnot=S.visitNotYet||false;
   const vDateFrom=S.visitDateFrom||'', vDateTo=S.visitDateTo||'';
 
-  // Filtered view
-  let fv=visits;
-  if(vd.length) fv=fv.filter(v=>vd.includes(v.dept));
-  if(vc.length) fv=fv.filter(v=>vc.includes(v.campus));
-  if(vvis) fv=fv.filter(v=>(v.visitor||'').toLowerCase()===vvis.toLowerCase());
-  if(vtype) fv=fv.filter(v=>v.type===vtype);
-  if(vsearch) fv=fv.filter(v=>
-    (v.teacher||'').toLowerCase().includes(vsearch)||
-    (v.dept||'').toLowerCase().includes(vsearch)||
-    (v.visitor||'').toLowerCase().includes(vsearch)
-  );
-  if(vDateFrom) fv=fv.filter(v=>v.date>=vDateFrom);
-  if(vDateTo) fv=fv.filter(v=>v.date<=vDateTo);
-  if(vnot){
-    // "Not yet visited" = teachers in S.teachers with zero completed visits
-    const visitedNames=new Set(visits.map(v=>v.teacher));
-    fv=visits.filter(v=>!visitedNames.has(v.teacher)); // show zero-visit teachers
-    // Actually: show teachers who have NO observations at all
-    const allTeachersInScope=S.teachers.filter(t=>{
-      if(isScoped()){const d=myDepts(),s=mySections();if(d.length&&!d.includes(t.dept))return false;if(s.length&&!s.includes(t.section))return false;}
-      return true;
-    });
-    const visitedTeachers=new Set(visits.map(v=>v.teacher));
-    const unvisited=allTeachersInScope.filter(t=>!visitedTeachers.has(t.name));
-    // Build synthetic "not visited" rows for display
-    fv=unvisited.map(t=>({id:'nv-'+t.id,teacher:t.name,dept:t.dept,campus:t.section,grade:'',stage:t.stage,date:'',visitor:'',type:'',status:'Not Visited',www:'',ebi:'',action:'',note:'',obsId:null}));
-  }
+  // kv = visits matching every filter EXCEPT status → drives the summary panels
+  let kv=visits;
+  if(vd.length) kv=kv.filter(v=>vd.includes(v.dept));
+  if(vc.length) kv=kv.filter(v=>vc.includes(v.campus));
+  if(vvis) kv=kv.filter(v=>(v.visitor||'').toLowerCase()===vvis.toLowerCase()||(v.visitorPartner||'').toLowerCase()===vvis.toLowerCase());
+  if(vtype) kv=kv.filter(v=>v.type===vtype);
+  if(vsearch) kv=kv.filter(v=>(v.teacher||'').toLowerCase().includes(vsearch)||(v.dept||'').toLowerCase().includes(vsearch)||(v.visitor||'').toLowerCase().includes(vsearch)||(v.visitorPartner||'').toLowerCase().includes(vsearch));
+  if(vDateFrom) kv=kv.filter(v=>v.date>=vDateFrom);
+  if(vDateTo) kv=kv.filter(v=>v.date<=vDateTo);
 
-  // Sort by date desc
+  // Teachers counted in the summary: in scope + dept/campus filter
+  const tScope=teachersInScope.filter(t=>(!vd.length||vd.includes(t.dept))&&(!vc.length||vc.includes(t.section)));
+  const byTid={};kv.forEach(v=>{if(v.tid)(byTid[v.tid]=byTid[v.tid]||[]).push(v);});
+  const tCovered=tScope.filter(t=>(byTid[t.id]||[]).some(v=>v.statusKey==='submitted'));
+  const tPending=tScope.filter(t=>(byTid[t.id]||[]).length&&!(byTid[t.id]||[]).some(v=>v.statusKey==='submitted'));
+  const tNone=tScope.filter(t=>!(byTid[t.id]||[]).length);
+  const cnt=k=>kv.filter(v=>v.statusKey===k).length;
+  const nSub=cnt('submitted'),nProg=cnt('inprogress'),nPlan=cnt('planned');
+  const nOverdue=kv.filter(v=>visitFlag(v)==='overdue').length,nStale=kv.filter(v=>visitFlag(v)==='stale').length;
+  const unlinked=kv.filter(v=>!v.tid).length;
+  const subScores=kv.filter(v=>v.statusKey==='submitted'&&v.score>0).map(v=>v.score);
+  const avgSub=subScores.length?subScores.reduce((a,b)=>a+b,0)/subScores.length:0;
+
+  // Table rows
+  let fv=kv;
+  if(vst==='overdue'||vst==='stale') fv=fv.filter(v=>visitFlag(v)===vst);
+  else if(vst) fv=fv.filter(v=>v.statusKey===vst);
+  if(vnot){
+    fv=tNone.map(t=>({id:'nv-'+t.id,tid:t.id,teacher:t.name,dept:t.dept,campus:t.section,grade:(t.grades||[])[0]||'',stage:t.stage,date:'',visitor:'',type:'',statusKey:'none',status:'Not Visited',www:'',ebi:'',action:'',note:'',obsId:null}));
+  }
   fv=fv.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
-  // KPIs from all (unfiltered) visits
-  const allTeachersInScope=S.teachers.filter(t=>{
-    if(isScoped()){const d=myDepts(),s=mySections();if(d.length&&!d.includes(t.dept))return false;if(s.length&&!s.includes(t.section))return false;}
-    return true;
-  });
-  const visitedTeachers=new Set(visits.map(v=>v.teacher));
-  const typeBreakdown=VISIT_TYPES.map(t=>({type:t,count:visits.filter(v=>v.type===t).length}));
   const uniqueVisitors=[...new Set(visits.map(v=>v.visitor).filter(Boolean))].sort();
-  const allDepts=[...new Set(visits.map(v=>v.dept).filter(Boolean))].sort();
+  const coObsCount=new Set(visits.map(v=>v.visitorPartner).filter(Boolean).filter(n=>!uniqueVisitors.includes(n))).size;
+  const allDepts=[...new Set([...teachersInScope.map(t=>t.dept),...visits.map(v=>v.dept)].filter(Boolean))].sort();
 
-  // Targets — use new visitTargetsCfg system, fallback to legacy visitTargets
   const tgt=getVisitTargets();
-  // Merge legacy global targets with new cfg system (cfg.global takes precedence)
   const newCfg=getVisitTargetsCfg();
   const globalTargets={...(tgt.targets||{}), ...(newCfg.global||{})};
 
-  // "Not yet visited" — if any visit type has a global target, count teachers
-  // who have fewer total observations than the minimum target across all types.
-  // If no targets set at all: simply count teachers with 0 observations.
-  const minTarget=Math.min(...Object.values(globalTargets).filter(v=>v>0));
-  const hasAnyTarget=Object.keys(globalTargets).length>0;
-  let notYetCount, notYetLabel;
-  if(hasAnyTarget){
-    // Count teachers who have been visited 0 times (haven't started yet)
-    notYetCount=allTeachersInScope.filter(t=>!visitedTeachers.has(t.name)).length;
-    notYetLabel='Not Yet Visited';
-  } else {
-    notYetCount=allTeachersInScope.filter(t=>!visitedTeachers.has(t.name)).length;
-    notYetLabel='Not Yet Visited';
-  }
+  const statusBadge=s=>s==='Submitted'?'badge-green':s==='In Progress'?'badge-amber':s==='Not Visited'?'badge-red':'badge-gray';
+  const hasFilters=vd.length||vc.length||vvis||vtype||vsearch||vDateFrom||vDateTo||vnot||vst;
+  const pctOf=(a,b)=>b?Math.round(a/b*100):0;
+  const scopeLbl=[vd.length?vd.join(', '):'All departments',vc.length?vc.join('/'):'',vDateFrom||vDateTo?(vDateFrom||'…')+' → '+(vDateTo||'…'):''].filter(Boolean).join(' · ');
+  const seg=(n,tot,col,lbl)=>n?`<div title="${lbl}: ${n}" style="width:${tot?n/tot*100:0}%;background:${col}"></div>`:'';
+  const statPill=(key,lbl,n,col)=>`<div class="pill-opt ${vst===key?'sel':''}" data-visit-status="${key}" style="${vst===key?'':'border-left:3px solid '+col}">${lbl} <strong>${n}</strong></div>`;
 
-  // Status badge
-  const statusBadge=s=>s==='Completed'?'badge-green':s==='Not Visited'?'badge-red':'badge-gray';
-
-  // Active filter count for "clear all" button
-  const hasFilters=vd.length||vc.length||vvis||vtype||vsearch||vDateFrom||vDateTo||vnot;
+  // Department status rows
+  const deptRows=[...new Set(tScope.map(t=>t.dept).filter(Boolean))].sort().map(d=>{
+    const ts=tScope.filter(t=>t.dept===d);const ids=new Set(ts.map(t=>t.id));
+    const dv=kv.filter(v=>v.tid&&ids.has(v.tid));
+    const cov=ts.filter(t=>(byTid[t.id]||[]).some(v=>v.statusKey==='submitted')).length;
+    const pend=ts.filter(t=>(byTid[t.id]||[]).length&&!(byTid[t.id]||[]).some(v=>v.statusKey==='submitted')).length;
+    const none=ts.length-cov-pend;
+    const sc=dv.filter(v=>v.statusKey==='submitted'&&v.score>0).map(v=>v.score);
+    const last=dv.filter(v=>v.statusKey==='submitted').map(v=>v.date).filter(Boolean).sort().pop()||'';
+    return{d,t:ts.length,cov,pend,none,sub:dv.filter(v=>v.statusKey==='submitted').length,prog:dv.filter(v=>v.statusKey==='inprogress').length,plan:dv.filter(v=>v.statusKey==='planned').length,
+      od:dv.filter(v=>visitFlag(v)==='overdue').length,avg:sc.length?sc.reduce((a,b)=>a+b,0)/sc.length:0,last};
+  });
 
   return `
-<!-- ── KPI Row ──────────────────────────────────────────────────────────────── -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
-  <div class="kpi" style="border-top:3px solid var(--navy)"><div class="kpi-val">${visits.length}</div><div class="kpi-label">Total Visits Done</div></div>
-  <div class="kpi" style="border-top:3px solid var(--teal)"><div class="kpi-val">${visitedTeachers.size}</div><div class="kpi-label">Teachers Visited</div></div>
-  <div class="kpi" style="border-top:3px solid var(--red)" title="Teachers in scope with zero observations recorded"><div class="kpi-val">${notYetCount}</div><div class="kpi-label">${notYetLabel}</div><div style="font-size:9px;color:var(--muted);margin-top:2px">of ${allTeachersInScope.length} teachers</div></div>
-  <div class="kpi" style="border-top:3px solid var(--purple)"><div class="kpi-val">${uniqueVisitors.length}</div><div class="kpi-label">Active Visitors</div></div>
+<!-- ── D48 Status Summary ───────────────────────────────────────────────────── -->
+<div class="text-xs text-muted mb-2">Showing: <strong>${esc(scopeLbl)}</strong>${vvis?' · Visitor: <strong>'+esc(vvis)+'</strong>':''}${vtype?' · '+esc(vtype):''} — panels below follow the filters.</div>
+<div style="display:grid;grid-template-columns:1.3fr 1.3fr 1fr 1fr;gap:10px;margin-bottom:12px">
+  <div class="kpi" style="border-top:3px solid var(--navy);text-align:left">
+    <div class="flex justify-between items-center"><div class="kpi-label" style="margin:0;font-weight:700">Visits (${kv.length})</div><div class="text-xs text-muted">${pctOf(nSub,kv.length)}% submitted</div></div>
+    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#e5e7eb;margin:8px 0">${seg(nSub,kv.length,'#0F6E56','Submitted')}${seg(nProg,kv.length,'#E8B93B','In progress')}${seg(nPlan,kv.length,'#9ca3af','Planned')}</div>
+    <div class="flex gap-3 text-xs" style="flex-wrap:wrap"><span>✅ Submitted <strong>${nSub}</strong></span><span>⏳ In progress <strong>${nProg}</strong></span><span>📅 Planned <strong>${nPlan}</strong></span></div>
+  </div>
+  <div class="kpi" style="border-top:3px solid var(--teal);text-align:left">
+    <div class="flex justify-between items-center"><div class="kpi-label" style="margin:0;font-weight:700">Teacher coverage (${tScope.length})</div><div class="text-xs text-muted">${pctOf(tCovered.length,tScope.length)}% covered</div></div>
+    <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:#e5e7eb;margin:8px 0">${seg(tCovered.length,tScope.length,'#0F6E56','Has a submitted visit')}${seg(tPending.length,tScope.length,'#E8B93B','Visit planned / in progress only')}${seg(tNone.length,tScope.length,'#D6295E','No visit yet')}</div>
+    <div class="flex gap-3 text-xs" style="flex-wrap:wrap"><span>✅ Covered <strong>${tCovered.length}</strong></span><span>⏳ Pending <strong>${tPending.length}</strong></span><span style="cursor:pointer;text-decoration:underline" onclick="S.visitNotYet=true;S.visitStatus='';render()">❌ Not visited <strong>${tNone.length}</strong></span></div>
+  </div>
+  <div class="kpi" style="border-top:3px solid var(--red);text-align:left">
+    <div class="kpi-label" style="margin:0 0 6px;font-weight:700">⚠ Needs follow-up</div>
+    <div class="text-xs" style="cursor:pointer;margin-bottom:4px" onclick="S.visitStatus='overdue';S.visitNotYet=false;render()" title="Planned visits whose date has passed — done but not submitted, or missed">📅 Overdue planned: <strong style="color:${nOverdue?'var(--red)':'inherit'}">${nOverdue}</strong></div>
+    <div class="text-xs" style="cursor:pointer" onclick="S.visitStatus='stale';S.visitNotYet=false;render()" title="In progress for 7 days or more — feedback not yet released to the teacher">⏳ In progress 7+ days: <strong style="color:${nStale?'var(--amber)':'inherit'}">${nStale}</strong></div>
+    ${unlinked?`<div class="text-xs text-muted mt-1">${unlinked} visit(s) not linked to a teacher</div>`:''}
+  </div>
+  <div class="kpi" style="border-top:3px solid var(--purple);text-align:left">
+    <div class="kpi-label" style="margin:0 0 6px;font-weight:700">Quality (submitted)</div>
+    <div style="font-size:22px;font-weight:800;color:var(--navy)">${avgSub?avgSub.toFixed(2)+'<span style="font-size:12px;color:var(--muted);font-weight:400">/5</span>':'—'}</div>
+    <div class="text-xs text-muted">${uniqueVisitors.length} lead observer(s)${coObsCount?' + '+coObsCount+' co-observer(s)':''}</div>
+  </div>
 </div>
 
-<!-- ── Visit Type Breakdown ─────────────────────────────────────────────────── -->
+<!-- ── Visit Type Breakdown (submitted vs pipeline) ─────────────────────────── -->
 <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
   ${VISIT_TYPES.map(t=>{
-    const count=visits.filter(v=>v.type===t).length;
+    const tv=kv.filter(v=>v.type===t);
+    const sub=tv.filter(v=>v.statusKey==='submitted').length,prog=tv.filter(v=>v.statusKey==='inprogress').length,plan=tv.filter(v=>v.statusKey==='planned').length;
     const target=globalTargets[t]||0;
-    const pct=target?Math.min(100,Math.round(count/target*100)):0;
+    const pct=target?Math.min(100,Math.round(sub/target*100)):0;
     const col=VISIT_TYPE_COLORS[t];
-    return `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:130px;border-left:4px solid ${col}">
-      <div style="font-size:10px;font-weight:700;color:${col};margin-bottom:3px">${VISIT_TYPE_SHORT[t]}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--navy)">${count}${target?'<span style="font-size:12px;color:var(--muted);font-weight:400"> /'+target+'</span>':''}</div>
-      ${target?`<div style="height:4px;background:#e5e7eb;border-radius:2px;margin-top:4px"><div style="height:4px;border-radius:2px;background:${col};width:${pct}%"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">${pct}% of target</div>`:'<div style="font-size:9px;color:var(--muted)">No target set</div>'}
+    return `<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:150px;border-left:4px solid ${col}">
+      <div style="font-size:10px;font-weight:700;color:${col};margin-bottom:3px">${VISIT_TYPE_SHORT[t]} · ${t}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--navy)">${sub}${target?'<span style="font-size:12px;color:var(--muted);font-weight:400"> /'+target+'</span>':''} <span style="font-size:10px;color:var(--muted);font-weight:400">submitted</span></div>
+      <div style="font-size:10px;color:var(--muted)">⏳ ${prog} in progress · 📅 ${plan} planned</div>
+      ${target?`<div style="height:4px;background:#e5e7eb;border-radius:2px;margin-top:4px"><div style="height:4px;border-radius:2px;background:${col};width:${pct}%"></div></div><div style="font-size:9px;color:var(--muted);margin-top:2px">${pct}% of school target</div>`:'<div style="font-size:9px;color:var(--muted)">No school target set</div>'}
     </div>`;
   }).join('')}
   ${canEdit()?`<div style="background:#f9fafb;border:1px dashed var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px" onclick="S.modal=renderModal('visitTargets',{tab:'positions'});render()">
@@ -7796,6 +7818,27 @@ function renderVisitTracker(){
     <span style="font-size:9px;color:var(--muted)">Configure per position & dept</span>
   </div>`:''}
 </div>
+
+<!-- ── Department status ────────────────────────────────────────────────────── -->
+${!isTeacherRole&&deptRows.length?`<div class="card mb-3" style="padding:10px 12px">
+  <div class="flex justify-between items-center mb-2"><div class="card-title" style="margin:0">🏫 Department status — click a row to filter</div><span class="text-xs text-muted">Covered = teacher has at least one submitted visit</span></div>
+  <div id="vt-print-dept" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:820px">
+    <thead><tr style="background:var(--light)">
+      <th style="text-align:left">Department</th><th style="text-align:center">Teachers</th><th style="text-align:left;min-width:150px">Coverage</th>
+      <th style="text-align:center">✅ Covered</th><th style="text-align:center">⏳ Pending</th><th style="text-align:center">❌ Not visited</th>
+      <th style="text-align:center">Visits ✅ / ⏳ / 📅</th><th style="text-align:center">⚠ Overdue</th><th style="text-align:center">Avg (submitted)</th><th style="text-align:center">Last submitted</th></tr></thead>
+    <tbody>${deptRows.map(r=>{const pc=pctOf(r.cov,r.t);const bc=pc>=75?'#0F6E56':pc>=40?'#E8B93B':'#D6295E';const sel=vd.length===1&&vd[0]===r.d;
+      return `<tr style="cursor:pointer;${sel?'background:#eff6ff':''}" onclick="S.visitDept=${sel?'[]':"['"+r.d.replace(/'/g,"\\'")+"']"};S.visitNotYet=false;render()">
+      <td style="font-weight:600">${esc(r.d)}</td><td style="text-align:center">${r.t}</td>
+      <td><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;display:flex;height:7px;border-radius:4px;overflow:hidden;background:#e5e7eb">${seg(r.cov,r.t,'#0F6E56','Covered')}${seg(r.pend,r.t,'#E8B93B','Pending')}</div><span style="font-weight:700;color:${bc};min-width:34px;text-align:right">${pc}%</span></div></td>
+      <td style="text-align:center;color:#0F6E56;font-weight:700">${r.cov}</td><td style="text-align:center;color:#92400e">${r.pend||'—'}</td><td style="text-align:center;color:${r.none?'var(--red)':'inherit'};font-weight:${r.none?700:400}">${r.none||'—'}</td>
+      <td style="text-align:center">${r.sub} / ${r.prog} / ${r.plan}</td><td style="text-align:center;color:${r.od?'var(--red)':'var(--muted)'};font-weight:${r.od?700:400}">${r.od||'—'}</td>
+      <td style="text-align:center;font-weight:600">${r.avg?r.avg.toFixed(2):'—'}</td><td style="text-align:center;color:var(--muted)">${r.last||'—'}</td></tr>`;}).join('')}
+    <tr style="background:var(--light);font-weight:700"><td>Total</td><td style="text-align:center">${tScope.length}</td><td><span style="color:var(--navy)">${pctOf(tCovered.length,tScope.length)}% covered</span></td>
+      <td style="text-align:center">${tCovered.length}</td><td style="text-align:center">${tPending.length}</td><td style="text-align:center">${tNone.length}</td>
+      <td style="text-align:center">${nSub} / ${nProg} / ${nPlan}</td><td style="text-align:center">${nOverdue}</td><td style="text-align:center">${avgSub?avgSub.toFixed(2):'—'}</td><td></td></tr>
+    </tbody></table></div>
+</div>`:''}
 
 <!-- ── Per-Visitor Progress Strip ──────────────────────────────────────────── -->
 ${(()=>{
@@ -7809,6 +7852,7 @@ ${(()=>{
   });
   const allNames=[...nameMap.values()].sort();
   if(!allNames.length)return '';
+  // (visitor cards show the whole term, independent of the filters above)
   const VT=['Learning Walk','Developmental Visit','Evaluative Visit','Diagnostic Visit'];
   const VTS={'Learning Walk':'LW','Developmental Visit':'Dev','Evaluative Visit':'Eval','Diagnostic Visit':'Diag'};
   const VCOL={'Learning Walk':'var(--teal)','Developmental Visit':'#7c3aed','Evaluative Visit':'var(--amber)','Diagnostic Visit':'var(--red)'};
@@ -7832,9 +7876,12 @@ ${(()=>{
       const totalPrimary=asPrimary.length;
       const totalPartner=asPartner.length;
       const totalAll=allMyObs.length;
+      // D48: only SUBMITTED visits count toward targets; in-progress/planned shown separately
+      const mySub=allMyObs.filter(o=>visitStatusKey(o)==='submitted');
+      const myProg=allMyObs.filter(o=>visitStatusKey(o)==='inprogress').length,myPlan=allMyObs.filter(o=>visitStatusKey(o)==='planned').length;
+      const totalSub=mySub.length;
       const totalTarget=VT.reduce((a,t)=>a+getTargetFor(name,t),0);
-      // Progress bar uses COMBINED count (primary + partner) vs target
-      const pct=totalTarget?Math.min(100,Math.round(totalAll/totalTarget*100)):null;
+      const pct=totalTarget?Math.min(100,Math.round(totalSub/totalTarget*100)):null;
       const isPrimaryObserver=asPrimary.length>0;
       const isCoObserver=asPartner.length>0;
       // Role label
@@ -7847,9 +7894,9 @@ ${(()=>{
         // Visit type breakdown — combined (primary + co-observer visits count together)
         +(isPrimaryObserver||isCoObserver?'<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:4px">'
           +VT.map(t=>{
-            const cnt=allMyObs.filter(o=>o.visitType===t).length;
-            const cntP=asPrimary.filter(o=>o.visitType===t).length;
-            const cntCo=asPartner.filter(o=>o.visitType===t).length;
+            const cnt=mySub.filter(o=>o.visitType===t).length;
+            const cntP=asPrimary.filter(o=>o.visitType===t&&visitStatusKey(o)==='submitted').length;
+            const cntCo=asPartner.filter(o=>o.visitType===t&&visitStatusKey(o)==='submitted'&&(o.observer||'').trim().toLowerCase()!==nameKey).length;
             const tgt=getTargetFor(name,t);
             if(!cnt&&!tgt)return '';
             const ok=tgt&&cnt>=tgt;
@@ -7858,12 +7905,12 @@ ${(()=>{
           }).join('')
           +'</div>'
           :'')
-        // Progress bar — combined count vs target
+        +'<div style="font-size:9px;color:var(--muted);margin-bottom:3px">✅ '+totalSub+' submitted · ⏳ '+myProg+' · 📅 '+myPlan+'</div>'
         +(pct!==null
           ?'<div style="height:4px;background:#e5e7eb;border-radius:2px"><div style="height:4px;background:'+(pct>=100?'var(--teal)':pct>=60?'var(--amber)':'var(--red)')+';width:'+pct+'%;border-radius:2px"></div></div>'
-           +'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalAll+'/'+totalTarget+' ('+pct+'%) vs target'+(totalPartner?' · '+totalPartner+' as co-obs':'')+'</div>'
+           +'<div style="font-size:9px;color:var(--muted);margin-top:2px">'+totalSub+'/'+totalTarget+' ('+pct+'%) submitted vs target'+(totalPartner?' · '+totalPartner+' as co-obs':'')+'</div>'
           :((isPrimaryObserver||isCoObserver)
-            ?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalAll+' visit'+(totalAll!==1?'s':'')+' · no target set</div>'
+            ?'<div style="font-size:9px;color:var(--muted);font-style:italic">'+totalAll+' visit'+(totalAll!==1?'s':'')+' in total · no target set</div>'
             :''))
         +'</div>';
     }).join('')
@@ -7887,6 +7934,11 @@ ${!isTeacherRole?`
     <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Visitor:</span>
     <div class="pill-opt ${!vvis?'sel':''}" data-visit-visitor="">All</div>
     ${uniqueVisitors.map(v=>`<div class="pill-opt ${vvis===v?'sel':''}" data-visit-visitor="${v}">${v}</div>`).join('')}
+  </div>
+  <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Status:</span>
+    <div class="pill-opt ${!vst?'sel':''}" data-visit-status="">All <strong>${kv.length}</strong></div>
+    ${statPill('submitted','✅ Submitted',nSub,'#0F6E56')}${statPill('inprogress','⏳ In progress',nProg,'#E8B93B')}${statPill('planned','📅 Planned',nPlan,'#9ca3af')}${statPill('overdue','⚠ Overdue',nOverdue,'#D6295E')}${statPill('stale','⏳ 7+ days',nStale,'#E8743B')}
   </div>
   <div class="flex items-center gap-2 mb-2" style="flex-wrap:wrap">
     <span style="font-size:11px;font-weight:700;color:var(--muted);min-width:70px">Type:</span>
@@ -7942,7 +7994,7 @@ ${fv.length?`
     const rowBg=i%2===0?'#fff':'#f9fafb';
     const vcol=v.type?VISIT_TYPE_COLORS[v.type]||'#9ca3af':'#9ca3af';
     // Count all visits for this teacher (unfiltered)
-    const tchVisits=visits.filter(x=>x.teacher===v.teacher);
+    const tchVisits=v.tid?visits.filter(x=>x.tid===v.tid):visits.filter(x=>x.teacher===v.teacher);
     const tchByType=VISIT_TYPES.map(t=>({t,c:tchVisits.filter(x=>x.type===t).length})).filter(x=>x.c>0);
     const noteDisplay=[v.note,v.www?'WWW: '+v.www.slice(0,40):null,v.ebi?'EBI: '+v.ebi.slice(0,30):null].filter(Boolean).join(' · ');
     return `<tr style="background:${v.status==='Not Visited'?'#fef2f2':rowBg};border-bottom:1px solid var(--border)">
@@ -7959,11 +8011,11 @@ ${fv.length?`
       <td style="padding:6px 6px">
         ${v.type?`<span class="badge" style="font-size:10px;background:${vcol}18;color:${vcol};border:1px solid ${vcol}44">${VISIT_TYPE_SHORT[v.type]||esc(v.type)}</span>`:'<span style="color:#d1d5db">—</span>'}
       </td>
-      <td style="padding:6px 6px"><span class="badge ${statusBadge(v.status)}" style="font-size:10px">${v.status}</span></td>
+      <td style="padding:6px 6px;white-space:nowrap"><span class="badge ${statusBadge(v.status)}" style="font-size:10px">${v.status}</span>${visitFlag(v)==='overdue'?' <span class="badge badge-red" style="font-size:9px" title="Planned date has passed">overdue</span>':visitFlag(v)==='stale'?' <span class="badge badge-amber" style="font-size:9px" title="In progress for 7+ days">7+ days</span>':''}</td>
       <td style="padding:6px 6px;color:var(--muted);max-width:200px;font-size:11px;white-space:normal">${noteDisplay?esc(noteDisplay.slice(0,90))+(noteDisplay.length>90?'…':''):'—'}</td>
       <td style="padding:6px 6px;text-align:center">
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-          <span style="font-size:13px;font-weight:700;color:var(--navy)">${tchVisits.length}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--navy)" title="Submitted / total">${tchVisits.filter(x=>x.statusKey==='submitted').length}<span style="font-size:10px;color:var(--muted);font-weight:400">/${tchVisits.length}</span></span>
           <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:90px">
             ${tchByType.map(x=>`<span title="${x.t}: ${x.c}" style="font-size:9px;background:${VISIT_TYPE_COLORS[x.t]}18;color:${VISIT_TYPE_COLORS[x.t]};border:1px solid ${VISIT_TYPE_COLORS[x.t]}44;border-radius:3px;padding:0 3px">${VISIT_TYPE_SHORT[x.t]}×${x.c}</span>`).join('')}
           </div>
@@ -7977,7 +8029,7 @@ ${fv.length?`
   </tbody>
 </table>
 </div>`
-:'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(vnot?'All teachers in scope have been visited — great work! 🎉':'No visits recorded yet. Use + New Visit to add an observation.')+'</div>'}
+:'<div class="card" style="text-align:center;color:var(--muted);padding:30px;font-style:italic">'+(vnot?'All teachers in scope have been visited — great work! 🎉':kv.length?'No visits match this status.':'No visits recorded yet. Use + New Visit to add an observation.')+'</div>'}
 `;}
 
 boot();
