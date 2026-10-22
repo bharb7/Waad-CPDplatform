@@ -13,7 +13,7 @@
 <!-- Build marker used by checkForNewVersion() (see script) to detect when a browser tab is
      running an old cached copy of this page while a newer deploy is live, and auto-refresh it —
      bump this value (e.g. to today's date + a letter) every time this file is redeployed. -->
-<meta name="app-build" content="2026-10-21-D48-visit-tracker-status">
+<meta name="app-build" content="2026-10-22-D49-leader-rating-fix">
 <title>Waad Academy — School Improvement Platform</title>
 <style>
 :root{
@@ -113,7 +113,7 @@ tr:hover td{background:#fafafa}
 <div id="app"></div>
 <script>
 'use strict';
-const BUILD_VERSION='2026-10-21-D48-visit-tracker-status';
+const BUILD_VERSION='2026-10-22-D49-leader-rating-fix';
 /* SUPABASE MIGRATION REQUIRED for new obs fields (run once in Supabase SQL editor):
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS period TEXT DEFAULT '';
    ALTER TABLE observations ADD COLUMN IF NOT EXISTS time_slot TEXT DEFAULT '';
@@ -511,7 +511,7 @@ async function loadAll(){
       S.schedule=_lsRows.length>0?_lsRows:SEED_SCHEDULE.filter(r=>!(sget('deletedSeeds')||[]).includes(r.id));
     }
     if(impacts&&Array.isArray(impacts)){S.impacts=impacts.map(mapImpact);sset('impacts',S.impacts);}
-    else S.impacts=sget('impacts')||[];
+    else S.impacts=(sget('impacts')||[]).map(i=>({...i,level:String(i.level||'1')}));
     if(progress&&Array.isArray(progress)){S.progress=progress.map(mapProgress);sset('progress',S.progress);}
     else S.progress=sget('progress')||[];
     if(snaps&&Array.isArray(snaps)){S.snapshots=snaps.map(mapSnap);sset('snapshots',S.snapshots);}
@@ -720,7 +720,7 @@ function mapSched(r){return{id:r.id,category:r.category||'',program:r.program||'
 // THESE fields to actually show what was entered, not the legacy one that was never written to.
 function schedTimeLabel(r){if(r.timeFrom&&r.timeTo)return r.timeFrom+'–'+r.timeTo;return r.timeFrom||r.time||'';}
 function mapDeptTLC(r){return{id:r.id,depts:r.departments||[],facilitator:r.facilitator||'',dateFrom:r.date_from||'',dateTo:r.date_to||'',application:r.application||[],applicationCustom:r.application_custom||'',appContent:r.app_content||'',collaboration:r.collaboration||'',activeLearning:r.active_learning||'',focusFeed:r.focus_feed||'',learned:r.learned||'',strategies:r.strategies||'',commitment:r.commitment||'',artifactImage:r.artifact_image||'',artifactImages:r.artifact_images||[],artifactVideos:r.artifact_videos||[],tripletId:r.linked_triplet_id||'',teacherResponses:r.teacher_responses||{},attachments:r.attachments||[]}}
-function mapImpact(r){return{id:r.id,level:r.level||'1',type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
+function mapImpact(r){return{id:r.id,level:String(r.level||'1'),type:r.type||'',tid:r.teacher_id||null,value:r.value||'',evidence:r.evidence||'',date:r.date||'',term:r.term||''}}
 function mapProgress(r){return{id:r.id,mode:r.mode||'internal',subject:r.subject||'',dept:r.dept||'',grade:r.grade||'',section:r.section||'',scores:r.stage_scores||{},folderLink:r.folder_link||''}}
 function mapSnap(r){return{id:r.id,ratings:r.ratings||{},obsCount:r.obs_count||0,tripCount:r.trip_count||0,lwCount:r.lw_count||0,dept:r.dept||'Whole School',date:r.submitted_at||new Date().toISOString()}}
 
@@ -3780,7 +3780,7 @@ function renderImpact(){
     const nObs=recs.filter(r=>r.src==='obs').length,nLW=recs.filter(r=>r.src==='lw').length;
     html+=`<div style="border:2px solid var(--teal);border-radius:10px;padding:16px;margin-bottom:14px">
   <div style="font-size:14px;font-weight:700;color:var(--teal);margin-bottom:4px">Level 3 — Impact on Students${iDepts.length?' · '+iDepts.join(', '):''}${iSects.length?' · '+iSects.join('/'):''}${iStages.length?' · '+iStages.map(x=>x===STAGE_NONE?'Not set':x).join('/'):''}</div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Calculated automatically from what learners were seen doing: the rubric criteria listed under each indicator, scored in <strong>${nObs}</strong> observation(s) and <strong>${nLW}</strong> domain learning walk(s) within the current filters. Trend compares the earlier half of these records with the later half (needs 4+).</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Calculated automatically from what learners were seen doing: the rubric criteria listed under each indicator, scored in <strong>${nObs}</strong> observation(s) and <strong>${nLW}</strong> domain learning walk(s) within the current filters. Trend compares the earlier half of these records with the later half (needs 4+).<br><strong>Leader rating</strong> (1–5 buttons on each card): your own professional judgement of that indicator, e.g. from book looks, pupil voice or data. Click a number to save it, ✕ to remove it. It sits beside the evidence score and never changes it.</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
   ${rows.map(row=>{
     const ds=row.st.avg;
